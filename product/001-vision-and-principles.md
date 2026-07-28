@@ -1,10 +1,36 @@
 ---
+Document Id: PRD-VISION-PRINCIPLES
+Title: Vision & Principles
+Layer: L2 · Product — Продукт
 Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Version: 2.0.0
+Last Updated: 2026-07-28
+Reading Order: 2.3
+Authority Rank: 10
+Authority Scope: Продуктовые принципы. Видение передано product/001-product-vision.md.
 
 Owners:
   - Product Owner
+
+Depends On:
+  - product/000-product-overview.md
+  - product/001-product-vision.md
+  - school/000-school-overview.md
+
+Required By:
+  - product/002-product-boundaries.md
+  - product/003-personas.md
+
+Defines:
+  - Продуктовые принципы
+
+Must Not Define:
+  - Видение продукта (принадлежит product/001-product-vision.md)
+  - Целевое восприятие продукта (принадлежит product/001-product-vision.md)
+  - Миссия продукта (принадлежит product/000-product-overview.md)
+  - Определение успеха (принадлежит product/000-product-overview.md)
+  - Границы продукта (принадлежит product/002-product-boundaries.md)
+  - Роли (принадлежит product/003-personas.md)
 
 Related Documents:
   - 000-product-overview.md
@@ -13,6 +39,16 @@ Related Documents:
 ---
 
 # Vision & Principles
+
+> **Видение передано.** Владелец понятия «Видение продукта» — [`product/001-product-vision.md`](001-product-vision.md) (PD-0011).
+>
+> Настоящий документ владеет **продуктовыми принципами**. Раздел «Vision» ниже сохранён как история и не является источником: при расхождении действует документ-владелец.
+>
+> Прочие разделы — Product Mission, Success Definition, Anti-Principles и другие — **не перераспределялись**. Их владение будет определено при следующей декомпозиции.
+>
+> См. [`governance/decisions/002-pending-decisions.md`](../governance/decisions/002-pending-decisions.md), PD-0009 и PD-0011.
+
+---
 
 > Этот документ определяет философию Belcanto Product.
 >
@@ -23,6 +59,8 @@ Related Documents:
 ---
 
 # Vision
+
+> **История.** Владелец — [`product/001-product-vision.md`](001-product-vision.md). Текст сохранён без изменений и не является источником.
 
 Belcanto Product должен стать цифровым продолжением школы.
 
@@ -276,4 +314,6 @@ Belcanto Product никогда не должен:
 
 | Version | Description |
 |----------|-------------|
+| 2.0.0 | Видение передано product/001-product-vision.md (PD-0011). Прочие разделы не перераспределялись. |
+| 1.1.0 | Объявлено переходное владение Видением (PD-0009). |
 | 1.0.0 | Первая официальная версия документа. |

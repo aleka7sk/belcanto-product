@@ -5,7 +5,7 @@ Layer: L2 · Product — Продукт
 Status: Scaffold
 Version: 0.1.0
 Last Updated: 2026-07-28
-Reading Order: 2.6
+Reading Order: 2.11
 Authority Rank: 10
 Authority Scope: Смысл, границы, цели и правила продукта. Высшая содержательная власть.
 

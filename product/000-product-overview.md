@@ -1,10 +1,34 @@
 ---
+Document Id: PRD-OVERVIEW
+Title: Belcanto Product
+Layer: L2 · Product — Продукт
 Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Version: 1.1.0
+Last Updated: 2026-07-28
+Reading Order: 2.1
+Authority Rank: 10
+Authority Scope: Что такое продукт, миссия, определение успеха. Не имеет власти над Видением.
 
 Owners:
   - Product Owner
+
+Depends On:
+  - school/000-school-overview.md
+
+Required By:
+  - product/001-vision-and-principles.md
+  - product/002-product-boundaries.md
+  - product/003-personas.md
+
+Defines:
+  - Что такое Belcanto Product
+  - Миссия продукта
+  - Определение успеха
+
+Must Not Define:
+  - Видение продукта (принадлежит product/001-vision-and-principles.md, PD-0009)
+  - Границы продукта (принадлежит product/002-product-boundaries.md)
+  - Роли (принадлежит product/003-personas.md)
 
 Related Documents:
   - ../school/000-school-overview.md
@@ -43,6 +67,10 @@ Belcanto Product не предназначен для продажи услуг 
 ---
 
 # Видение
+
+> **Неавторитетное изложение.** Владелец понятия «Видение продукта» — [`product/001-vision-and-principles.md`](001-vision-and-principles.md) (PD-0009).
+>
+> Текст ниже сохранён без изменений и подлежит согласованию с владельцем при декомпозиции. До этого момента при расхождении действует формулировка владельца.
 
 Мы создаем продукт, который станет центральной цифровой платформой школы Belcanto.
 

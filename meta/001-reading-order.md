@@ -134,16 +134,17 @@ Must Not Define:
 | 1.8 | `school/007-open-questions.md` | Что ещё не подтверждено |
 | **2 · Product** | | **Зачем существует продукт?** |
 | 2.1 | `product/000-product-overview.md` | Что такое продукт (главный документ) |
-| 2.2 | `product/001-vision-and-principles.md` | Видение и принципы |
-| 2.3 | `product/002-product-boundaries.md` | Границы продукта |
-| 2.4 | `product/003-personas.md` | Для кого продукт |
-| 2.5 | `product/004-core-concepts.md` | Ключевые концепции |
-| 2.6 | `product/005-domain-glossary.md` | *(указатель на `language/`)* |
-| 2.7 | `product/006-business-goals.md` | Бизнес-цели |
-| 2.8 | `product/007-success-metrics.md` | Метрики успеха |
-| 2.9 | `product/008-value-propositions.md` | Ценность по ролям |
-| 2.10 | `product/009-product-rules.md` | Продуктовые правила |
-| 2.11 | `product/010-risks-and-assumptions.md` | Риски и допущения |
+| 2.2 | `product/001-product-vision.md` | **Видение продукта** — корень цепочки вывода |
+| 2.3 | `product/001-vision-and-principles.md` | Продуктовые принципы |
+| 2.4 | `product/002-product-boundaries.md` | Границы продукта |
+| 2.5 | `product/003-personas.md` | Для кого продукт |
+| 2.6 | `product/004-core-concepts.md` | Ключевые концепции |
+| 2.7 | `product/005-domain-glossary.md` | *(указатель на `language/`)* |
+| 2.8 | `product/006-business-goals.md` | Бизнес-цели |
+| 2.9 | `product/007-success-metrics.md` | Метрики успеха |
+| 2.10 | `product/008-value-propositions.md` | Ценность по ролям |
+| 2.11 | `product/009-product-rules.md` | Продуктовые правила |
+| 2.12 | `product/010-risks-and-assumptions.md` | Риски и допущения |
 | **3 · Language** | | **Что означает каждое слово?** |
 | 3.1 | `language/000-language-overview.md` | Зачем единый язык |
 | 3.2 | `language/001-ubiquitous-language.md` | Каталог терминов |
@@ -199,6 +200,7 @@ Must Not Define:
 | 9.3 | `governance/002-review-checklist.md` | Приёмка |
 | 9.4 | `governance/decisions/000-decision-log.md` | Журнал решений |
 | 9.5 | `governance/decisions/001-decision-template.md` | Форма решения |
+| 9.6 | `governance/decisions/002-pending-decisions.md` | Отложенные решения (PD-XXXX) |
 | **10 · AI** | | **Как работает агент?** |
 | 10.1 | `ai/000-ai-overview.md` | Границы AI-слоя |
 | 10.2 | `ai/001-agent-reading-protocol.md` | Что читать перед задачей |

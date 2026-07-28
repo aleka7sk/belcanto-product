@@ -86,7 +86,8 @@ Must Not Define:
 | Понятие | Владелец |
 |---------|----------|
 | Что такое Belcanto Product, миссия, определение успеха | `product/000-product-overview.md` |
-| Видение, продуктовые принципы | `product/001-vision-and-principles.md` |
+| **Видение продукта**, целевое восприятие учеником | `product/001-product-vision.md` |
+| Продуктовые принципы | `product/001-vision-and-principles.md` |
 | Границы продукта, что продуктом не является | `product/002-product-boundaries.md` |
 | Роли и персоны | `product/003-personas.md` |
 | Ключевые концепции продукта | `product/004-core-concepts.md` |
