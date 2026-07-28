@@ -16,6 +16,7 @@ Depends On:
   - school/000-school-overview.md
 
 Required By:
+  - product/001-product-vision.md
   - product/001-vision-and-principles.md
   - product/002-product-boundaries.md
   - product/003-personas.md

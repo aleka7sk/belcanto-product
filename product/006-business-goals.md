@@ -14,6 +14,7 @@ Owners:
 
 Depends On:
   - product/000-product-overview.md
+  - product/001-product-vision.md
   - school/005-current-owner-workflow.md
 
 Required By:
