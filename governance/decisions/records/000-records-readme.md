@@ -5,7 +5,7 @@ Layer: L9 · Governance — Управление
 Status: Scaffold
 Version: 0.1.0
 Last Updated: 2026-07-28
-Reading Order: 9.6
+Reading Order: 9.7
 Authority Rank: 0
 Authority Scope: Решения и изменения. Принятое решение (PDR) изменяет любой документ.
 

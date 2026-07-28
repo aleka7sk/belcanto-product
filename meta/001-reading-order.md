@@ -88,6 +88,8 @@ Must Not Define:
 
 | Позиция | Документ | Отвечает на вопрос |
 |---------|----------|--------------------|
+| **Project** | | **Ради чего и в каком порядке ведётся проект?** |
+| 0.0 | `docs/project/project-constitution.md` | Конституция проекта — нормативный контекст |
 | **0 · Meta** | | **Как устроена документация?** |
 | 0.1 | `meta/000-documentation-system.md` | Как устроены слои |
 | 0.2 | `meta/001-reading-order.md` | В каком порядке читать |
@@ -201,6 +203,7 @@ Must Not Define:
 | 9.4 | `governance/decisions/000-decision-log.md` | Журнал решений |
 | 9.5 | `governance/decisions/001-decision-template.md` | Форма решения |
 | 9.6 | `governance/decisions/002-pending-decisions.md` | Отложенные решения (PD-XXXX) |
+| 9.7 | `governance/decisions/records/000-records-readme.md` | Правила каталога записей решений |
 | **10 · AI** | | **Как работает агент?** |
 | 10.1 | `ai/000-ai-overview.md` | Границы AI-слоя |
 | 10.2 | `ai/001-agent-reading-protocol.md` | Что читать перед задачей |

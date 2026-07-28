@@ -187,6 +187,7 @@ Must Not Define:
 | Запреты агента | `ai/005-prohibited-actions.md` |
 | Границы AI внутри продукта | `ai/006-ai-in-product-boundary.md` |
 | Внешние источники | `assets/references/000-references.md` |
+| Инженерная философия проекта, порядок архитектурного потока, правило простоты, роль архитектора | `docs/project/project-constitution.md` |
 | Структура документации | `meta/000-documentation-system.md` |
 | Порядок чтения | `meta/001-reading-order.md` |
 | Авторитет и конфликты | `meta/002-authority-model.md` |
