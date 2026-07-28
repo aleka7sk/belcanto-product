@@ -17,7 +17,7 @@
 | Дизайнер | маршрут «Дизайнер» в [`meta/001-reading-order.md`](meta/001-reading-order.md) |
 | Методист | маршрут «Преподаватель / методист» там же |
 | Руководитель | маршрут «Руководитель» там же |
-| **AI-агент** | [`CLAUDE.md`](CLAUDE.md) → [`ai/001-agent-reading-protocol.md`](ai/001-agent-reading-protocol.md) |
+| **AI-агент** | [`CLAUDE.md`](CLAUDE.md) → [`meta/standard/008-agent-change-protocol.md`](meta/standard/008-agent-change-protocol.md) |
 
 ---
 

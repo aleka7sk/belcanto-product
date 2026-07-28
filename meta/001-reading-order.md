@@ -16,7 +16,6 @@ Depends On:
   - meta/000-documentation-system.md
 
 Required By:
-  - ai/001-agent-reading-protocol.md
   - domain/001-domain-reading-order.md
   - README.md
 
@@ -58,7 +57,6 @@ Must Not Define:
 
 **Зависит от этого документа:**
 
-- [`ai/001-agent-reading-protocol.md`](../ai/001-agent-reading-protocol.md)
 - [`domain/001-domain-reading-order.md`](../domain/001-domain-reading-order.md)
 - [`README.md`](../README.md)
 
@@ -206,11 +204,11 @@ Must Not Define:
 | 9.7 | `governance/decisions/records/000-records-readme.md` | Правила каталога записей решений |
 | **10 · AI** | | **Как работает агент?** |
 | 10.1 | `ai/000-ai-overview.md` | Границы AI-слоя |
-| 10.2 | `ai/001-agent-reading-protocol.md` | Что читать перед задачей |
-| 10.3 | `ai/002-authority-resolution.md` | Что делать при противоречии |
-| 10.4 | `ai/003-writing-rules.md` | Как писать |
-| 10.5 | `ai/004-task-playbooks.md` | Сценарии задач |
-| 10.6 | `ai/005-prohibited-actions.md` | Что запрещено |
+| 10.2 | ~~`ai/001-agent-reading-protocol.md`~~ | **`Superseded`** (PD-0026) — история |
+| 10.3 | ~~`ai/002-authority-resolution.md`~~ | **`Superseded`** (PD-0026) — история |
+| 10.4 | ~~`ai/003-writing-rules.md`~~ | **`Superseded`** (PD-0026) — история |
+| 10.5 | ~~`ai/004-task-playbooks.md`~~ | **`Superseded`** (PD-0026) — история |
+| 10.6 | ~~`ai/005-prohibited-actions.md`~~ | **`Superseded`** (PD-0026) — история |
 | 10.7 | `ai/006-ai-in-product-boundary.md` | AI внутри продукта |
 | **11 · Assets** | | **Где материалы?** |
 | 11.1 | `assets/000-assets-overview.md` | Состав материалов |
@@ -264,7 +262,7 @@ product/000 → product/006 → product/007 → roadmap/ (весь слой)
 
 **AI-агент**
 
-Не использует маршруты из этого раздела. Агент следует [`ai/001-agent-reading-protocol.md`](../ai/001-agent-reading-protocol.md), который задаёт набор чтения **от задачи**, а не от роли.
+Не использует маршруты из этого раздела. Агент следует [`meta/standard/008-agent-change-protocol.md`](standard/008-agent-change-protocol.md), раздел 6.3, который задаёт обязательный набор чтения **от задачи**, а не от роли.
 
 ### 6.4. Минимальный набор для задачи
 

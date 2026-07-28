@@ -17,7 +17,6 @@ Depends On:
 
 Required By:
   - meta/006-validation-rules.md
-  - ai/001-agent-reading-protocol.md
   - governance/002-review-checklist.md
 
 Defines:
@@ -57,7 +56,6 @@ Must Not Define:
 **Зависит от этого документа:**
 
 - [`meta/006-validation-rules.md`](006-validation-rules.md)
-- [`ai/001-agent-reading-protocol.md`](../ai/001-agent-reading-protocol.md)
 - [`governance/002-review-checklist.md`](../governance/002-review-checklist.md)
 
 ---
@@ -183,8 +181,6 @@ Must Not Define:
 | Решения (`PDR-XXXX`) | `governance/decisions/000-decision-log.md` |
 | Отложенные решения (`PD-XXXX`) | `governance/decisions/002-pending-decisions.md` |
 | **Модель атрибуции целей** | `governance/decisions/002-pending-decisions.md`, PD-0015 |
-| Протокол чтения агента | `ai/001-agent-reading-protocol.md` |
-| Запреты агента | `ai/005-prohibited-actions.md` |
 | Границы AI внутри продукта | `ai/006-ai-in-product-boundary.md` |
 | Внешние источники | `assets/references/000-references.md` |
 | Инженерная философия проекта, порядок архитектурного потока, правило простоты, роль архитектора | `docs/project/project-constitution.md` |

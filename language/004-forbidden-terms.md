@@ -20,7 +20,6 @@ Depends On:
 Required By:
   - language/003-ui-terminology.md
   - design/010-content-and-voice.md
-  - ai/003-writing-rules.md
 
 Defines:
   - Список запрещённых слов
@@ -68,7 +67,6 @@ Must Not Define:
 
 - [`language/003-ui-terminology.md`](../language/003-ui-terminology.md)
 - [`design/010-content-and-voice.md`](../design/010-content-and-voice.md)
-- [`ai/003-writing-rules.md`](../ai/003-writing-rules.md)
 
 ---
 

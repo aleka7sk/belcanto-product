@@ -21,7 +21,6 @@ Depends On:
 
 Required By:
   - meta/011-conformance-statement.md
-  - ai/004-task-playbooks.md
   - governance/002-review-checklist.md
 
 Defines:
@@ -67,7 +66,6 @@ Must Not Define:
 **Зависит от этого документа:**
 
 - [`meta/011-conformance-statement.md`](011-conformance-statement.md)
-- [`ai/004-task-playbooks.md`](../ai/004-task-playbooks.md)
 - [`governance/002-review-checklist.md`](../governance/002-review-checklist.md)
 
 ---

@@ -3,9 +3,9 @@ Document Id: DOM-READING-ORDER
 Title: Доменный слой — порядок чтения
 Layer: L4 · Domain — Доменная модель
 Status: Scaffold
-Version: 0.1.0
-Last Updated: 2026-07-28
-Reading Order: 4.1
+Version: 0.1.1
+Last Updated: 2026-07-29
+Reading Order: 4.2
 Authority Rank: 30
 Authority Scope: Семантика модели: сущности, события, политики, команды.
 
@@ -18,7 +18,7 @@ Depends On:
   - meta/001-reading-order.md
 
 Required By:
-  - ai/001-agent-reading-protocol.md
+  - (нет)
 
 Defines:
   - Порядок чтения доменных документов
@@ -63,14 +63,13 @@ Must Not Define:
 
 **Зависит от этого документа (обновить при изменении):**
 
-- [`ai/001-agent-reading-protocol.md`](../ai/001-agent-reading-protocol.md)
 
 ---
 
 ## 4. Reading Order · Место в порядке чтения
 
 - Слой: **L4 · Domain — Доменная модель**
-- Позиция в порядке чтения: **4.1**
+- Позиция в порядке чтения: **4.2**
 - Полный порядок чтения: [`meta/001-reading-order.md`](../meta/001-reading-order.md)
 - Правило авторитета: [`meta/002-authority-model.md`](../meta/002-authority-model.md)
 
@@ -102,4 +101,5 @@ _Содержание не написано._
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 0.1.1 | 2026-07-29 | Позиция чтения приведена к реестру-владельцу `meta/001` (4.1 → 4.2). Содержание не изменялось. |
 | 0.1.0 | 2026-07-28 | Создан скелет документа. |

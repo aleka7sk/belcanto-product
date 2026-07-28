@@ -18,7 +18,6 @@ Depends On:
 
 Required By:
   - governance/001-change-management.md
-  - ai/004-task-playbooks.md
 
 Defines:
   - Порядок работы над документом
@@ -60,7 +59,6 @@ Must Not Define:
 **Зависит от этого документа:**
 
 - [`governance/001-change-management.md`](../governance/001-change-management.md)
-- [`ai/004-task-playbooks.md`](../ai/004-task-playbooks.md)
 
 ---
 
@@ -177,7 +175,7 @@ PDR: не требуется (ранг 40, MINOR)
 | Владелец документа | свой документ до `MAJOR` при наличии PDR | — |
 | Любой участник | предложить изменение, открыть PDR, пометить `Disputed` | принимать `Accepted` |
 | Product Owner | любой документ через PDR | обходить PDR для ранга ≤ 30 |
-| AI-агент | по [`ai/004-task-playbooks.md`](../ai/004-task-playbooks.md), в пределах [`ai/005-prohibited-actions.md`](../ai/005-prohibited-actions.md) | принимать решения, разрешать противоречия |
+| AI-агент | по [`meta/standard/017-authoring-pipeline.md`](standard/017-authoring-pipeline.md), в пределах [`meta/standard/008-agent-change-protocol.md`](standard/008-agent-change-protocol.md), раздел 6.5 | принимать решения, разрешать противоречия |
 
 ### 6.6. Частая ошибка
 

@@ -21,7 +21,6 @@ Required By:
   - meta/006-validation-rules.md
   - meta/007-ownership-map.md
   - governance/002-review-checklist.md
-  - ai/005-prohibited-actions.md
 
 Defines:
   - Правило единственного определения
@@ -67,7 +66,6 @@ Must Not Define:
 - [`meta/006-validation-rules.md`](006-validation-rules.md)
 - [`meta/007-ownership-map.md`](007-ownership-map.md)
 - [`governance/002-review-checklist.md`](../governance/002-review-checklist.md)
-- [`ai/005-prohibited-actions.md`](../ai/005-prohibited-actions.md)
 
 ---
 

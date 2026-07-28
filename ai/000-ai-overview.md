@@ -18,7 +18,6 @@ Depends On:
   - meta/002-authority-model.md
 
 Required By:
-  - ai/001-agent-reading-protocol.md
   - CLAUDE.md
 
 Defines:
@@ -64,7 +63,6 @@ Must Not Define:
 
 **Зависит от этого документа (обновить при изменении):**
 
-- [`ai/001-agent-reading-protocol.md`](../ai/001-agent-reading-protocol.md)
 - [`CLAUDE.md`](../CLAUDE.md)
 
 ---

@@ -19,7 +19,6 @@ Depends On:
 
 Required By:
   - governance/002-review-checklist.md
-  - ai/003-writing-rules.md
 
 Defines:
   - Общие правила валидации, применимые ко всем документам
@@ -63,7 +62,6 @@ Must Not Define:
 **Зависит от этого документа:**
 
 - [`governance/002-review-checklist.md`](../governance/002-review-checklist.md)
-- [`ai/003-writing-rules.md`](../ai/003-writing-rules.md)
 
 ---
 

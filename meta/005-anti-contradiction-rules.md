@@ -21,7 +21,6 @@ Required By:
   - meta/006-validation-rules.md
   - governance/001-change-management.md
   - governance/002-review-checklist.md
-  - ai/002-authority-resolution.md
 
 Defines:
   - Виды противоречий
@@ -67,7 +66,6 @@ Must Not Define:
 - [`meta/006-validation-rules.md`](006-validation-rules.md)
 - [`governance/001-change-management.md`](../governance/001-change-management.md)
 - [`governance/002-review-checklist.md`](../governance/002-review-checklist.md)
-- [`ai/002-authority-resolution.md`](../ai/002-authority-resolution.md)
 
 ---
 

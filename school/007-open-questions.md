@@ -3,9 +3,9 @@ Document Id: SCH-OPEN-QUESTIONS
 Title: Открытые вопросы к школе
 Layer: L1 · Reality — Школа Belcanto
 Status: Scaffold
-Version: 0.1.0
-Last Updated: 2026-07-28
-Reading Order: 1.2
+Version: 0.1.1
+Last Updated: 2026-07-29
+Reading Order: 1.8
 Authority Rank: 90
 Authority Scope: Описание реальности школы. Документы описательные, а не нормативные.
 
@@ -68,7 +68,7 @@ Must Not Define:
 ## 4. Reading Order · Место в порядке чтения
 
 - Слой: **L1 · Reality — Школа Belcanto**
-- Позиция в порядке чтения: **1.2**
+- Позиция в порядке чтения: **1.8**
 - Полный порядок чтения: [`meta/001-reading-order.md`](../meta/001-reading-order.md)
 - Правило авторитета: [`meta/002-authority-model.md`](../meta/002-authority-model.md)
 
@@ -100,4 +100,5 @@ _Содержание не написано._
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 0.1.1 | 2026-07-29 | Позиция чтения приведена к реестру-владельцу `meta/001` (1.2 → 1.8). Содержание не изменялось. |
 | 0.1.0 | 2026-07-28 | Создан скелет документа. |

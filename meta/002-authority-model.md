@@ -19,7 +19,6 @@ Depends On:
 Required By:
   - meta/005-anti-contradiction-rules.md
   - governance/000-governance-overview.md
-  - ai/002-authority-resolution.md
   - README.md
 
 Defines:
@@ -63,7 +62,6 @@ Must Not Define:
 
 - [`meta/005-anti-contradiction-rules.md`](005-anti-contradiction-rules.md)
 - [`governance/000-governance-overview.md`](../governance/000-governance-overview.md)
-- [`ai/002-authority-resolution.md`](../ai/002-authority-resolution.md)
 
 ---
 
@@ -143,7 +141,7 @@ Must Not Define:
    Не выбирать вариант самостоятельно.
 ```
 
-Шаг 6 обязателен и для человека, и для AI-агента. Самостоятельный выбор варианта при равном авторитете — нарушение (см. [`ai/005-prohibited-actions.md`](../ai/005-prohibited-actions.md)).
+Шаг 6 обязателен и для человека, и для AI-агента. Самостоятельный выбор варианта при равном авторитете — нарушение (см. [`meta/standard/008-agent-change-protocol.md`](standard/008-agent-change-protocol.md), раздел 6.5, запрет N12).
 
 ### 6.4. Особый статус `school/`
 

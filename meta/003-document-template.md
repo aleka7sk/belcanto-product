@@ -20,7 +20,6 @@ Required By:
   - meta/006-validation-rules.md
   - features/001-feature-template.md
   - governance/decisions/001-decision-template.md
-  - ai/003-writing-rules.md
 
 Defines:
   - Обязательные поля frontmatter
@@ -62,7 +61,6 @@ Must Not Define:
 - [`meta/006-validation-rules.md`](006-validation-rules.md)
 - [`features/001-feature-template.md`](../features/001-feature-template.md)
 - [`governance/decisions/001-decision-template.md`](../governance/decisions/001-decision-template.md)
-- [`ai/003-writing-rules.md`](../ai/003-writing-rules.md)
 
 ---
 
