@@ -3,7 +3,7 @@ Document Id: PRJ-CONSTITUTION
 Title: Конституция проекта Belcanto Product
 Layer: Project · Нормативный контекст проекта
 Status: Approved
-Version: 1.0.0
+Version: 1.1.0
 Last Updated: 2026-07-29
 Reading Order: 0.0
 Authority Rank: 4
@@ -14,14 +14,10 @@ Owners:
   - Product Owner
 
 Depends On:
-  - product/000-product-overview.md
-  - product/001-product-vision.md
-  - product/001-vision-and-principles.md
-  - product/002-product-boundaries.md
-  - product/003-personas.md
+  - (нет — корень проекта вне графа вывода)
 
 Required By:
-  - meta/001-reading-order.md
+  - (нет — регистрация в meta/001 не создаёт зависимости)
 
 Defines:
   - Инженерная философия проекта
@@ -58,17 +54,15 @@ Must Not Define:
 
 ## 3. Dependencies · Зависимости
 
-**Читать до этого документа:**
+**Читать до этого документа:** нет.
 
-- [`product/000-product-overview.md`](../../product/000-product-overview.md)
-- [`product/001-product-vision.md`](../../product/001-product-vision.md)
-- [`product/001-vision-and-principles.md`](../../product/001-vision-and-principles.md)
-- [`product/002-product-boundaries.md`](../../product/002-product-boundaries.md)
-- [`product/003-personas.md`](../../product/003-personas.md)
+Документ является **корнем начальной загрузки проекта** и находится вне графа вывода продукта (PD-0027; [`meta/000`](../../meta/000-documentation-system.md) §6.2.2).
 
-**Зависит от этого документа:**
+**Зависит от этого документа:** нет.
 
-- [`meta/001-reading-order.md`](../../meta/001-reading-order.md)
+Регистрация документа в [`meta/001-reading-order.md`](../../meta/001-reading-order.md) фиксирует позицию чтения и **не создаёт** зависимости реестра от Конституции.
+
+Продуктовые документы, упомянутые в разделе 6 и в таблице вывода, являются **атрибутированными авторитетами**: они указывают происхождение утверждения и не являются предпосылками порядка чтения.
 
 ---
 
@@ -129,7 +123,7 @@ The following concepts are accepted unless explicitly superseded through a recor
 - Product Principles
 - Product Boundaries
 - Product Personas
-- Business Goals — *strategically complete, pending independent P7 review before becoming `Approved`* (PD-0017)
+- Business Goals — `Approved` 1.0.0; независимая человеческая рецензия P7 записана PD-0024, Slice Zero заморожен PD-0025, PD-0017 исчерпан
 - Attribution Model
 - Decision PD-0015
 - Decision PD-0016
@@ -343,13 +337,13 @@ Whenever multiple valid implementation options exist:
 | Раздел | Класс | Источник | Версия |
 |--------|-------|----------|--------|
 | Mission · Engineering · Development · Design · Implementation philosophy · Role · Правило выбора | B | решение владельца продукта 2026-07-29 | — |
-| Completed strategic layer | B | PD-0017 | — |
+| Completed strategic layer | B | PD-0024, PD-0025 | — |
 | Attribution Model | A | PD-0015 | — |
 | Product philosophy — ранжирование | A | `product/003-personas.md` §Конфликт интересов | 1.0.0 |
 | Product philosophy — устойчивость | A | PD-0016, D-1 | — |
 | Architectural workflow | B | PD-0019 | — |
 | Capability philosophy — прослеживаемость | B | PD-0018 | — |
-| Domain philosophy | A | `meta/000-documentation-system.md` §6.2; `domain/architecture/000-domain-model-rules.md` | 1.0.0 |
+| Domain philosophy | A + B | `meta/000-documentation-system.md` §6.2 — направление слоёв; проектный выбор — PD-0020 | 1.0.0 |
 
 ---
 
@@ -357,4 +351,5 @@ Whenever multiple valid implementation options exist:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.0 | 2026-07-29 | PD-0027. Статус Business Goals приведён к действительности (`Approved` 1.0.0, PD-0024/PD-0025). Продуктовые документы выведены из графообразующего `Depends On`: документ объявлен корнем начальной загрузки вне графа вывода; атрибуция сохранена в разделе 6 и таблице вывода. Из строки «Domain philosophy» удалён нижележащий `domain/architecture/000-domain-model-rules.md`. |
 | 1.0.0 | 2026-07-29 | Конституция принята. Две поправки относительно исходной редакции: формулировка статуса Business Goals приведена к PD-0017; порядок архитектурного потока заменён редакцией PD-0019 (Capability Map внесена перед Language и Domain). |

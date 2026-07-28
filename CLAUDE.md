@@ -1,6 +1,8 @@
 # CLAUDE.md — контракт AI-агента
 
-Этот репозиторий содержит **продуктовую документацию** Belcanto Product. Кода здесь нет и не будет.
+Этот репозиторий содержит **продуктовую документацию** Belcanto Product.
+
+Прикладного или продуктового кода реализации здесь **сейчас нет**. Локальный инструментарий репозитория — средства поддержания и проверки источника истины (`.claude/scripts/`) — **допустим**. Будущее размещение мобильной и серверной реализации **не определено**.
 
 Ты работаешь не с кодовой базой, а с **источником истины о продукте**. Ошибка здесь дороже ошибки в коде: она не падает при запуске, а тихо расходится с остальной документацией.
 
@@ -10,10 +12,11 @@
 
 Прочитай в этом порядке:
 
-1. [`meta/standard/008-agent-change-protocol.md`](meta/standard/008-agent-change-protocol.md) — **обязателен**: что тебе можно, что нельзя, в какой форме предлагать
-2. [`meta/002-authority-model.md`](meta/002-authority-model.md) — кто главнее при конфликте
-3. [`meta/007-ownership-map.md`](meta/007-ownership-map.md) — где живёт затрагиваемое понятие
-4. [`meta/001-reading-order.md`](meta/001-reading-order.md), раздел 6.4 — минимальный набор чтения для задачи
+1. [`docs/project/project-constitution.md`](docs/project/project-constitution.md) — **первый проектный документ** для задач планирования, архитектуры и реализации: ради чего ведётся проект и в каком порядке движется работа
+2. [`meta/standard/008-agent-change-protocol.md`](meta/standard/008-agent-change-protocol.md) — **обязателен**: что тебе можно, что нельзя, в какой форме предлагать
+3. [`meta/002-authority-model.md`](meta/002-authority-model.md) — кто главнее при конфликте
+4. [`meta/007-ownership-map.md`](meta/007-ownership-map.md) — где живёт затрагиваемое понятие
+5. [`meta/001-reading-order.md`](meta/001-reading-order.md), раздел 6.4 — минимальный набор чтения для задачи
 
 Полная карта репозитория — [`README.md`](README.md).
 
@@ -48,6 +51,16 @@ school → product → language → domain → experience → features → desig
 Документ ссылается на свой или предыдущий слой. Ссылка вперёд допустима только в поле `Required By`.
 
 Если решение хочется принять в нижнем слое — почти всегда оно принадлежит верхнему.
+
+**Принятый продуктовый поток** ([`docs/project/project-constitution.md`](docs/project/project-constitution.md), PD-0019, PD-0027):
+
+```
+Business Goals → Capability Map → Language → Domain → Experience → Design → Implementation
+```
+
+- Карта способностей выводится из **принятых** Бизнес-целей;
+- `domain/` **не является свидетельством** для обнаружения способностей;
+- производство `language/` и `domain/` не начинается, пока Карта способностей не достигнет статуса, требуемого [`meta/012`](meta/012-authoring-binding.md).
 
 ---
 
