@@ -1,5 +1,5 @@
 ---
-Status: Accepted
+Status: Approved
 Version: 1.0.0
 Last Updated: 2026-07-28
 

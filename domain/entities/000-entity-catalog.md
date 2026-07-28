@@ -1,5 +1,5 @@
 ---
-Status: Accepted
+Status: Approved
 Version: 1.0.0
 Last Updated: 2026-07-27
 
@@ -1854,3 +1854,1758 @@ Consent следует выделить в отдельный Aggregate, есл�
 - separate retention;
 - audit/legal boundary;
 - reuse across concerts/media publication.
+
+---
+
+# EligibilityState Entity
+
+## Owner Aggregate
+
+ConcertParticipation
+
+## Purpose
+
+Представляет authoritative current eligibility decision для Participation.
+
+Eligibility отвечает на вопрос:
+
+> Соответствует ли Participation текущим требованиям Concert при данных evidence и conditions?
+
+Она не отвечает:
+
+- утверждено ли участие администрацией;
+- включено ли оно в программу;
+- назначен ли slot.
+
+## Identity
+
+Обычно один current state внутри Participation.
+
+Каждая evaluation имеет отдельный:
+
+```text
+ConcertEligibilityEvaluationId
+DecisionId
+```
+
+## State
+
+```text
+EligibilityState
+├── Status
+├── DecisionReference
+├── RequirementsVersion
+├── SongVersionIds
+├── InputReferences
+├── Conditions
+├── BlockingConditions
+├── EvaluatedAt
+├── ValidUntil
+├── StaleReasonCodes
+└── EntityVersion
+```
+
+## Statuses
+
+```text
+NotEvaluated
+EvaluationRequested
+UnderReview
+NotEligible
+ConditionallyEligible
+Eligible
+ReviewRequired
+Stale
+```
+
+## Lifecycle
+
+```text
+NotEvaluated
+    |
+    +--> EvaluationRequested
+             |
+             +--> UnderReview
+             +--> Eligible
+             +--> ConditionallyEligible
+             +--> NotEligible
+             +--> ReviewRequired
+
+Evaluated State
+    |
+    +--> Stale
+    +--> reevaluated state
+```
+
+## Invariants
+
+- Requirements Version explicit.
+- Song Versions explicit.
+- Decision references exact inputs.
+- Eligible requires valid Decision.
+- Conditionally Eligible requires Conditions.
+- Not Eligible MAY require Blocking Conditions or Reason Codes.
+- Stale eligibility cannot support new Approval.
+- Material Concert Requirements change invalidates state.
+- Song Version change invalidates state.
+- Consent change MAY invalidate dependent eligibility.
+- Readiness expiration MAY invalidate state.
+- Eligibility does not imply Approval.
+- Human override preserves original Decision.
+- AI cannot be authoritative DecisionSource.
+- Current state corresponds to latest accepted Decision.
+- Prior Decisions remain auditable.
+
+## Root Methods
+
+```text
+participation.RequestEligibilityEvaluation(...)
+participation.ApplyEligibilityDecision(...)
+participation.MarkEligibilityStale(...)
+participation.RequireEligibilityReview(...)
+```
+
+## Commands Affecting Entity
+
+```text
+RequestConcertEligibilityEvaluation
+EvaluateConcertEligibility
+MarkConcertParticipationEligible
+MarkConcertParticipationConditionallyEligible
+MarkConcertParticipationNotEligible
+ApproveConcertParticipation
+ChangeStudentSongVersion
+PublishConcertRequirements
+```
+
+Последние две обычно вызывают reaction/process, а не напрямую target Participation.
+
+## Events Produced by Participation Root
+
+```text
+ConcertEligibilityEvaluationRequested
+ConcertEligibilityEvaluated
+ConcertParticipationMarkedEligible
+ConcertParticipationMarkedConditionallyEligible
+ConcertParticipationMarkedNotEligible
+ConcertEligibilityMarkedStale
+ConcertEligibilityReviewRequired
+```
+
+## Privacy
+
+```text
+Sensitive
+```
+
+Student-visible explanation должна быть отделена от private evaluator notes.
+
+## AI Restrictions
+
+AI может подготовить input summary или advisory assessment.
+
+AI не может:
+
+- final eligibility decision;
+- override blocker;
+- create fake evidence;
+- approve participation;
+- silently alter requirements.
+
+## Tests
+
+- missing Requirements Version rejected;
+- stale Song Readiness rejected;
+- conditional outcome requires Conditions;
+- NotEligible cannot approve;
+- stale eligibility blocks Approval;
+- human override preserves original;
+- AI source rejected;
+- requirements change invalidates state.
+
+## Extraction Criteria
+
+Обычно state остается частью Participation, потому что Approval и Slot invariants зависят от Eligibility.
+
+Выделение в Aggregate оправдано, если Evaluation имеет сложный independent workflow и multiple reviewers, но Participation все равно хранит accepted snapshot.
+
+---
+
+# ApprovalState Entity
+
+## Owner Aggregate
+
+ConcertParticipation
+
+## Purpose
+
+Представляет административное или организационное утверждение Participation после Eligibility.
+
+Approval отличается от Eligibility:
+
+- Eligibility — соответствие требованиям;
+- Approval — authorized организационное решение;
+- Program Placement — включение в published program;
+- Slot Assignment — назначение времени/места.
+
+## Identity
+
+Обычно single state внутри Participation.
+
+Каждый approval action MAY иметь:
+
+```text
+ApprovalId
+```
+
+## State
+
+```text
+ApprovalState
+├── Status
+├── ApprovalId
+├── ApprovedBy
+├── ApprovedAt
+├── ApprovalScope
+├── EligibilityDecisionReference
+├── Conditions
+├── RevokedAt
+├── RevokedBy
+├── RevocationReasonCodes
+└── EntityVersion
+```
+
+## Statuses
+
+```text
+NotRequested
+Pending
+Approved
+ConditionallyApproved
+Rejected
+Revoked
+Expired
+```
+
+## Lifecycle
+
+```text
+NotRequested
+    |
+    +--> Pending
+             |
+             +--> Approved
+             +--> ConditionallyApproved
+             +--> Rejected
+
+Approved
+    |
+    +--> Revoked
+    +--> Expired
+```
+
+## Invariants
+
+- Approver authorized.
+- Approval references current valid Eligibility Decision.
+- NotEligible Participation cannot be Approved.
+- Conditional Eligibility conditions remain visible.
+- Conditional Approval requires Conditions.
+- Approval scope explicit.
+- Revocation preserves original Approval.
+- Expired or stale Eligibility may invalidate Approval according to Policy.
+- Approval does not assign Slot.
+- Approval does not publish Program.
+- AI cannot approve or revoke.
+- Teacher recommendation is not administrative Approval unless role explicitly grants authority.
+- Duplicate same decision is idempotent.
+
+## Root Methods
+
+```text
+participation.RequestApproval(...)
+participation.Approve(...)
+participation.ConditionallyApprove(...)
+participation.RejectApproval(...)
+participation.RevokeApproval(...)
+participation.ExpireApproval(...)
+```
+
+## Commands Affecting Entity
+
+```text
+ApproveConcertParticipation
+RejectConcertParticipationApproval
+RevokeConcertParticipationApproval
+WithdrawConcertParticipation
+AssignConcertPerformanceSlot
+```
+
+## Events Produced by Participation Root
+
+```text
+ConcertParticipationApprovalRequested
+ConcertParticipationApproved
+ConcertParticipationConditionallyApproved
+ConcertParticipationApprovalRejected
+ConcertParticipationApprovalRevoked
+ConcertParticipationApprovalExpired
+```
+
+## Privacy
+
+```text
+Confidential
+```
+
+Reason details may be Sensitive.
+
+## AI Restrictions
+
+AI may prepare operational recommendation.
+
+AI cannot approve, reject or revoke.
+
+## Tests
+
+- invalid eligibility blocks Approval;
+- unauthorized approver rejected;
+- conditional approval requires Conditions;
+- revocation preserves original;
+- slot requires active approval;
+- AI actor rejected;
+- stale eligibility behavior enforced;
+- duplicate command idempotent.
+
+## Extraction Criteria
+
+ApprovalState обычно остается внутри Participation, поскольку Slot invariant должен быть strongly consistent с Approval.
+
+---
+
+# PerformanceSlot Entity
+
+## Owner Aggregate
+
+ConcertParticipation
+
+## Purpose
+
+Представляет назначенное место и время выступления Participation в Concert program.
+
+В текущей модели Slot принадлежит Participation, но глобальная уникальность concert schedule может потребовать отдельного ConcertProgram или reservation Aggregate.
+
+## Identity
+
+```text
+PerformanceSlotId
+```
+
+## State
+
+```text
+PerformanceSlot
+├── PerformanceSlotId
+├── ScheduledStart
+├── ExpectedDuration
+├── StageReference
+├── Sequence
+├── Status
+├── AssignedBy
+├── AssignedAt
+├── ChangedAt
+├── PreviousSlotReference
+├── RemovalRecord
+└── EntityVersion
+```
+
+## Statuses
+
+```text
+Reserved
+Assigned
+Confirmed
+Changed
+Removed
+Completed
+Cancelled
+```
+
+Применяемые статусы зависят от Concert Program model.
+
+## Lifecycle
+
+```text
+Reserved
+   |
+   +--> Assigned
+           |
+           +--> Confirmed
+           +--> Changed
+           +--> Removed
+           +--> Cancelled
+
+Confirmed
+   |
+   +--> Changed
+   +--> Removed
+   +--> Completed
+```
+
+Изменение Slot может создавать новую slot revision или новую Entity — решение должно быть единообразным.
+
+Рекомендуется сохранять тот же PerformanceSlotId и history changes, пока это то же program placement.
+
+## Invariants
+
+- Participation Approved.
+- Participation not withdrawn.
+- Concert active.
+- ScheduledStart находится в Concert TimeWindow.
+- ExpectedDuration положительна.
+- StageReference принадлежит Concert.
+- Slot change preserves previous values.
+- Removal requires reason.
+- Completed Slot immutable.
+- Один Participation имеет не более одного active Slot, если Policy не допускает multiple performances.
+- Global overlap нельзя надежно проверить только внутри Participation.
+- Capacity/overlap требует reservation или ConcertProgram coordination.
+- AI не может назначать Slot самостоятельно.
+- Timezone semantics explicit.
+
+## Root Methods
+
+```text
+participation.AssignSlot(...)
+participation.ChangeSlot(...)
+participation.ConfirmSlot(...)
+participation.RemoveSlot(...)
+participation.CompletePerformance(...)
+```
+
+## Commands Affecting Entity
+
+```text
+AssignConcertPerformanceSlot
+ChangeConcertPerformanceSlot
+RemoveConcertPerformanceSlot
+CompleteConcertPerformance
+WithdrawConcertParticipation
+CancelConcert
+```
+
+## Events Produced by Participation Root
+
+```text
+ConcertPerformanceSlotAssigned
+ConcertPerformanceSlotChanged
+ConcertPerformanceSlotConfirmed
+ConcertPerformanceSlotRemoved
+ConcertPerformanceCompleted
+```
+
+## Privacy
+
+```text
+Internal
+```
+
+До публикации программы — Confidential/Internal.
+
+После публикации selected fields могут быть Public.
+
+## AI Restrictions
+
+AI может предложить оптимизированный schedule.
+
+AI не может authoritative назначить Slot без approved command.
+
+## Tests
+
+- slot before Approval rejected;
+- slot outside Concert window rejected;
+- invalid Stage rejected;
+- active slot uniqueness enforced locally;
+- change preserves history;
+- withdrawn Participation rejects assignment;
+- completed slot immutable;
+- AI actor rejected.
+
+## Extraction Criteria
+
+Performance Slot следует вынести в ConcertProgram Aggregate или reservation model, если необходимо strongly enforce:
+
+- global non-overlap;
+- shared stage capacity;
+- sequence uniqueness;
+- multiple stages;
+- program publication atomicity;
+- mass schedule edits;
+- drag-and-drop concurrent planning.
+
+Вероятно, после MVP потребуется:
+
+```text
+ConcertProgram Aggregate
+├── ProgramVersion
+├── ProgramEntries
+└── SlotReservations
+```
+
+Тогда Participation будет хранить ProgramEntryReference, а не владеть Slot.
+
+---
+
+# ScheduledReminder Entity
+
+## Owner Aggregate
+
+HomeworkReminderPlan
+
+## Purpose
+
+Представляет один конкретный Reminder occurrence, запланированный в рамках Reminder Plan.
+
+## Identity
+
+```text
+ReminderId
+```
+
+Globally unique.
+
+## State
+
+```text
+ScheduledReminder
+├── ReminderId
+├── ReminderType
+├── Sequence
+├── ScheduledFor
+├── Status
+├── DueAt
+├── NotificationIntentId
+├── DeliveryReference
+├── SuppressionRecord
+├── RescheduleHistoryReferences
+├── AttemptReference
+├── ExpirationAt
+├── CreatedAt
+└── EntityVersion
+```
+
+## Reminder Statuses
+
+```text
+Scheduled
+Due
+EvaluationRequired
+DeliveryRequested
+Delivered
+DeliveryFailed
+Rescheduled
+Suppressed
+Cancelled
+Expired
+```
+
+## Lifecycle
+
+```text
+Scheduled
+   |
+   +--> Due
+   +--> Rescheduled
+   +--> Suppressed
+   +--> Cancelled
+   +--> Expired
+
+Due
+   |
+   +--> EvaluationRequired
+             |
+             +--> DeliveryRequested
+             +--> Suppressed
+             +--> Rescheduled
+             +--> Cancelled
+             +--> Expired
+
+DeliveryRequested
+   |
+   +--> Delivered
+   +--> DeliveryFailed
+```
+
+Reminder Plan не должен считать provider delivery своей authoritative responsibility, но может хранить delivery outcome reference.
+
+## Invariants
+
+- Reminder принадлежит Plan.
+- ScheduledFor соответствует Plan Timezone и strategy.
+- Duplicate type/sequence/window rejected.
+- Sequence monotonic.
+- Maximum reminder count enforced by Root.
+- Delivery request требует revalidation.
+- Submitted, Completed, Cancelled, Replaced или Expired Homework может подавить Reminder.
+- Reminder не меняет Homework.
+- Delivered не означает Read.
+- Failed delivery не означает Student fault.
+- Reschedule preserves previous time.
+- Suppression requires Reason Code.
+- Expired Reminder cannot be delivered.
+- Old Homework Version Reminder cannot be reactivated.
+- AI cannot увеличить количество или urgency.
+
+## Root Methods
+
+```text
+plan.ScheduleReminder(...)
+plan.MarkReminderDue(...)
+plan.RequestReminderDelivery(...)
+plan.RescheduleReminder(...)
+plan.SuppressReminder(...)
+plan.CancelReminder(...)
+plan.ExpireReminder(...)
+plan.RecordDeliveryOutcome(...)
+```
+
+## Commands Affecting Entity
+
+```text
+ScheduleHomeworkReminder
+RescheduleHomeworkReminder
+EvaluateHomeworkReminder
+RequestHomeworkReminderDelivery
+SuppressHomeworkReminder
+CancelHomeworkReminder
+ExpireHomeworkReminder
+RecalculateHomeworkReminderPlan
+```
+
+## Events Produced by Reminder Plan Root
+
+```text
+HomeworkReminderScheduled
+HomeworkReminderDue
+HomeworkReminderDeliveryRequested
+HomeworkReminderRescheduled
+HomeworkReminderSuppressed
+HomeworkReminderCancelled
+HomeworkReminderExpired
+HomeworkReminderDelivered
+HomeworkReminderDeliveryFailed
+```
+
+## Privacy
+
+```text
+Confidential
+```
+
+Reminder content принадлежит Notification Intent, не Reminder Entity.
+
+## AI Restrictions
+
+AI может предложить schedule в пределах approved strategy.
+
+AI не может:
+
+- увеличить maximum count;
+- обходить Quiet Hours;
+- применять Critical priority;
+- писать манипулятивный текст;
+- отменять suppression;
+- считать lack of response основанием для давления.
+
+## Tests
+
+- duplicate Reminder rejected;
+- maximum count enforced;
+- stale Homework Version suppressed;
+- due Reminder revalidates state;
+- reschedule preserves history;
+- expired reminder cannot deliver;
+- delivered does not change Homework;
+- quiet hours observed;
+- AI escalation rejected.
+
+## Extraction Criteria
+
+Выделить Reminder в отдельный Aggregate, если:
+
+- Plan содержит большое количество reminders;
+- каждое reminder независимо конкурентно обрабатывается;
+- provider callbacks адресуют Reminder;
+- отдельные retries и locks;
+- Plan становится contention hotspot;
+- reminders создаются динамически без bounded collection.
+
+Для обычного Homework количество reminders должно быть малым и bounded.
+
+---
+
+# DeliveryAttempt Entity
+
+## Owner Aggregate
+
+NotificationDelivery
+
+## Purpose
+
+Представляет одну техническую попытку отправить Notification через provider.
+
+Attempt является Entity, потому что:
+
+- имеет sequence;
+- имеет provider reference;
+- имеет отдельный outcome;
+- участвует в retry lifecycle;
+- должен сохраняться для audit и diagnostics.
+
+## Identity
+
+Возможные варианты:
+
+```text
+DeliveryAttemptId
+```
+
+или aggregate-local:
+
+```text
+AttemptNumber
+```
+
+Рекомендуется:
+
+```text
+DeliveryAttemptId
++
+AttemptNumber
+```
+
+## State
+
+```text
+DeliveryAttempt
+├── DeliveryAttemptId
+├── AttemptNumber
+├── Status
+├── RequestedAt
+├── StartedAt
+├── CompletedAt
+├── ProviderReference
+├── ProviderRequestId
+├── IdempotencyReference
+├── Outcome
+├── FailureCategory
+├── FailureCode
+├── Retryability
+├── ProviderResponseReference
+└── EntityVersion — optional
+```
+
+## Attempt Statuses
+
+```text
+Created
+Queued
+Started
+Succeeded
+Failed
+TimedOut
+Cancelled
+UnknownOutcome
+```
+
+## Lifecycle
+
+```text
+Created
+   |
+   +--> Queued
+           |
+           +--> Started
+                   |
+                   +--> Succeeded
+                   +--> Failed
+                   +--> TimedOut
+                   +--> UnknownOutcome
+
+Created / Queued
+   |
+   +--> Cancelled
+```
+
+Terminal attempt не изменяется.
+
+Provider callback MAY enrich reference, но не должен менять Succeeded обратно в Failed.
+
+## Invariants
+
+- Attempt принадлежит одной Notification Delivery.
+- AttemptNumber monotonic.
+- Только один active send attempt, если provider semantics не допускает concurrent attempts.
+- Attempt uses stable idempotency reference.
+- StartedAt >= RequestedAt.
+- CompletedAt >= StartedAt.
+- Terminal status immutable.
+- Retryability derived from failure classification.
+- Permanent failure не retryable.
+- Unknown outcome требует provider reconciliation перед duplicate send where possible.
+- Provider secret/token не хранится.
+- Provider payload reference follows privacy rules.
+- Duplicate callback idempotent.
+- Attempt success не означает Notification Open.
+- Attempt не изменяет source domain.
+- AI не участвует в send authority.
+
+## Root Methods
+
+```text
+delivery.CreateAttempt(...)
+delivery.MarkAttemptStarted(...)
+delivery.MarkAttemptSucceeded(...)
+delivery.MarkAttemptFailed(...)
+delivery.MarkAttemptTimedOut(...)
+delivery.MarkAttemptUnknown(...)
+delivery.CancelAttempt(...)
+```
+
+## Commands Affecting Entity
+
+```text
+SendNotification
+RetryNotificationDelivery
+MarkNotificationDelivered
+MarkNotificationDeliveryFailed
+StopNotificationRetry
+CancelNotificationDelivery
+```
+
+Provider callbacks обычно маппятся в trusted integration commands.
+
+## Events Produced by Delivery Root
+
+Внешний Domain Event не обязан публиковаться на каждое внутреннее изменение.
+
+Возможные события:
+
+```text
+NotificationSendingRequested
+NotificationDeliveryAttemptStarted
+NotificationDelivered
+NotificationDeliveryFailed
+NotificationRetryScheduled
+NotificationRetryStopped
+```
+
+AttemptStarted может быть operational event, а не Domain Event.
+
+## Privacy
+
+```text
+Confidential
+```
+
+Provider payload и destination могут быть Sensitive.
+
+## AI Restrictions
+
+AI не нужен для lifecycle Attempt.
+
+AI не может:
+
+- определять success;
+- инициировать retry вне policy;
+- менять provider response;
+- видеть unmasked destination без authorization.
+
+## Tests
+
+- attempt number monotonic;
+- duplicate callback idempotent;
+- terminal status immutable;
+- permanent failure stops retry;
+- timeout classification correct;
+- unknown outcome does not blindly duplicate send;
+- provider secret never persisted;
+- success does not mark opened;
+- expired Delivery rejects new Attempt.
+
+## Extraction Criteria
+
+DeliveryAttempt может быть вынесен из active Aggregate storage в отдельный append-only operational store, если attempts многочисленны.
+
+При этом NotificationDelivery сохраняет authoritative summary:
+
+```text
+CurrentAttemptNumber
+CurrentStatus
+LastFailure
+DeliveredAt
+```
+
+Отдельным Aggregate Root Attempt обычно становиться не должен, так как не владеет самостоятельным бизнес-инвариантом.
+
+---
+
+# Entity Lifecycle Modeling
+
+Для Entity со сложными переходами требуется state transition table.
+
+Пример:
+
+| Entity | Current State | Action | New State |
+| --- | --- | --- | --- |
+| HomeworkSubmission | Submitted | Withdraw | Withdrawn |
+| HomeworkReview | Pending | Start | InProgress |
+| HomeworkReview | InProgress | Complete | Completed |
+| HomeworkBlocker | Open | Resolve | Resolved |
+| CorrectionRequest | Open | Attach Submission | Submitted |
+| ConsentState | Requested | Grant | Granted |
+| EligibilityState | NotEvaluated | Apply Decision | Eligible / Conditional / NotEligible |
+| ApprovalState | Pending | Approve | Approved |
+| PerformanceSlot | Assigned | Remove | Removed |
+| ScheduledReminder | Scheduled | Mark Due | Due |
+| DeliveryAttempt | Started | Provider Success | Succeeded |
+
+Неописанный переход запрещен.
+
+---
+
+# Entity Collections
+
+Aggregate может содержать Entity collection только если она:
+
+- bounded;
+- требуется для invariant;
+- разумно загружается;
+- не создает постоянный contention;
+- не является историческим журналом без ограничений.
+
+## Bounded Collection Rules
+
+### EC-001
+
+Maximum size или natural bound должны быть известны.
+
+Примеры:
+
+- Attendance Records ограничены participants Lesson;
+- active Homework Blockers ограничены нормальным use case;
+- Scheduled Reminders ограничены strategy;
+- Delivery Attempts ограничены retry policy.
+
+### EC-002
+
+Historical records могут быть вынесены в archive/audit store.
+
+### EC-003
+
+Root должен хранить минимальный authoritative summary после externalization.
+
+### EC-004
+
+Pagination не решает consistency problem внутри Aggregate автоматически.
+
+Если Root должен загрузить все Entity для invariant, paginated collection может означать неверную boundary.
+
+---
+
+# Entity Versioning
+
+EntityVersion вводится, когда Entity reference должен фиксировать точное состояние.
+
+Пример:
+
+```text
+EntityReference
+├── HomeworkAssignmentId
+├── SubmissionId
+└── SubmissionVersion
+```
+
+Но если все изменения защищены AggregateVersion и Entity не изменяется независимо, отдельная версия может быть лишней.
+
+## Versioning Decision Table
+
+| Situation | EntityVersion |
+| --- | --- |
+| Entity immutable after creation | Обычно не нужна |
+| Изменяется только вместе с небольшим Aggregate | Необязательно |
+| На Entity ссылаются Decisions | Рекомендуется |
+| Entity обновляется конкурентно | Нужна |
+| Entity вынесена в отдельное storage document | Рекомендуется |
+| External integration references revisions | Нужна |
+| Identity + immutable supersession model | Может не понадобиться |
+
+---
+
+# Entity Event Production
+
+Internal Entity не должна напрямую публиковать Event в broker.
+
+Канонический flow:
+
+```text
+Aggregate Root method
+       |
+       v
+Entity method
+       |
+       v
+Entity transition result
+       |
+       v
+Aggregate Root updates aggregate state
+       |
+       v
+Aggregate Root records Domain Event
+```
+
+## Internal Transition Result
+
+Допустимый internal contract:
+
+```text
+EntityTransitionResult
+├── Changed
+├── PreviousState
+├── CurrentState
+├── ReasonCodes
+├── EntityReference
+└── DomainDetails
+```
+
+Он не является публичным Domain Event.
+
+## Entity References in Events
+
+Event SHOULD содержать EntityId, если факт относится к конкретной Entity.
+
+Пример:
+
+```text
+HomeworkSubmissionWithdrawn
+├── HomeworkAssignmentId
+├── SubmissionId
+├── HomeworkVersion
+├── WithdrawnAt
+└── ReasonCode
+```
+
+Не следует публиковать весь Entity snapshot.
+
+---
+
+# Entity Repository Rules
+
+## ER-001
+
+Public repository создается для Aggregate Root, а не внутренней Entity.
+
+## ER-002
+
+Infrastructure MAY использовать отдельные DAO для таблиц, но Domain/Application layer не должны трактовать их как Entity repositories.
+
+## ER-003
+
+DAO не должен позволять business mutation в обход Root.
+
+## ER-004
+
+Entity rows сохраняются в транзакции owning Aggregate.
+
+## ER-005
+
+Удаление child row не должно разрушать domain history.
+
+---
+
+# Entity Serialization Rules
+
+Entity serialization является internal persistence concern, если Entity не входит в external contract.
+
+При публикации наружу используется DTO или Event payload.
+
+Не следует отдавать internal Entity object напрямую mobile client.
+
+---
+
+# Entity Privacy Rules
+
+- Entity inherits минимум privacy owning Aggregate.
+- Field MAY иметь более строгую classification.
+- Internal notes отделяются от Student-visible content.
+- Event payload минимизируется.
+- EntityId не должен предоставлять unauthorized lookup.
+- Attachment и destination references маскируются.
+- Health/personal blocker details не публикуются.
+- Provider response не попадает в ordinary domain logs.
+
+---
+
+# Entity Audit Rules
+
+Для meaningful Entity transition сохраняются:
+
+```text
+Owning Aggregate Type
+Owning Aggregate Id
+Aggregate Version
+Entity Type
+Entity Id
+Previous State
+Current State
+Command Id
+Actor
+OccurredAt
+Reason Codes
+Decision Reference
+Correlation Id
+Causation Id
+```
+
+Audit не обязан хранить полный before/after snapshot, если это нарушает privacy.
+
+---
+
+# Entity AI Rules
+
+AI может:
+
+- предлагать draft fields;
+- классифицировать unconfirmed data;
+- помогать Teacher;
+- выявлять inconsistency;
+- готовить human-readable summary;
+- предложить next action.
+
+AI не может:
+
+- создавать authoritative Entity transition;
+- подменять Actor;
+- изменять identity;
+- переписывать history;
+- выдавать Consent;
+- завершать Review;
+- подтверждать Attendance;
+- назначать Approval;
+- считать Delivery успешной;
+- ослаблять Privacy Level.
+
+Любое AI-assisted изменение выполняется через обычную Command и authorized Actor/Policy.
+
+---
+
+# Entity Extraction Rules
+
+Internal Entity должна быть рассмотрена как candidate Aggregate Root, если выполняется несколько условий:
+
+## Independent Lifecycle
+
+Entity имеет lifecycle, который развивается независимо от owner.
+
+## Independent Concurrency
+
+Разные actors регулярно изменяют Entity параллельно, не затрагивая остальной Aggregate.
+
+## Independent Transaction
+
+Для Entity требуется собственная atomic boundary.
+
+## Independent Authorization
+
+Доступ к Entity значительно отличается от access к owner Aggregate.
+
+## Independent Scale
+
+Entity collection становится большой или unbounded.
+
+## Independent Availability
+
+Entity должна быть доступна и изменяема, даже когда owner Aggregate недоступен или archived.
+
+## External Target
+
+External systems и commands адресуют Entity напрямую.
+
+## Independent Invariants
+
+Entity владеет правилами, не требующими полной загрузки owner.
+
+## Operational Contention
+
+Изменения Entity создают hot Aggregate.
+
+## Independent Retention
+
+Entity имеет отдельный retention/legal boundary.
+
+## Extraction Is Not Justified By
+
+Нельзя выделять Aggregate только потому что:
+
+- Entity хранится в отдельной таблице;
+- нужен отдельный API endpoint;
+- UI имеет отдельный экран;
+- объект имеет много полей;
+- ORM удобнее;
+- разработчик хочет отдельный service;
+- объект используется в join;
+- нужен отдельный DTO;
+- нужна pagination;
+- код кажется большим.
+
+## Extraction Procedure
+
+При выделении Entity в Aggregate Root требуется:
+
+1. Определить новую consistency boundary.
+2. Назначить AggregateId.
+3. Определить repository.
+4. Перенести owned invariants.
+5. Заменить object ownership на references.
+6. Определить commands.
+7. Определить events.
+8. Ввести eventual consistency.
+9. Определить coordination process.
+10. Пересмотреть authorization.
+11. Пересмотреть privacy.
+12. Пересмотреть transaction guarantees.
+13. Подготовить migration.
+14. Обновить Aggregate Catalog.
+15. Создать Architecture Decision.
+
+---
+
+# Candidate Future Aggregate Roots
+
+Следующие Entity могут стать Aggregate Roots позже:
+
+## HomeworkSubmission
+
+При complex independent review workflow.
+
+## HomeworkReview
+
+При multi-reviewer assessment и appeal.
+
+## Consent
+
+При reusable legal consent model.
+
+## ConcertProgram
+
+Для global slot consistency.
+
+## ScheduledReminder
+
+При high-volume independent reminder processing.
+
+Не следует выделять заранее без реальной необходимости.
+
+---
+
+# Entity Command Routing
+
+Внешняя Command всегда target owning Aggregate.
+
+Пример:
+
+```text
+WithdrawHomeworkSubmission
+├── Target:
+│   ├── AggregateType: HomeworkAssignment
+│   └── AggregateId: HomeworkAssignmentId
+└── Payload:
+    └── SubmissionId
+```
+
+Не:
+
+```text
+TargetAggregateType: HomeworkSubmission
+```
+
+пока Submission не является Root.
+
+---
+
+# Entity Not Found Behavior
+
+Если target Entity отсутствует внутри существующего Aggregate:
+
+```text
+CommandResult.Status: Rejected
+ReasonCode: AGGREGATE_ENTITY_NOT_FOUND
+```
+
+Для idempotent terminal commands MAY возвращаться:
+
+```text
+Already Processed
+```
+
+только если система может доказать prior processing.
+
+---
+
+# Entity Conflict Behavior
+
+Entity-level conflict обычно обнаруживается через:
+
+```text
+ExpectedAggregateVersion
+```
+
+При использовании EntityVersion может дополнительно применяться:
+
+```text
+ExpectedEntityVersion
+```
+
+Но нельзя позволять EntityVersion обойти stale AggregateVersion, если операция влияет на Aggregate invariants.
+
+---
+
+# Entity Reason Codes
+
+Общие reason codes:
+
+```text
+ENTITY_NOT_FOUND
+ENTITY_ALREADY_EXISTS
+ENTITY_DUPLICATE
+ENTITY_STATUS_INVALID
+ENTITY_TRANSITION_NOT_ALLOWED
+ENTITY_TERMINAL_STATE
+ENTITY_VERSION_CONFLICT
+ENTITY_OWNER_MISMATCH
+ENTITY_TENANT_MISMATCH
+ENTITY_REFERENCE_INVALID
+ENTITY_REFERENCE_STALE
+ENTITY_REQUIRED_RELATION_MISSING
+ENTITY_ALREADY_SUPERSEDED
+ENTITY_ALREADY_WITHDRAWN
+ENTITY_ALREADY_RESOLVED
+ENTITY_ALREADY_ARCHIVED
+ENTITY_REOPEN_NOT_ALLOWED
+ENTITY_ACTOR_NOT_AUTHORIZED
+ENTITY_DECISION_REQUIRED
+ENTITY_EVIDENCE_REQUIRED
+ENTITY_HISTORY_CONFLICT
+```
+
+Domain-specific codes предпочтительнее generic code, когда известна точная причина.
+
+---
+
+# Entity Test Standard
+
+Каждая Entity specification должна иметь следующие категории тестов.
+
+## Construction Tests
+
+- valid Entity creation;
+- required fields;
+- identity;
+- default state;
+- invalid references;
+- tenant mismatch.
+
+## Lifecycle Tests
+
+- every allowed transition;
+- every forbidden transition;
+- terminal behavior;
+- supersession;
+- cancellation;
+- archive.
+
+## Identity Tests
+
+- identity stability;
+- no reuse;
+- equality by identity;
+- local/global scope.
+
+## Ownership Tests
+
+- wrong owner rejected;
+- Entity cannot mutate independently;
+- repository boundary preserved.
+
+## Concurrency Tests
+
+- stale Aggregate Version;
+- stale Entity Version, если используется;
+- competing transitions;
+- idempotent retry.
+
+## History Tests
+
+- correction preserves original;
+- supersession chain;
+- terminal record retained;
+- audit references valid.
+
+## Privacy Tests
+
+- restricted fields not in Event;
+- Student-visible/internal separation;
+- safe logging;
+- wrong actor access rejected.
+
+## AI Tests
+
+- AI cannot perform authoritative transition;
+- AI proposal remains advisory;
+- provenance retained;
+- no fabricated evidence.
+
+---
+
+# Cross-Entity Invariants
+
+Cross-Entity rules внутри одного Aggregate принадлежат Root.
+
+Примеры HomeworkAssignment:
+
+- Review references existing Submission.
+- CorrectionRequest references Completed Review.
+- Replacement Submission corresponds to active CorrectionRequest.
+- One active Review per Submission.
+- One active CorrectionRequest per review cycle.
+- Completed Homework has no unresolved required CorrectionRequest.
+
+Примеры ConcertParticipation:
+
+- Approval references current Eligibility.
+- Slot requires Approval.
+- Consent scope covers Participation.
+- Withdrawal affects active Slot.
+- Requirements change invalidates Eligibility.
+
+Internal Entity не должна самостоятельно искать siblings через repository.
+
+Root передает необходимые ссылки или выполняет проверку.
+
+---
+
+# Aggregate-Specific Entity Map
+
+## Lesson
+
+```text
+Lesson
+└── AttendanceRecord[]
+```
+
+Potential future:
+
+```text
+Lesson
+├── AttendanceRecord[]
+├── LessonParticipant[]
+└── LessonCorrection[]
+```
+
+## HomeworkAssignment
+
+```text
+HomeworkAssignment
+├── HomeworkSubmission[]
+├── HomeworkReview[]
+├── HomeworkBlocker[]
+└── CorrectionRequest[]
+```
+
+Collections должны быть bounded или historical records externalized.
+
+## ProgressRecord
+
+```text
+ProgressRecord
+└── ProgressDimensionState[]
+```
+
+## SongReadiness
+
+```text
+SongReadiness
+└── ReadinessAreaState[]
+```
+
+## ConcertParticipation
+
+```text
+ConcertParticipation
+├── ConsentState
+├── EligibilityState
+├── ApprovalState
+└── PerformanceSlot
+```
+
+Часть из них может быть modeled as structured Entity или specialized state object. Поскольку у них есть history и identity-bearing decisions, простых enum недостаточно.
+
+## HomeworkReminderPlan
+
+```text
+HomeworkReminderPlan
+└── ScheduledReminder[]
+```
+
+## NotificationDelivery
+
+```text
+NotificationDelivery
+└── DeliveryAttempt[]
+```
+
+---
+
+# Entity Modeling Decisions
+
+## AttendanceRecord
+
+Решение:
+
+```text
+Entity inside Lesson
+```
+
+Причина:
+
+attendance strongly tied to Lesson participant invariant.
+
+## HomeworkSubmission
+
+Решение:
+
+```text
+Entity inside HomeworkAssignment
+```
+
+с возможным future extraction.
+
+## HomeworkReview
+
+Решение:
+
+```text
+Entity inside HomeworkAssignment
+```
+
+до появления independent review workflow.
+
+## HomeworkBlocker
+
+Решение:
+
+```text
+Entity inside HomeworkAssignment
+```
+
+Переходит в support case Aggregate только при расширении scope.
+
+## CorrectionRequest
+
+Решение:
+
+```text
+Entity inside HomeworkAssignment
+```
+
+## ProgressDimensionState
+
+Решение:
+
+```text
+Entity inside scoped ProgressRecord
+```
+
+Размер ProgressRecord должен ограничиваться scope.
+
+## ReadinessAreaState
+
+Решение:
+
+```text
+Entity inside SongReadiness
+```
+
+## ConsentState
+
+Решение:
+
+```text
+Entity inside ConcertParticipation for MVP
+```
+
+Требует review при legal expansion.
+
+## EligibilityState
+
+Решение:
+
+```text
+Entity inside ConcertParticipation
+```
+
+для strong consistency с Approval.
+
+## ApprovalState
+
+Решение:
+
+```text
+Entity inside ConcertParticipation
+```
+
+для strong consistency со Slot assignment.
+
+## PerformanceSlot
+
+Решение:
+
+```text
+Entity inside ConcertParticipation for MVP
+```
+
+Но global scheduling may require ConcertProgram Aggregate.
+
+## ScheduledReminder
+
+Решение:
+
+```text
+Entity inside HomeworkReminderPlan
+```
+
+пока collection bounded.
+
+## DeliveryAttempt
+
+Решение:
+
+```text
+Entity inside NotificationDelivery
+```
+
+с возможным archival в operational store.
+
+---
+
+# Non-Goals
+
+Этот документ не определяет:
+
+- database tables;
+- foreign keys;
+- ORM;
+- Go structs;
+- API endpoints;
+- JSON schemas;
+- UI forms;
+- exact storage format;
+- microservice ownership;
+- deployment topology;
+- complete Song catalog;
+- curriculum definitions;
+- CRM entities;
+- billing entities;
+- payment entities;
+- employee HR entities;
+- marketing entities;
+- legal wording of Consent;
+- provider-specific delivery schema.
+
+---
+
+# Open Questions
+
+Необходимо определить:
+
+- нужен ли AttendanceRecordId или достаточно LessonId + StudentId;
+- может ли Attendance иметь appeal;
+- может ли один Student участвовать в Lesson частично несколько раз;
+- нужен ли LessonParticipant Entity отдельно от Attendance;
+- сколько historical Submission хранить внутри active Homework Aggregate;
+- можно ли иметь несколько active Submission;
+- нужен ли server-side Submission Draft;
+- как обрабатывать corrupted attachments после Submission;
+- нужно ли выделять Submission в Aggregate для media processing;
+- может ли Review иметь co-reviewers;
+- нужен ли review rubric;
+- является ли rubric response Entity;
+- как исправлять ошибочный Completed Review;
+- нужен ли Review Appeal;
+- могут ли Blockers быть private только для Teacher;
+- какие blocker categories влияют на deadline;
+- может ли Blocker быть подтвержден системой;
+- нужен ли support integration;
+- сколько correction cycles разрешено;
+- когда correction превращается в replacement Homework;
+- нужен ли отдельный Correction Deadline type;
+- является ли ProgressDimension definition частью curriculum context;
+- сколько Dimensions может содержать один ProgressRecord;
+- один ProgressRecord на Student или на scope;
+- может ли Dimension иметь несколько parallel assessments;
+- нужен ли teacher-specific Progress view;
+- нужен ли Progress Assessment Entity;
+- являются ли Readiness Areas configurable;
+- может ли Safety area быть обязательной всегда;
+- как хранить history Area evaluations;
+- нужен ли отдельный SongReadinessEvaluation Aggregate;
+- когда Consent становится отдельным Aggregate;
+- как моделировать Guardian Consent;
+- нужен ли signed consent artifact;
+- может ли Consent покрывать несколько Concerts;
+- как обрабатывать consent withdrawal после публикации программы;
+- должна ли Eligibility иметь собственный Evaluation Entity;
+- сколько Eligibility Decisions хранить внутри Participation;
+- можно ли Approval сохранить после Eligibility Stale;
+- кто имеет право Approval;
+- нужен ли Approval quorum;
+- где обеспечить global Slot uniqueness;
+- нужен ли ConcertProgram Aggregate в MVP;
+- можно ли Participation иметь несколько Slots;
+- как моделировать duet/group performance;
+- кто владеет Slot для ensemble;
+- сколько ScheduledReminder может быть в Plan;
+- нужно ли выделять каждый Reminder в Aggregate;
+- как синхронизировать Reminder Delivery outcome;
+- должен ли Reminder знать NotificationDeliveryId;
+- сколько DeliveryAttempt хранить в Aggregate;
+- когда архивировать attempts;
+- нужен ли separate provider callback inbox;
+- какие EntityVersion действительно нужны;
+- должны ли все EntityId быть globally unique;
+- как сериализовать internal Entity references;
+- как защищать Entity rows от direct DAO mutation;
+- как автоматически проверять bounded collections;
+- нужен ли static architecture test для Entity repositories;
+- какой шаблон использовать для отдельных Entity specifications;
+- какие Entity войдут в MVP;
+- какие Entity можно упростить до Value Object в первой версии;
+- какие extraction decisions надо принять до реализации;
+- какие Entity должны поддерживать offline mobile commands;
+- как разрешать conflict по internal Entity;
+- как выполнять migration historical Entity;
+- как сохранять unknown lifecycle history;
+- как анонимизировать sensitive Entity;
+- как хранить Student-visible и internal notes отдельно;
+- какие Event payload должны включать EntityVersion;
+- когда Entity transition заслуживает отдельного Event;
+- когда достаточно Aggregate-level Event;
+- как отображать Entity history в Teacher UI.
+
+---
+
+# History
+
+| Version | Description |
+| --- | --- |
+| 1.0.0 | Определены канонические внутренние Entity Belcanto Product, их Aggregate ownership, identity, lifecycle, invariants, commands, events, privacy, AI restrictions, testing и criteria выделения в отдельный Aggregate Root. |
