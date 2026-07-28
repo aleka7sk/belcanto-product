@@ -209,6 +209,8 @@ Must Not Define:
 | Правила терминов (обращение, не состав) | `meta/standard/014-terminology-rules.md` |
 | Классы и порядок миграций | `meta/standard/015-migration-rules.md` |
 | Требования к привязке, уровни соответствия | `meta/standard/016-conformance-and-binding.md` |
+| Стадии конвейера, реестр утверждений, стратегии восстановления | `meta/standard/017-authoring-pipeline.md` |
+| Классы документов и их режимы отказа | `meta/standard/018-document-class-profiles.md` |
 
 **Привязка стандарта**
 
@@ -217,6 +219,7 @@ Must Not Define:
 | Пороги сроков и интервалы ревизии | `meta/008-lifecycle-and-versioning.md` |
 | Реестр миграций репозитория | `meta/010-migration-register.md` |
 | Заявленный уровень соответствия, реестр отклонений | `meta/011-conformance-statement.md` |
+| Соответствие каталогов классам, роли на стадиях | `meta/012-authoring-binding.md` |
 
 ### 6.2. Понятия с несколькими аспектами
 

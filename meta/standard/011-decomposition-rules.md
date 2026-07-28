@@ -2,7 +2,7 @@
 Document Id: DES-011
 Title: Декомпозиция и слияние документов
 Layer: L0 · Meta — Documentation Engineering Standard (DES)
-Standard Version: 1.0.0
+Standard Version: 1.1.0
 Status: Approved
 Version: 1.0.0
 Last Updated: 2026-07-28

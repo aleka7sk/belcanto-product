@@ -8,7 +8,7 @@ Last Updated: 2026-07-28
 Reading Order: 0.9
 Authority Rank: 5
 Authority Scope: Пороги и параметры жизненного цикла в этом репозитории. Правила цикла принадлежат DES-001.
-Standard Version: 1.0.0
+Standard Version: 1.1.0
 
 Owners:
   - Documentation Lead

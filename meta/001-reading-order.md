@@ -117,9 +117,12 @@ Must Not Define:
 | 0.25 | `meta/standard/014-terminology-rules.md` | Правила терминов |
 | 0.26 | `meta/standard/015-migration-rules.md` | Как менять сами соглашения |
 | 0.27 | `meta/standard/016-conformance-and-binding.md` | Как стандарт подключается |
+| 0.28 | `meta/standard/017-authoring-pipeline.md` | Как документ производится |
+| 0.29 | `meta/standard/018-document-class-profiles.md` | Чем различаются классы документов |
 | **0 · Binding** | | **Что из этого действует здесь?** |
-| 0.28 | `meta/010-migration-register.md` | Какие соглашения сейчас меняются |
-| 0.29 | `meta/011-conformance-statement.md` | Чему репозиторий соответствует сегодня |
+| 0.30 | `meta/010-migration-register.md` | Какие соглашения сейчас меняются |
+| 0.31 | `meta/011-conformance-statement.md` | Чему репозиторий соответствует сегодня |
+| 0.32 | `meta/012-authoring-binding.md` | Кто ведёт какую стадию здесь |
 | **1 · Reality** | | **Как школа работает сегодня?** |
 | 1.1 | `school/000-school-overview.md` | Что такое школа Belcanto |
 | 1.2 | `school/001-education-model.md` | Как устроено обучение |

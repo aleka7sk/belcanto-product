@@ -5,10 +5,10 @@ Layer: L0 · Meta — Система документации
 Status: Approved
 Version: 1.0.0
 Last Updated: 2026-07-28
-Reading Order: 0.28
+Reading Order: 0.30
 Authority Rank: 5
 Authority Scope: Реестр миграций этого репозитория. Правила миграций принадлежат DES-015.
-Standard Version: 1.0.0
+Standard Version: 1.1.0
 
 Owners:
   - Documentation Lead
@@ -66,7 +66,7 @@ Must Not Define:
 
 ## 4. Reading Order · Место в порядке чтения
 
-Позиция **0.28**.
+Позиция **0.30**.
 
 ---
 

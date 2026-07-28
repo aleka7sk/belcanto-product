@@ -2,7 +2,7 @@
 Document Id: DES-015
 Title: Правила миграций
 Layer: L0 · Meta — Documentation Engineering Standard (DES)
-Standard Version: 1.0.0
+Standard Version: 1.1.0
 Status: Approved
 Version: 1.0.0
 Last Updated: 2026-07-28
