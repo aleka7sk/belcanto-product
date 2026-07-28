@@ -181,6 +181,8 @@ Must Not Define:
 | Процесс изменений и каскад | `governance/001-change-management.md` |
 | Проверочный лист приёмки | `governance/002-review-checklist.md` |
 | Решения (`PDR-XXXX`) | `governance/decisions/000-decision-log.md` |
+| Отложенные решения (`PD-XXXX`) | `governance/decisions/002-pending-decisions.md` |
+| **Модель атрибуции целей** | `governance/decisions/002-pending-decisions.md`, PD-0015 |
 | Протокол чтения агента | `ai/001-agent-reading-protocol.md` |
 | Запреты агента | `ai/005-prohibited-actions.md` |
 | Границы AI внутри продукта | `ai/006-ai-in-product-boundary.md` |

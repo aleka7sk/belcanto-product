@@ -20,6 +20,7 @@ Required By:
   - product/001-vision-and-principles.md
   - product/002-product-boundaries.md
   - product/003-personas.md
+  - product/006-business-goals.md
 
 Defines:
   - Что такое Belcanto Product
