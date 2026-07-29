@@ -3,7 +3,7 @@ Document Id: META-AUTHORING
 Title: Конвейер производства — привязка
 Layer: L0 · Meta — Система документации
 Status: Approved
-Version: 1.1.0
+Version: 1.1.1
 Last Updated: 2026-07-29
 Reading Order: 0.32
 Authority Rank: 5
@@ -231,6 +231,7 @@ Business Goals ──▶ Capability Map ──▶ Language ──▶ Domain ─�
 | 6.3, 6.4 | B | назначение ролей на стадии; основано на [`meta/007-ownership-map.md`](007-ownership-map.md), раздел 6.3 | 1.1.0 |
 | 6.4 (правило несовмещения) | A | [`meta/standard/003-exit-criteria.md`](standard/003-exit-criteria.md), раздел 6.4 | 1.0.0 |
 | 6.5 | A | [`meta/standard/018-document-class-profiles.md`](standard/018-document-class-profiles.md), раздел 6.5 | 1.0.0 |
+| 6.1 (строка `product/011-capability-map.md`), 6.5 (диаграмма, пункты 5–7) | B | PD-0027 | — |
 | 6.6 | B | решение о совмещении реестра утверждений с таблицей вывода | — |
 | 6.7 | A | [`meta/standard/017-authoring-pipeline.md`](standard/017-authoring-pipeline.md), разделы 6.11, 6.12 | 1.0.0 |
 | 6.5 (текущее следствие) | C | состояние репозитория на 2026-07-28 | — |
@@ -241,5 +242,6 @@ Business Goals ──▶ Capability Map ──▶ Language ──▶ Domain ─�
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.1 | 2026-07-29 | PATCH: в таблицу вывода внесена строка класса B с источником PD-0027, покрывающая строку `product/011-capability-map.md` в §6.1 и диаграмму с пунктами 5–7 в §6.5. Строка класса A с источником DES-018 §6.5 сохранена: она продолжает покрывать порядок выводимости классов. Ни одно правило производства не изменялось. |
 | 1.1.0 | 2026-07-29 | PD-0027: `product/011-capability-map.md` внесён в §6.1 как класс C1 Замысел; §6.5 приведён к принятому продуктовому потоку с Картой способностей перед `language/` и `domain/`. DES-018 не изменялся. |
 | 1.0.0 | 2026-07-28 | Первая редакция привязки конвейера производства. |

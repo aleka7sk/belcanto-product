@@ -3,7 +3,7 @@ Document Id: PRJ-CONSTITUTION
 Title: Конституция проекта Belcanto Product
 Layer: Project · Нормативный контекст проекта
 Status: Approved
-Version: 1.1.0
+Version: 1.1.1
 Last Updated: 2026-07-29
 Reading Order: 0.0
 Authority Rank: 4
@@ -343,7 +343,8 @@ Whenever multiple valid implementation options exist:
 | Product philosophy — устойчивость | A | PD-0016, D-1 | — |
 | Architectural workflow | B | PD-0019 | — |
 | Capability philosophy — прослеживаемость | B | PD-0018 | — |
-| Domain philosophy | A + B | `meta/000-documentation-system.md` §6.2 — направление слоёв; проектный выбор — PD-0020 | 1.0.0 |
+| Domain philosophy — направление слоёв | A | `meta/000-documentation-system.md` §6.2 | 1.2.0 |
+| Domain philosophy — проектный выбор | B | PD-0020 | — |
 
 ---
 
@@ -351,5 +352,6 @@ Whenever multiple valid implementation options exist:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.1 | 2026-07-29 | PATCH: совмещённая строка «Domain philosophy» класса `A + B` разделена на две строки — по одному классу утверждения на строку (DES-006 §6.4 п. 2). Проза раздела 6 не изменялась. |
 | 1.1.0 | 2026-07-29 | PD-0027. Статус Business Goals приведён к действительности (`Approved` 1.0.0, PD-0024/PD-0025). Продуктовые документы выведены из графообразующего `Depends On`: документ объявлен корнем начальной загрузки вне графа вывода; атрибуция сохранена в разделе 6 и таблице вывода. Из строки «Domain philosophy» удалён нижележащий `domain/architecture/000-domain-model-rules.md`. |
 | 1.0.0 | 2026-07-29 | Конституция принята. Две поправки относительно исходной редакции: формулировка статуса Business Goals приведена к PD-0017; порядок архитектурного потока заменён редакцией PD-0019 (Capability Map внесена перед Language и Domain). |
