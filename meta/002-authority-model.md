@@ -3,7 +3,7 @@ Document Id: META-AUTHORITY
 Title: Модель авторитета документов
 Layer: L0 · Meta — Система документации
 Status: Approved
-Version: 1.1.0
+Version: 1.1.1
 Last Updated: 2026-07-29
 Reading Order: 0.3
 Authority Rank: 5
@@ -19,6 +19,7 @@ Depends On:
 Required By:
   - meta/003-document-template.md
   - meta/005-anti-contradiction-rules.md
+  - meta/006-validation-rules.md
   - governance/000-governance-overview.md
   - ai/000-ai-overview.md
   - README.md
@@ -64,6 +65,7 @@ Must Not Define:
 
 - [`meta/003-document-template.md`](003-document-template.md)
 - [`meta/005-anti-contradiction-rules.md`](005-anti-contradiction-rules.md)
+- [`meta/006-validation-rules.md`](006-validation-rules.md)
 - [`governance/000-governance-overview.md`](../governance/000-governance-overview.md)
 - [`ai/000-ai-overview.md`](../ai/000-ai-overview.md)
 - [`README.md`](../README.md) — операционная карта, вне контракта документа
@@ -190,5 +192,6 @@ Must Not Define:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.1 | 2026-07-29 | PATCH: `Required By` дополнено обратной записью `meta/006-validation-rules.md`, объявившим настоящий документ в своём `Depends On` (V1.8). Ни одно правило раздела 5 или 6 не изменялось. |
 | 1.1.0 | 2026-07-29 | PD-0028: зарегистрирована область авторитета `Project` (`docs/project/`) ранга 4 вне слоёв L0–L11; правила раздела 5 разделены на случай слоя и случай области авторитета; §6.2 и §6.3 шаг 1 обобщены на область авторитета; `Required By` дополнено фактическими зависимыми, уже объявившими настоящий документ в `Depends On`. Ранги существующих слоёв не изменялись. |
 | 1.0.0 | 2026-07-28 | Первая редакция модели авторитета. |

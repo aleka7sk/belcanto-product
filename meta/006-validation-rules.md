@@ -3,7 +3,7 @@ Document Id: META-VALIDATION
 Title: Общие правила валидации
 Layer: L0 · Meta — Система документации
 Status: Approved
-Version: 1.0.1
+Version: 1.0.2
 Last Updated: 2026-07-29
 Reading Order: 0.7
 Authority Rank: 5
@@ -13,6 +13,7 @@ Owners:
   - Documentation Lead
 
 Depends On:
+  - meta/002-authority-model.md
   - meta/003-document-template.md
   - meta/004-anti-duplication-rules.md
   - meta/005-anti-contradiction-rules.md
@@ -55,6 +56,7 @@ Must Not Define:
 
 **Читать до этого документа:**
 
+- [`meta/002-authority-model.md`](002-authority-model.md)
 - [`meta/003-document-template.md`](003-document-template.md)
 - [`meta/004-anti-duplication-rules.md`](004-anti-duplication-rules.md)
 - [`meta/005-anti-contradiction-rules.md`](005-anti-contradiction-rules.md)
@@ -92,7 +94,7 @@ Must Not Define:
 | V1.5 | Присутствуют разделы 1–6 в указанном порядке | документ не принимается |
 | V1.6 | Все внутренние ссылки ведут на существующие файлы | документ не принимается |
 | V1.7 | Позиция `Reading Order` совпадает с [`meta/001`](001-reading-order.md) | обновить `meta/001` |
-| V1.8 | `Authority Rank` равен рангу слоя по [`meta/002`](002-authority-model.md) | исправить документ |
+| V1.8 | `Authority Rank` равен рангу зарегистрированного слоя либо зарегистрированной области авторитета по [`meta/002`](002-authority-model.md) | исправить документ |
 
 ### 6.2. Уровень 2 — связи (проверяется автоматически)
 
@@ -156,9 +158,18 @@ Must Not Define:
 
 ---
 
+## Таблица вывода
+
+| Раздел | Класс | Источник | Версия источника |
+|--------|-------|----------|------------------|
+| 6.1 (V1.8) | A | [`meta/002-authority-model.md`](002-authority-model.md), разделы 5, 6.1 | 1.1.1 |
+
+---
+
 ## История изменений
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.0.2 | 2026-07-29 | PATCH: V1.8 обобщено на зарегистрированные области авторитета вслед за `meta/002` §5 и §6.1; объявлена существующая смысловая зависимость от `meta/002`, ранее не декларированная в графе `Depends On`. Смысл прочих правил не изменялся. |
 | 1.0.1 | 2026-07-29 | PATCH: в активных нормативных правилах V2.3, V4.4, §6.6 и §6.7 выведенные из употребления имена состояний заменены действующими (M-0001). Смысл правил не изменялся. |
 | 1.0.0 | 2026-07-28 | Первая редакция общих правил валидации. |
