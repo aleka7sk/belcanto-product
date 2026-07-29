@@ -3,8 +3,8 @@ Document Id: META-READING-ORDER
 Title: Порядок чтения документации
 Layer: L0 · Meta — Система документации
 Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-28
+Version: 1.1.0
+Last Updated: 2026-07-29
 Reading Order: 0.2
 Authority Rank: 5
 Authority Scope: Порядок чтения. Не имеет власти над содержанием документов.
@@ -145,6 +145,7 @@ Must Not Define:
 | 2.10 | `product/008-value-propositions.md` | Ценность по ролям |
 | 2.11 | `product/009-product-rules.md` | Продуктовые правила |
 | 2.12 | `product/010-risks-and-assumptions.md` | Риски и допущения |
+| 2.13 | `product/011-capability-map.md` | Какие устойчивые способности необходимы продукту |
 | **3 · Language** | | **Что означает каждое слово?** |
 | 3.1 | `language/000-language-overview.md` | Зачем единый язык |
 | 3.2 | `language/001-ubiquitous-language.md` | Каталог терминов |
@@ -284,4 +285,5 @@ product/000 → product/006 → product/007 → roadmap/ (весь слой)
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.0 | 2026-07-29 | MINOR: зарегистрирована позиция **2.13** — `product/011-capability-map.md`, создан на стадии P4 конвейера DES-017 по итогам приёмки P0–P3 Product Owner. Ни одна существующая позиция, вопрос, маршрут или порядок не изменены. |
 | 1.0.0 | 2026-07-28 | Первая редакция порядка чтения. |

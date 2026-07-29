@@ -3,8 +3,8 @@ Document Id: META-OWNERSHIP
 Title: Карта владения знанием
 Layer: L0 · Meta — Система документации
 Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-28
+Version: 1.1.0
+Last Updated: 2026-07-29
 Reading Order: 0.8
 Authority Rank: 5
 Authority Scope: Реестр владельцев понятий. Не имеет власти над содержанием понятий.
@@ -90,6 +90,8 @@ Must Not Define:
 | Роли и персоны | `product/003-personas.md` |
 | Ключевые концепции продукта | `product/004-core-concepts.md` |
 | Бизнес-цели (`BG-XX`) | `product/006-business-goals.md` |
+| Устойчивые способности Belcanto Product и границы каждой способности | `product/011-capability-map.md` |
+| Покрытие принятых бизнес-целей продуктовыми способностями | `product/011-capability-map.md` |
 | Метрики успеха | `product/007-success-metrics.md` |
 | Ценность по ролям | `product/008-value-propositions.md` |
 | Продуктовые правила (`PR-XX`) | `product/009-product-rules.md` |
@@ -263,4 +265,5 @@ Must Not Define:
 
 | Версия | Дата | Изменение |
 |--------|------|-----------|
+| 1.1.0 | 2026-07-29 | MINOR: зарегистрированы два понятия документа `product/011-capability-map.md` — «Устойчивые способности Belcanto Product и границы каждой способности» и «Покрытие принятых бизнес-целей продуктовыми способностями». Ни одно существующее владение не изменено и не передано; каталог ролей не изменён. |
 | 1.0.0 | 2026-07-28 | Первая редакция карты владения. |
