@@ -13,9 +13,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/belcanto-reissue-bootstrap-invitation ./cmd/reissue-bootstrap-invitation && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/belcanto-migrate ./cmd/migrate
 
-FROM alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+FROM alpine:3.23.5@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
 
-RUN apk add --no-cache ca-certificates tzdata && \
+RUN apk add --no-cache \
+        ca-certificates=20260611-r0 \
+        tzdata=2026c-r0 && \
     addgroup -S -g 10001 belcanto && \
     adduser -S -D -H -u 10001 -G belcanto belcanto
 WORKDIR /app
