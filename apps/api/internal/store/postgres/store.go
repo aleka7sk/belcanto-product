@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -204,11 +205,29 @@ func lockActivationSubject(ctx context.Context, tx pgx.Tx, tenantID, accountID, 
 	if studentID != "" {
 		subject = "student:" + studentID
 	}
-	key := "belcanto:activation:v1:" + tenantID + "\x00" + subject
+	key := advisoryLockKey("activation", tenantID, subject)
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, key); err != nil {
 		return fmt.Errorf("lock activation subject: %w", err)
 	}
 	return nil
+}
+
+func advisoryLockKey(namespace string, parts ...string) string {
+	// PostgreSQL text rejects NUL bytes. Length framing preserves tuple
+	// boundaries without placing separators in the SQL parameter, and the
+	// hexadecimal digest keeps the final lock key valid printable UTF-8.
+	digest := sha256.New()
+	writePart := func(part string) {
+		var length [8]byte
+		binary.BigEndian.PutUint64(length[:], uint64(len(part)))
+		_, _ = digest.Write(length[:])
+		_, _ = digest.Write([]byte(part))
+	}
+	writePart(namespace)
+	for _, part := range parts {
+		writePart(part)
+	}
+	return "belcanto:lock:v1:" + hex.EncodeToString(digest.Sum(nil))
 }
 
 type auditInput struct {

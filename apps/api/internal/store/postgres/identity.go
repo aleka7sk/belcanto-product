@@ -13,7 +13,7 @@ import (
 
 func (s *Store) BootstrapOwner(ctx context.Context, command core.BootstrapOwnerCommand) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, command.TenantID); err != nil {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, advisoryLockKey("owner-bootstrap", command.TenantID)); err != nil {
 			return fmt.Errorf("lock owner bootstrap: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
@@ -102,7 +102,7 @@ func (s *Store) BootstrapStaff(ctx context.Context, command core.BootstrapStaffC
 		return core.E(core.CodeInvalidInput, "staff bootstrap role must be Administrator or Teacher", nil)
 	}
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, command.TenantID+"\x00"+command.Phone); err != nil {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, advisoryLockKey("staff-bootstrap", command.TenantID, command.Phone)); err != nil {
 			return fmt.Errorf("lock staff bootstrap: %w", err)
 		}
 		owner, err := hasActiveRole(ctx, tx, command.TenantID, command.OwnerAccountID, core.RoleOwner)

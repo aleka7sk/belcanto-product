@@ -3,6 +3,9 @@ package postgres_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"net/url"
 	"os"
@@ -464,7 +467,7 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin advisory-lock harness: %v", err)
 	}
-	lockKey := "belcanto:activation:v1:" + owner.TenantID + "\x00student:" + raceStudent.StudentID
+	lockKey := integrationAdvisoryLockKey("activation", owner.TenantID, "student:"+raceStudent.StudentID)
 	if _, err := lockTx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, lockKey); err != nil {
 		_ = lockTx.Rollback(ctx)
 		t.Fatalf("hold activation subject lock: %v", err)
@@ -575,6 +578,21 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 	if _, err := service.CreateStudent(ctx, administrator, primaryStudentInput); !core.IsCode(err, core.CodeForbidden) {
 		t.Fatalf("revoked Administrator exact replay = %v", err)
 	}
+}
+
+func integrationAdvisoryLockKey(namespace string, parts ...string) string {
+	digest := sha256.New()
+	writePart := func(part string) {
+		var length [8]byte
+		binary.BigEndian.PutUint64(length[:], uint64(len(part)))
+		_, _ = digest.Write(length[:])
+		_, _ = digest.Write([]byte(part))
+	}
+	writePart(namespace)
+	for _, part := range parts {
+		writePart(part)
+	}
+	return "belcanto:lock:v1:" + hex.EncodeToString(digest.Sum(nil))
 }
 
 func assertConstraintRejected(t *testing.T, ctx context.Context, pool *pgxpool.Pool, statement string, arguments ...any) {
