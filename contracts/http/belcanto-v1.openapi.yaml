@@ -1,0 +1,1223 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+
+info:
+  title: Belcanto API
+  version: 0.1.0
+  description: >-
+    HTTP contract for the closed B.0 onboarding slice. There is intentionally
+    no public sign-up operation: the school creates a Student and the invited
+    person only activates the already prepared Account.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: System
+    description: Process health endpoints.
+  - name: Activation
+    description: Public, invitation-bound account activation.
+  - name: Sessions
+    description: Authentication, rotation, sign-out, and account bootstrap.
+  - name: Access
+    description: Owner-controlled staff discovery and delegated access.
+  - name: Onboarding
+    description: Managed Student creation and the closed onboarding journey.
+
+paths:
+  /healthz:
+    get:
+      summary: Check API health
+      operationId: health
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: API is serving requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    const: ok
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /readyz:
+    get:
+      summary: Check API readiness
+      operationId: readiness
+      tags: [System]
+      security: []
+      description: Verifies that the API can reach PostgreSQL.
+      responses:
+        "200":
+          description: API and PostgreSQL are ready to serve traffic.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    const: ready
+        "503":
+          $ref: "#/components/responses/Unavailable"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/preview:
+    post:
+      summary: Preview an activation invitation
+      operationId: previewActivation
+      tags: [Activation]
+      security: []
+      description: Validates an invitation without consuming it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationPreviewRequest"
+      responses:
+        "200":
+          description: Safe invitation preview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivationPreview"
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/complete:
+    post:
+      summary: Activate an invited account
+      operationId: completeActivation
+      tags: [Activation]
+      security: []
+      description: >-
+        Consumes one invitation and lets the invited person choose the Account
+        password. Success does not create a session; sign-in remains a separate
+        explicit step.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteActivationRequest"
+      responses:
+        "204":
+          description: Account activated; no session was created.
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/sessions:
+    post:
+      summary: Sign in
+      operationId: createSession
+      tags: [Sessions]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: New access and refresh token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTokens"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/sessions/refresh:
+    post:
+      summary: Rotate a session
+      operationId: refreshSession
+      tags: [Sessions]
+      security: []
+      description: Rotates the refresh token and replaces its session record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshSessionRequest"
+      responses:
+        "200":
+          description: Rotated access and refresh token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTokens"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/sessions/current:
+    delete:
+      summary: Sign out the current session
+      operationId: revokeCurrentSession
+      tags: [Sessions]
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Current session revoked, or already inactive.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/bootstrap:
+    get:
+      summary: Load the current account bootstrap view
+      operationId: getBootstrapView
+      tags: [Sessions]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Persona roles, effective permissions, and personal start data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapView"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/staff:
+    get:
+      summary: List eligible staff
+      operationId: listStaff
+      tags: [Access]
+      description: >-
+        Owner can discover active Administrators and Teachers. A delegated
+        Administrator can discover active Teachers only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [Administrator, Teacher]
+      responses:
+        "200":
+          description: Same-tenant active staff in deterministic order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffMember"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/access/delegations:
+    post:
+      summary: Delegate student onboarding access
+      operationId: grantStudentOnboardingDelegation
+      tags: [Access]
+      description: >-
+        Owner-only operation. A current-password check is required and the
+        fixed v1 permission profile is never inferred from Administrator role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrantDelegationRequest"
+      responses:
+        "201":
+          description: Delegation granted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DelegationResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/access/delegations/{delegationId}/revoke:
+    post:
+      summary: Revoke student onboarding access
+      operationId: revokeStudentOnboardingDelegation
+      tags: [Access]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DelegationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeDelegationRequest"
+      responses:
+        "204":
+          description: Delegation revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/student-onboarding:
+    get:
+      summary: List the student onboarding queue
+      operationId: listStudentOnboarding
+      tags: [Onboarding]
+      description: >-
+        Owner and delegated Administrators receive the tenant onboarding queue.
+        Teachers receive only actively assigned Students. Ordinary
+        Administrators are denied.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Deterministically ordered onboarding queue.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentOnboardingItem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students:
+    post:
+      summary: Create a managed student
+      operationId: createStudent
+      tags: [Onboarding]
+      description: Owner or delegated-Administrator operation; never public.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStudentRequest"
+      responses:
+        "201":
+          description: Student identity chain created before Account activation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/first-minute:
+    put:
+      summary: Publish the First Belcanto Minute
+      operationId: publishFirstBelcantoMinute
+      tags: [Onboarding]
+      description: Only the same-tenant, actively assigned Teacher can publish.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishFirstMinuteRequest"
+      responses:
+        "200":
+          description: Published immutable revision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FirstMinute"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/activation-invitations:
+    post:
+      summary: Issue a student activation invitation
+      operationId: issueStudentActivationInvitation
+      tags: [Onboarding]
+      description: >-
+        Owner-only operation. Issues a seven-day, one-time invitation only
+        after the First Belcanto Minute exists. The response is the only
+        client-facing delivery of the activation link for this operation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Invitation issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/activation-invitations/reissue:
+    post:
+      summary: Reissue a student activation invitation
+      operationId: reissueStudentActivationInvitation
+      tags: [Onboarding]
+      description: >-
+        Owner-only operation. Atomically invalidates the prior unconsumed
+        invitation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Replacement invitation issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activation-invitations/{invitationId}/revoke:
+    post:
+      summary: Revoke a student activation invitation
+      operationId: revokeStudentActivationInvitation
+      tags: [Onboarding]
+      description: Owner-only operation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/InvitationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Issued invitation revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Stable key for one user intent. A retry must reuse the same key and
+        payload; a new intent must use a new key.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[\u0021-\u007E]+$'
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    InvitationId:
+      name: invitationId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    DelegationId:
+      name: delegationId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+
+  responses:
+    InvalidInput:
+      description: Request shape or value is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvalidInputError"
+    ActivationInvalid:
+      description: Invitation is invalid, expired, revoked, superseded, or consumed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ActivationInvalidError"
+    Unauthenticated:
+      description: Authentication or fresh credential verification failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthenticatedError"
+    Forbidden:
+      description: Authenticated principal lacks effective permission.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ForbiddenError"
+    NotFound:
+      description: Same-tenant resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
+    Conflict:
+      description: State, version, uniqueness, or idempotency conflict.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ConflictError"
+    RateLimited:
+      description: Too many attempts.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RateLimitedError"
+    Internal:
+      description: An unexpected server failure occurred.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InternalError"
+    Unavailable:
+      description: A required dependency is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnavailableError"
+
+  schemas:
+    Role:
+      type: string
+      enum: [Owner, Administrator, Teacher, Student]
+    AccessProfile:
+      type: string
+      description: >-
+        StudentOnboardingManager.v1 delegates exactly students.create and
+        student_onboarding.read. It never delegates invitation management.
+      enum: [StudentOnboardingManager.v1]
+    Permission:
+      type: string
+      enum:
+        - students.create
+        - student_onboarding.read
+        - student_invitations.issue
+        - student_invitations.reissue
+        - student_invitations.revoke
+        - student_onboarding.delegate
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_INPUT
+        - UNAUTHENTICATED
+        - FORBIDDEN
+        - NOT_FOUND
+        - CONFLICT
+        - INVALID_STATE
+        - ACTIVATION_INVALID
+        - RATE_LIMITED
+        - UNAVAILABLE
+        - INTERNAL
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code:
+              $ref: "#/components/schemas/ErrorCode"
+            message:
+              type: string
+              minLength: 1
+            requestId:
+              type: string
+              minLength: 1
+    InvalidInputError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: INVALID_INPUT
+    ActivationInvalidError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: ACTIVATION_INVALID
+    UnauthenticatedError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: UNAUTHENTICATED
+    ForbiddenError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: FORBIDDEN
+    NotFoundError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: NOT_FOUND
+    ConflictError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  type: string
+                  enum: [CONFLICT, INVALID_STATE]
+    RateLimitedError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: RATE_LIMITED
+    InternalError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: INTERNAL
+    UnavailableError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - properties:
+            error:
+              properties:
+                code:
+                  const: UNAVAILABLE
+    ActivationPreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+    ActivationPreview:
+      type: object
+      additionalProperties: false
+      required: [invitationId, kind, displayName, maskedPhone, expiresAt]
+      properties:
+        invitationId:
+          type: string
+        kind:
+          type: string
+          enum: [owner_bootstrap, staff_activation, student_activation]
+        displayName:
+          type: string
+        maskedPhone:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    CompleteActivationRequest:
+      type: object
+      additionalProperties: false
+      required: [token, phone, password]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        phone:
+          type: string
+          description: Phone invited by the school; normalized to E.164 by the API.
+        password:
+          type: string
+          format: password
+          minLength: 15
+          maxLength: 128
+    SignInRequest:
+      type: object
+      additionalProperties: false
+      required: [phone, password]
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+          format: password
+    RefreshSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+    SessionTokens:
+      type: object
+      additionalProperties: false
+      required: [accessToken, refreshToken, accessExpiresAt, refreshExpiresAt]
+      properties:
+        accessToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        accessExpiresAt:
+          type: string
+          format: date-time
+        refreshExpiresAt:
+          type: string
+          format: date-time
+    BootstrapView:
+      type: object
+      additionalProperties: false
+      required: [accountId, roles, accessProfiles, permissions]
+      dependentRequired:
+        firstMinute: [studentId]
+      allOf:
+        - if:
+            properties:
+              roles:
+                contains:
+                  const: Student
+            required: [roles]
+          then:
+            properties:
+              studentId: {}
+              fullName: {}
+              firstMinute: {}
+            required: [studentId, fullName, firstMinute]
+          else:
+            not:
+              anyOf:
+                - properties:
+                    studentId: {}
+                  required: [studentId]
+                - properties:
+                    fullName: {}
+                  required: [fullName]
+                - properties:
+                    firstMinute: {}
+                  required: [firstMinute]
+        - if:
+            properties:
+              roles:
+                contains:
+                  const: Owner
+            required: [roles]
+          then:
+            properties:
+              accessProfiles:
+                maxItems: 0
+              permissions:
+                minItems: 6
+                maxItems: 6
+                allOf:
+                  - contains: { const: students.create }
+                  - contains: { const: student_onboarding.read }
+                  - contains: { const: student_invitations.issue }
+                  - contains: { const: student_invitations.reissue }
+                  - contains: { const: student_invitations.revoke }
+                  - contains: { const: student_onboarding.delegate }
+          else:
+            if:
+              properties:
+                accessProfiles:
+                  contains:
+                    const: StudentOnboardingManager.v1
+              required: [accessProfiles]
+            then:
+              properties:
+                roles:
+                  contains:
+                    const: Administrator
+                permissions:
+                  minItems: 2
+                  maxItems: 2
+                  allOf:
+                    - contains: { const: students.create }
+                    - contains: { const: student_onboarding.read }
+            else:
+              properties:
+                permissions:
+                  maxItems: 0
+      properties:
+        accountId:
+          type: string
+        roles:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Role"
+        accessProfiles:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/AccessProfile"
+        permissions:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Permission"
+        studentId:
+          type: string
+        fullName:
+          type: string
+        firstMinute:
+          $ref: "#/components/schemas/FirstMinute"
+    StaffMember:
+      type: object
+      additionalProperties: false
+      required: [accountId, fullName, roles, accessProfiles]
+      dependentRequired:
+        onboardingDelegationExpiresAt: [onboardingDelegationId]
+      allOf:
+        - if:
+            properties:
+              accessProfiles:
+                contains:
+                  const: StudentOnboardingManager.v1
+            required: [accessProfiles]
+          then:
+            properties:
+              roles:
+                contains:
+                  const: Administrator
+              onboardingDelegationId: {}
+              accessProfiles:
+                minItems: 1
+                maxItems: 1
+            required: [onboardingDelegationId]
+          else:
+            properties:
+              accessProfiles:
+                maxItems: 0
+            not:
+              anyOf:
+                - properties:
+                    onboardingDelegationId: {}
+                  required: [onboardingDelegationId]
+                - properties:
+                    onboardingDelegationExpiresAt: {}
+                  required: [onboardingDelegationExpiresAt]
+      properties:
+        accountId:
+          type: string
+        fullName:
+          type: string
+        roles:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Role"
+        accessProfiles:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/AccessProfile"
+        onboardingDelegationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        onboardingDelegationExpiresAt:
+          type: string
+          format: date-time
+    GrantDelegationRequest:
+      type: object
+      additionalProperties: false
+      required: [administratorAccountId, reason, currentPassword]
+      properties:
+        administratorAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        expiresAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        currentPassword:
+          type: string
+          format: password
+          minLength: 1
+    DelegationResult:
+      type: object
+      additionalProperties: false
+      required: [id, administratorAccountId, bundle, status, grantedAt]
+      properties:
+        id:
+          type: string
+        administratorAccountId:
+          type: string
+        bundle:
+          $ref: "#/components/schemas/AccessProfile"
+        status:
+          const: active
+        grantedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    RevokeDelegationRequest:
+      type: object
+      additionalProperties: false
+      required: [reason, currentPassword]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        currentPassword:
+          type: string
+          format: password
+          minLength: 1
+    CreateStudentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - fullName
+        - phone
+        - enrollmentReference
+        - teacherAccountId
+        - adultConfirmed
+      properties:
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          description: Normalized to E.164 by the API.
+        enrollmentReference:
+          type: string
+          minLength: 1
+          maxLength: 100
+        teacherAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        locale:
+          type: string
+          minLength: 1
+          maxLength: 35
+          default: ru-KZ
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 100
+          default: Asia/Almaty
+        adultConfirmed:
+          const: true
+    StudentResult:
+      type: object
+      additionalProperties: false
+      required: [studentId, accountId, onboardingState]
+      properties:
+        studentId:
+          type: string
+        accountId:
+          type: string
+        onboardingState:
+          const: awaiting_first_minute
+    StudentOnboardingState:
+      type: string
+      enum: [awaiting_first_minute, ready_to_invite, invited, activated]
+    StudentOnboardingItem:
+      type: object
+      additionalProperties: false
+      required:
+        - studentId
+        - fullName
+        - enrollmentReference
+        - teacherAccountId
+        - studentVersion
+        - onboardingState
+      allOf:
+        - if:
+            properties:
+              onboardingState:
+                const: invited
+            required: [onboardingState]
+          then:
+            properties:
+              invitationId: {}
+              invitationExpiresAt: {}
+            required: [invitationId, invitationExpiresAt]
+          else:
+            not:
+              anyOf:
+                - properties:
+                    invitationId: {}
+                  required: [invitationId]
+                - properties:
+                    invitationExpiresAt: {}
+                  required: [invitationExpiresAt]
+      properties:
+        studentId:
+          type: string
+        fullName:
+          type: string
+        enrollmentReference:
+          type: string
+        teacherAccountId:
+          type: string
+        studentVersion:
+          type: integer
+          minimum: 0
+        onboardingState:
+          $ref: "#/components/schemas/StudentOnboardingState"
+        invitationId:
+          type: string
+        invitationExpiresAt:
+          type: string
+          format: date-time
+    PublishFirstMinuteRequest:
+      type: object
+      additionalProperties: false
+      required: [whatWorked, currentFocus, nextStep, expectedVersion]
+      properties:
+        whatWorked:
+          type: string
+          minLength: 1
+          maxLength: 500
+        currentFocus:
+          type: string
+          minLength: 1
+          maxLength: 500
+        nextStep:
+          type: string
+          minLength: 1
+          maxLength: 500
+        expectedVersion:
+          type: integer
+          minimum: 0
+    FirstMinute:
+      type: object
+      additionalProperties: false
+      required:
+        - studentId
+        - revision
+        - whatWorked
+        - currentFocus
+        - nextStep
+        - publishedAt
+      properties:
+        studentId:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        whatWorked:
+          type: string
+        currentFocus:
+          type: string
+        nextStep:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+    InvitationResult:
+      type: object
+      additionalProperties: false
+      required: [invitationId, studentId, status, expiresAt, activationLink]
+      properties:
+        invitationId:
+          type: string
+        studentId:
+          type: string
+        status:
+          const: issued
+        expiresAt:
+          type: string
+          format: date-time
+        activationLink:
+          $ref: "#/components/schemas/ActivationLink"
+    ActivationLink:
+      type: string
+      format: uri
+      pattern: '^(?:belcanto://activate|https://[^/?#@]+/activate)#token=[A-Za-z0-9_-]{43}$'
+      description: >-
+        Canonical one-time activation link. The custom scheme is permitted only
+        for local development. A production client additionally requires the
+        HTTPS origin to equal its build-time verified app-link origin.

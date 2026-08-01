@@ -1,7 +1,7 @@
 ---
-Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Status: Draft
+Version: 2.0.0
+Last Updated: 2026-08-01
 
 Document Id: DOMAIN_EVENT_CATALOG
 
@@ -51,7 +51,10 @@ Related Documents:
 
 # Domain Event Catalog
 
-> Domain Event Catalog определяет единый канонический набор событий Belcanto Product.
+> **T7 · DRAFT.** Утверждённая редакция 1.0.0 возвращена в Draft для M-0003
+> по PD-0030 и PD-0032 с явным разрешением Product Owner / Education Lead.
+>
+> Domain Event Catalog описывает набор событий Belcanto Product.
 >
 > Событие фиксирует уже произошедший доменный факт.
 >
@@ -785,11 +788,52 @@ Assessment, private learning context, Guardian scope или иные чувст�
 
 # Canonical Event Groups
 
+> **B.0 transport boundary.** Текущие минимальные payload в `apps/api` outbox
+> являются неканонической транспортной проекцией. Они не заявляют соответствие
+> `DomainEventEnvelope` или `Required Payload` настоящего Draft до Technical P7;
+> до этих ворот ни проекция, ни новые B.0-контракты не считаются каноническими.
+
+## B.0 Delegated Access Events
+
+### StudentOnboardingDelegationGranted
+
+Фиксирует выдачу Owner действующего `DelegatedSuperadminAccess` для
+`Administrator`. Событие не создаёт новую роль.
+
+Required Payload:
+
+```text
+DelegationId
+OwnerAccountId
+AdministratorAccountId
+PermissionSetReference
+GrantedAt
+EffectivePeriod
+```
+
+`PermissionSetReference = StudentOnboardingManager.v1` является производным
+техническим отображением текущего среза, а не человеческим утверждением класса B.
+
+### StudentOnboardingDelegationRevoked
+
+Required Payload:
+
+```text
+DelegationId
+OwnerAccountId
+AdministratorAccountId
+RevokedAt
+ReasonReference
+```
+
+---
+
 ## Student Events
 
 ### StudentCreated
 
-Фиксирует создание Student profile в продукте.
+Фиксирует создание учебной идентичности `Student` школой. Событие не означает
+активацию `Account`.
 
 Owner: Student
 
@@ -797,6 +841,8 @@ Required Payload:
 
 ```text
 StudentId
+PersonId
+SchoolMembershipId
 SchoolId
 EnrollmentReference
 CreatedAt
@@ -862,6 +908,88 @@ LearningPauseId
 EndedAt
 EndReason
 ```
+
+---
+
+## Account and Invitation Events
+
+### FirstBelcantoMinutePublished
+
+Фиксирует наличие первого учебного ориентира, требуемого до выпуска Invitation.
+Содержательная форма ориентира остаётся в педагогическом владельце и не
+определяется настоящим каталогом.
+
+Required Payload:
+
+```text
+StudentId
+OrientationReference
+PublishedBy
+PublishedAt
+```
+
+### StudentActivationInvitationIssued
+
+Required Payload:
+
+```text
+InvitationId
+StudentId
+AccountId
+IssuedByAccountId
+AuthorizationReference
+IssuedAt
+ExpiresAt
+```
+
+`AuthorizationReference` указывает только на полномочие Owner: delegation grant
+не авторизует управление Invitation. Секрет Invitation и пароль в событие не
+включаются.
+
+### StudentActivationInvitationReissued
+
+Required Payload:
+
+```text
+PreviousInvitationId
+InvitationId
+StudentId
+AccountId
+ReissuedByAccountId
+AuthorizationReference
+ReissuedAt
+ExpiresAt
+```
+
+Факт означает, что прежнее неиспользованное Invitation стало `Superseded`.
+
+### StudentActivationInvitationRevoked
+
+Required Payload:
+
+```text
+InvitationId
+StudentId
+RevokedByAccountId
+AuthorizationReference
+RevokedAt
+```
+
+### AccountActivated
+
+Required Payload:
+
+```text
+AccountId
+PersonId
+StudentId
+InvitationId
+ActivatedAt
+```
+
+Событие подтверждает атомарное потребление Invitation и переход Account в
+`Active`. Оно не создаёт и не изменяет учебный статус Student и не содержит
+пароль или credential hash.
 
 ---
 
@@ -3391,8 +3519,22 @@ Domain Event Catalog не определяет:
 
 ---
 
+# Таблица вывода редакции M-0003/B.0
+
+| Изменённая часть | Класс | Источник | Версия источника |
+|------------------|-------|----------|------------------|
+| T7 и граница редакции | B | PD-0030, PD-0032; разрешение Product Owner / Education Lead 2026-08-01 | — |
+| StudentCreated identity references | A | PD-0030, пп. 1–3 | — |
+| Delegation events | A | PD-0030, пп. 7–10 | — |
+| Invitation и Account activation events | A | PD-0030, пп. 4–6, 9, 11, 13 | — |
+| `StudentOnboardingManager.v1` | A | производное техническое отображение B.0 scope, не решение класса B | — |
+| B.0 outbox transport boundary | A | текущая реализация `apps/api` + состояние Draft; соответствие отложено до Technical P7 | — |
+
+---
+
 # History
 
 | Version | Description |
 | --- | --- |
+| 2.0.0 | T7 · DRAFT · M-0003/B.0: добавлены события делегирования, Invitation и Account activation; обязательный payload StudentCreated расширен identity references, поэтому редакция имеет MAJOR-версию. Текущий минимальный outbox отмечен как неканоническая transport-проекция до Technical P7. Технический package literal отмечен как производный. Требуется P7 Education Lead + Technical Lead. |
 | 1.0.0 | Создан единый канонический каталог Domain Events, envelope, ownership, versioning, Outbox, Inbox, replay, privacy и event contracts для основных доменов Belcanto. |

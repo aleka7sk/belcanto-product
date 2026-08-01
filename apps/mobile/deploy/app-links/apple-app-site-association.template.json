@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["${APPLE_TEAM_ID}.${IOS_BUNDLE_IDENTIFIER}"],
+        "components": [
+          {
+            "/": "/activate",
+            "comment": "Belcanto invitation activation only"
+          }
+        ]
+      }
+    ]
+  }
+}

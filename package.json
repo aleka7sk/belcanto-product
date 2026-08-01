@@ -1,0 +1,20 @@
+{
+  "name": "belcanto-product",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "24.14.0"
+  },
+  "scripts": {
+    "contract:lint": "redocly lint contracts/http/belcanto-v1.openapi.yaml",
+    "mobile:start": "pnpm --filter @belcanto/mobile start",
+    "mobile:lint": "pnpm --filter @belcanto/mobile lint",
+    "mobile:typecheck": "pnpm --filter @belcanto/mobile typecheck",
+    "mobile:test": "pnpm --filter @belcanto/mobile test",
+    "mobile:check": "pnpm mobile:lint && pnpm mobile:typecheck && pnpm mobile:test"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.43.2"
+  }
+}

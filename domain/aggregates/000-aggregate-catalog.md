@@ -1,7 +1,7 @@
 ---
-Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Status: Draft
+Version: 2.0.0
+Last Updated: 2026-08-01
 
 Document Id: AGGREGATE_CATALOG
 
@@ -58,7 +58,10 @@ Related Documents:
 
 # Aggregate Catalog
 
-> Aggregate Catalog определяет канонические границы согласованности Belcanto Product.
+> **T7 · DRAFT.** Утверждённая редакция 1.0.0 возвращена в Draft для M-0003
+> по PD-0030 и PD-0032 с явным разрешением Product Owner / Education Lead.
+>
+> Aggregate Catalog описывает границы согласованности Belcanto Product.
 >
 > Aggregate является группой доменных объектов, которые изменяются как единое согласованное целое.
 >
@@ -505,7 +508,11 @@ Lifecycle status меняется только через конкретное �
 Предварительный набор Aggregate Roots:
 
 ```text
+Person
+SchoolMembership
 StudentLearningProfile
+Account
+Invitation
 TeacherAssignment
 Lesson
 HomeworkAssignment
@@ -531,6 +538,17 @@ DomainIntegrityIssue
 # Aggregate Relationship Overview
 
 ```text
+Person
+    +--> SchoolMembership
+    |        |
+    |        +--> StudentLearningProfile
+    |
+    +--> Account
+             |
+             +--> Invitation
+                      |
+                      +--> StudentLearningProfile (reference)
+
 StudentLearningProfile
     |
     +--> TeacherAssignment
@@ -560,6 +578,118 @@ StudentLearningProfile
 
 ---
 
+# B.0 Identity and Access Boundaries
+
+Нормативные определения терминов находятся в
+`language/001-ubiquitous-language.md`. Настоящий раздел задаёт только структуры,
+раздельные жизненные циклы и инварианты, выведенные из PD-0030.
+
+## Person Aggregate
+
+```text
+Person
+├── PersonId
+├── DisplayName
+├── ContactReferenceSet
+├── CreatedAt
+├── UpdatedAt
+└── Version
+```
+
+`Person` не владеет учебным статусом, паролем или приглашением. Точные правила
+слияния, архивирования и изменения контактных данных находятся вне B.0 и не
+вводятся без отдельного источника.
+
+## SchoolMembership Aggregate
+
+```text
+SchoolMembership
+├── SchoolMembershipId
+├── PersonId
+├── SchoolId
+├── MembershipStatusReference
+├── RecordedAt
+└── Version
+```
+
+Для создания `Student` требуется ссылка на существующий `SchoolMembership` в
+том же tenant. Названия состояний и переходы membership не определены в B.0:
+они требуют подтверждённых наблюдений реальной работы школы. Возможные
+операционные storage flags реализации не являются утверждёнными доменными
+состояниями и не могут использоваться как источник продуктового смысла.
+
+## Account Aggregate
+
+```text
+Account
+├── AccountId
+├── PersonId
+├── TenantId
+├── AccessStatus
+├── CredentialReference
+├── RoleGrantReferences
+├── ActivatedAt
+├── SuspendedAt
+├── CreatedAt
+├── UpdatedAt
+└── Version
+```
+
+Жизненный цикл B.0:
+
+```text
+PendingActivation --> Active --> Suspended
+```
+
+`PendingActivation` и `Active` принадлежат только `Account`. Изменение
+`AccessStatus` не изменяет учебный статус `Student` и не удаляет его историю.
+`Suspended` — производное техническое отображение продуктового понятия
+заблокированного доступа, а не новое определение Language. Пароль создаётся
+учеником только в ходе успешной `Activation`.
+
+## Invitation Aggregate
+
+```text
+Invitation
+├── InvitationId
+├── TenantId
+├── AccountId
+├── StudentId
+├── FirstBelcantoMinuteReference
+├── TokenDigestReference
+├── Status
+├── IssuedAt
+├── ExpiresAt
+├── ConsumedAt
+├── RevokedAt
+├── SupersededByInvitationId
+└── Version
+```
+
+Хранимые переходы B.0:
+
+```text
+Issued --> Consumed
+   |----> Revoked
+   `----> Superseded
+```
+
+Истечение является эффективным условием `Issued && ExpiresAt <= now`, а не
+отдельным persisted status: такая запись остаётся `Issued`, но больше не
+допускает `Activation` и при следующем выпуске переводится в `Superseded`.
+
+Инварианты:
+
+- только `Issued` и неистёкшее `Invitation` допускает `Activation`;
+- одно `Invitation` потребляется не более одного раза;
+- перевыпуск переводит прежнее неиспользованное `Invitation` в `Superseded`;
+- выпуск запрещён без `FirstBelcantoMinuteReference`;
+- отзыв или истечение не удаляет `Student`, `Account` или учебную историю;
+- секрет приглашения не хранится в открытом виде в доменной записи;
+- все ссылки принадлежат одному tenant.
+
+---
+
 # StudentLearningProfile Aggregate
 
 ## Aggregate Root
@@ -583,14 +713,15 @@ StudentLearningProfile
 ```text
 StudentLearningProfile
 ├── StudentId
+├── PersonId
+├── SchoolMembershipId
 ├── SchoolId
 ├── EnrollmentReference
-├── Status
+├── LearningStatus
 ├── Locale
 ├── Timezone
 ├── LearningPreferences
 ├── ActiveLearningPause
-├── ProductAccessState
 ├── CreatedAt
 ├── UpdatedAt
 └── Version
@@ -598,15 +729,18 @@ StudentLearningProfile
 
 ## Possible Statuses
 
-- Pending Activation
 - Active
 - Learning Paused
 - Inactive
 - Archived
 
+Это только учебные состояния. Состояние активации цифрового доступа находится
+в `Account` и не входит в `StudentLearningProfile`.
+
 ## Owned Invariants
 
 - Student belongs to one School tenant.
+- Person, SchoolMembership and Student references belong to the same tenant.
 - Active Learning Pause is unique.
 - Pause cannot end before it starts.
 - Archived Student cannot receive ordinary learning mutations.
@@ -614,6 +748,7 @@ StudentLearningProfile
 - Learning Pause does not erase learning history.
 - Product profile cannot exist without enrollment reference unless created through migration.
 - CRM lifecycle must not be stored as learning status.
+- Account or Invitation lifecycle must not be stored as learning status.
 
 ## Commands
 
@@ -639,6 +774,8 @@ StudentLearningPauseEnded
 
 ```text
 EnrollmentReference
+PersonId
+SchoolMembershipId
 CurrentTeacherAssignmentIds
 ```
 
@@ -3620,8 +3757,21 @@ Aggregate Catalog не определяет:
 
 ---
 
+# Таблица вывода редакции M-0003/B.0
+
+| Изменённая часть | Класс | Источник | Версия источника |
+|------------------|-------|----------|------------------|
+| T7 и граница редакции | B | PD-0030, PD-0032; разрешение Product Owner / Education Lead 2026-08-01 | — |
+| Identity и access boundaries | A | PD-0030, пп. 1–6 | — |
+| Invitation после первого ориентира | A | PD-0030, п. 11 | — |
+| Student без access-state | A | PD-0030, п. 3 | — |
+| Persisted account/invitation statuses | A | производное отображение реализации B.0, не решение класса B | — |
+
+---
+
 # History
 
 | Version | Description |
 | --- | --- |
+| 2.0.0 | T7 · DRAFT · M-0003/B.0: Person, SchoolMembership, Account и Invitation отделены от StudentLearningProfile; цифровой access-state удалён из Student. Требуется P7 Education Lead + Technical Lead. |
 | 1.0.0 | Определен канонический набор Aggregate Roots, consistency boundaries, invariants, ownership, command routing, event production и cross-aggregate process rules Belcanto Product. |

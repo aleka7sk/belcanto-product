@@ -1,7 +1,7 @@
 ---
-Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Status: Draft
+Version: 2.0.0
+Last Updated: 2026-08-01
 
 Document Id: DOMAIN_COMMAND_CATALOG
 
@@ -55,7 +55,10 @@ Related Documents:
 
 # Domain Command Catalog
 
-> Domain Command Catalog определяет единый канонический набор команд Belcanto Product.
+> **T7 · DRAFT.** Утверждённая редакция 1.0.0 возвращена в Draft для M-0003
+> по PD-0030 и PD-0032 с явным разрешением Product Owner / Education Lead.
+>
+> Domain Command Catalog описывает набор команд Belcanto Product.
 >
 > Command выражает намерение изменить доменное состояние или запросить доменное решение.
 >
@@ -1094,6 +1097,49 @@ CommandExecution
 
 # Canonical Command Groups
 
+## B.0 Delegated Access Commands
+
+### GrantStudentOnboardingAccess
+
+Выдаёт `Administrator` явный `DelegatedSuperadminAccess`. Техническая ссылка
+на permission set — `StudentOnboardingManager.v1`; она является производной
+деталью Domain, а не новой ролью или человеческим решением класса B.
+
+Payload:
+
+```text
+AdministratorAccountId
+EffectivePeriod
+ReasonReference
+IdempotencyKey
+```
+
+Allowed Actors:
+
+- `Owner` того же tenant.
+
+Получатель должен иметь активную роль `Administrator`. Самовыдача и дальнейшее
+делегирование запрещены.
+
+### RevokeStudentOnboardingAccess
+
+Payload:
+
+```text
+DelegationId
+ReasonReference
+IdempotencyKey
+```
+
+Allowed Actors:
+
+- `Owner` того же tenant.
+
+Отзыв действует для всех новых команд после момента отзыва и не удаляет
+результаты ранее законно выполненных команд.
+
+---
+
 ## Student Commands
 
 ### CreateStudentProfile
@@ -1104,6 +1150,8 @@ Payload:
 
 ```text
 StudentId
+PersonId
+SchoolMembershipId
 EnrollmentReference
 InitialLocale
 InitialTimezone
@@ -1111,9 +1159,13 @@ InitialTimezone
 
 Allowed Actors:
 
-- authorized Integration;
-- Administrator;
-- Migration.
+- `Owner` того же tenant;
+- `Administrator` того же tenant с действующим `DelegatedSuperadminAccess`;
+- `Migration` только в явно утверждённой migration-партии с provenance.
+
+Обычная роль `Administrator` сама по себе всегда недостаточна. Authorization
+проверяет tenant, активность роли и grant на командной границе; payload не
+является источником прав.
 
 Не является CRM lead creation.
 
@@ -1186,6 +1238,67 @@ LearningPauseId
 EndedAt
 EndReason
 ```
+
+---
+
+## Account and Invitation Commands
+
+### IssueStudentActivationInvitation
+
+Payload:
+
+```text
+StudentId
+AccountId
+FirstBelcantoMinuteReference
+ExpiresAt
+IdempotencyKey
+```
+
+Allowed Actors:
+
+- `Owner` того же tenant.
+
+Команда запрещена без опубликованного первого учебного ориентира. Она создаёт
+персональное `Invitation` для уже существующих `Student` и `Account` в состоянии
+`PendingActivation`; она не создаёт публичную регистрацию.
+
+### ReissueStudentActivationInvitation
+
+Имеет те же Allowed Actors и предусловия. Успех атомарно переводит прежнее
+неиспользованное `Invitation` в `Superseded` и выпускает новое.
+
+### RevokeStudentActivationInvitation
+
+Payload:
+
+```text
+InvitationId
+IdempotencyKey
+```
+
+Allowed Actors:
+
+- `Owner` того же tenant.
+
+### ActivateStudentAccount
+
+Payload:
+
+```text
+InvitationSecret
+InvitedContactProof
+StudentChosenPassword
+IdempotencyKey
+```
+
+Authorization основан только на действующем персональном `Invitation`, а не на
+публичной роли. Успех атомарно потребляет `Invitation`, сохраняет только
+защищённое представление пароля и переводит связанный `Account` из
+`PendingActivation` в `Active`; `Student` при этом не создаётся и не активируется.
+
+Публичной команды `signup` или создания `Account` без `Invitation` в каталоге
+нет и быть не должно в B.0.
 
 ---
 
@@ -3697,6 +3810,13 @@ CommandId сохраняется.
 - Student изменяет только собственные данные;
 - Teacher действует только в разрешенном scope;
 - Administrator не принимает педагогическое решение без полномочий;
+- обычный Administrator не выполняет CreateStudentProfile;
+- никакой Administrator, включая делегированного, не выпускает, не перевыпускает и не отзывает Invitation;
+- Owner может выдать и отозвать DelegatedSuperadminAccess только в своём tenant;
+- действующий DelegatedSuperadminAccess не создаёт новую Role и не допускает re-delegation;
+- revoked или expired delegation отклоняется на каждой командной границе;
+- ActivateStudentAccount без действующего Invitation отклоняется;
+- публичный signup отсутствует;
 - Guardian scope проверяется;
 - Policy имеет ограниченный command scope;
 - Scheduler не выполняет pedagogical mutation напрямую;
@@ -3908,8 +4028,21 @@ Domain Command Catalog не определяет:
 
 ---
 
+# Таблица вывода редакции M-0003/B.0
+
+| Изменённая часть | Класс | Источник | Версия источника |
+|------------------|-------|----------|------------------|
+| T7 и граница редакции | B | PD-0030, PD-0032; разрешение Product Owner / Education Lead 2026-08-01 | — |
+| CreateStudentProfile authorization | A | PD-0030, пп. 7–10 | — |
+| Delegation commands | A | PD-0030, пп. 7–10 | — |
+| Invitation и Activation commands | A | PD-0030, пп. 4–6, 9, 11, 13 | — |
+| `StudentOnboardingManager.v1` | A | производное техническое отображение B.0 scope, не решение класса B | — |
+
+---
+
 # History
 
 | Version | Description |
 | --- | --- |
+| 2.0.0 | T7 · DRAFT · M-0003/B.0: ordinary Administrator удалён из CreateStudentProfile; Owner-granted delegation ограничен созданием Student и чтением onboarding; Invitation-команды оставлены Owner-only; публичный signup отсутствует. Технический package literal отмечен как производный. Требуется P7 Education Lead + Technical Lead. |
 | 1.0.0 | Создан единый каталог Domain Commands, envelope, authorization, idempotency, concurrency, command outcomes и канонические команды основных доменов Belcanto. |

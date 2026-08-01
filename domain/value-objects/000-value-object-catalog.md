@@ -1,7 +1,7 @@
 ---
-Status: Approved
-Version: 1.0.0
-Last Updated: 2026-07-27
+Status: Draft
+Version: 1.1.0
+Last Updated: 2026-08-01
 
 Document Id: VALUE_OBJECT_CATALOG
 
@@ -52,7 +52,10 @@ Related Documents:
 
 # Value Object Catalog
 
-> Value Object Catalog определяет канонические общие типы доменной модели Belcanto Product.
+> **T7 · DRAFT.** Утверждённая редакция 1.0.0 возвращена в Draft для M-0003
+> по PD-0030 и PD-0032 с явным разрешением Product Owner / Education Lead.
+>
+> Value Object Catalog описывает общие типы доменной модели Belcanto Product.
 >
 > Value Object выражает доменное значение, не имеет самостоятельной identity, является immutable и считается равным другому объекту по значению.
 >
@@ -327,7 +330,11 @@ AggregateId<TAggregate>
 Примеры:
 
 ```text
+PersonId
+SchoolMembershipId
 StudentLearningProfileId
+AccountId
+InvitationId
 TeacherAssignmentId
 LessonId
 HomeworkAssignmentId
@@ -1253,6 +1260,42 @@ Delegation
 - expired/revoked delegation invalid;
 - delegation is auditable;
 - sensitive actions may prohibit delegation.
+
+## DelegatedSuperadminAccess
+
+Нормативное определение находится в `language/001-ubiquitous-language.md`.
+Domain-представление является специализацией `Delegation`, а не новым
+`RoleType`:
+
+```text
+DelegatedSuperadminAccess
+├── DelegationId
+├── TenantId
+├── GrantedByOwnerAccountId
+├── AdministratorAccountId
+├── PermissionSetReference
+├── EffectivePeriod
+├── Status
+├── GrantedAt
+├── RevokedAt
+└── ReasonReference
+```
+
+Инварианты B.0. Запрет самовыдачи и дальнейшего делегирования является
+производным least-privilege ограничением класса A, а не человеческим решением:
+
+- grant создаёт и отзывает только `Owner` того же tenant;
+- получатель имеет активную роль `Administrator` и не получает новую роль;
+- обычный `Administrator` без действующего grant не получает B.0-полномочия;
+- grant нельзя выдать себе или передать дальше;
+- истёкший или отозванный grant не авторизует новую команду;
+- проверка выполняется заново на командной границе и фиксирует ссылку на grant.
+
+Техническое отображение текущего среза использует версионированную ссылку
+`StudentOnboardingManager.v1`. Это производная деталь Domain/реализации, а не
+человеческое утверждение класса B и не обещание неограниченных прав. Её scope
+ограничен созданием `Student` и чтением состояния onboarding; выпуск,
+перевыпуск и отзыв `Invitation` остаются Owner-only.
 
 ## ImpersonationContext
 
@@ -3075,8 +3118,20 @@ Value Object готов к реализации, если определены:
 
 ---
 
+# Таблица вывода редакции M-0003/B.0
+
+| Изменённая часть | Класс | Источник | Версия источника |
+|------------------|-------|----------|------------------|
+| T7 и граница редакции | B | PD-0030, PD-0032; разрешение Product Owner / Education Lead 2026-08-01 | — |
+| Typed B.0 identities | A | PD-0030, п. 2 | — |
+| DelegatedSuperadminAccess | A | PD-0030, пп. 7–10; `product/003-personas.md` | 1.0.0 |
+| `StudentOnboardingManager.v1` | A | производное техническое отображение B.0 scope, не решение класса B | — |
+
+---
+
 # History
 
 | Version | Description |
 | --- | --- |
+| 1.1.0 | T7 · DRAFT · M-0003/B.0: добавлены typed identifiers Person, SchoolMembership, Account и Invitation, а также DelegatedSuperadminAccess как специализация Delegation, не новая роль. Требуется P7 Education Lead + Technical Lead. |
 | 1.0.0 | Определен канонический каталог общих Value Objects Belcanto Product: identity, references, versions, time, authorization, decisions, evidence, validation, privacy, traceability, idempotency, lifecycle, communication и provenance. |

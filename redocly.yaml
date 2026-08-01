@@ -1,0 +1,11 @@
+extends:
+  - recommended
+
+rules:
+  # The repository has no approved distribution license yet.
+  info-license: off
+  # B.0 intentionally publishes only the local development server here;
+  # deployment URLs are environment-owned and must not be guessed.
+  no-server-example.com: off
+  # /healthz is a liveness check with one successful response by design.
+  operation-4xx-response: off
