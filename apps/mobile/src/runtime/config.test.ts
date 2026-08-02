@@ -32,6 +32,7 @@ describe("production application config", () => {
 
   it("emits verified HTTPS associations and no production custom scheme", () => {
     const config = buildExpoConfig(productionEnvironment);
+    expect(config.experiments).toMatchObject({ typedRoutes: true });
     expect(config.scheme).toBeUndefined();
     expect(config.ios).toMatchObject({
       bundleIdentifier: "com.belcanto.mobile",

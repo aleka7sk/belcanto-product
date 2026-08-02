@@ -16,7 +16,7 @@ import {
   prepareCompleteActivation,
   type CompleteActivationDraft,
 } from "@/controllers";
-import { useSession } from "@/session";
+import { isSessionRestoring, useSession } from "@/session";
 import {
   AmbientGlow,
   BrandBadge,
@@ -114,7 +114,11 @@ export function ActivationScreen() {
     // A retry intentionally repeats the same safe preview operation.
   }, [api, link, reloadVersion]);
 
-  if (link.status === "loading" || previewState.status === "loading") {
+  if (
+    isSessionRestoring(sessionState) ||
+    link.status === "loading" ||
+    previewState.status === "loading"
+  ) {
     return <LoadingScreen label="Проверяем приглашение" />;
   }
 

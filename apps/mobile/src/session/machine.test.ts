@@ -1,6 +1,10 @@
 import type { BootstrapView, IsoDateTime, SessionTokens } from "@/api/contracts";
 
-import { initialSessionState, sessionReducer } from "./machine";
+import {
+  initialSessionState,
+  isSessionRestoring,
+  sessionReducer,
+} from "./machine";
 import {
   createKeyedSingleFlight,
   createOperationEpoch,
@@ -30,6 +34,12 @@ const bootstrap: BootstrapView = {
 };
 
 describe("session state machine", () => {
+  it("keeps activation-sensitive UI pending until secure session restore settles", () => {
+    expect(isSessionRestoring(initialSessionState)).toBe(true);
+    expect(isSessionRestoring({ phase: "anonymous" })).toBe(false);
+    expect(isSessionRestoring({ phase: "authenticated" })).toBe(false);
+  });
+
   it("does not authenticate until bootstrap is available", () => {
     const withTokens = sessionReducer(initialSessionState, {
       type: "TOKENS_AVAILABLE",

@@ -120,6 +120,9 @@ export function buildExpoConfig(
         },
       ],
     ],
+    experiments: {
+      typedRoutes: true,
+    },
     extra: {
       apiBaseUrl: api.origin,
       allowCustomActivationScheme: !production,

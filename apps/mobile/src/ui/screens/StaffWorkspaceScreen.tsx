@@ -45,7 +45,7 @@ export function StaffWorkspaceScreen({
   onOpenStudent?: (() => void) | undefined;
 }) {
   const api = useApiClient();
-  const { state, signOut, runAuthenticated } = useSession();
+  const { state, signOut, retryBootstrap, runAuthenticated } = useSession();
   const bootstrap = state.bootstrap;
   const [items, setItems] = useState<StudentOnboardingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,13 +55,24 @@ export function StaffWorkspaceScreen({
   const load = useCallback(
     async (refresh = false) => {
       if (bootstrap === null) return;
+      if (refresh) {
+        setRefreshing(true);
+        setError(null);
+        try {
+          await retryBootstrap();
+        } catch (refreshError) {
+          setError(apiErrorMessage(refreshError));
+        } finally {
+          setRefreshing(false);
+        }
+        return;
+      }
       if (!canOpenStudentOnboardingQueue(bootstrap)) {
         setLoading(false);
         setRefreshing(false);
         return;
       }
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
+      setLoading(true);
       setError(null);
       try {
         setItems(
@@ -76,7 +87,7 @@ export function StaffWorkspaceScreen({
         setRefreshing(false);
       }
     },
-    [api, bootstrap, runAuthenticated],
+    [api, bootstrap, retryBootstrap, runAuthenticated],
   );
 
   useEffect(() => {
@@ -131,11 +142,18 @@ export function StaffWorkspaceScreen({
       ) : null}
 
       {!allowed ? (
-        <InlineNotice
-          body="У этой учётной записи нет доступа к очереди. Владелец может выдать администратору доступ суперадминистратора."
-          title="Раздел недоступен"
-          tone="error"
-        />
+        <View style={styles.stackGap}>
+          <InlineNotice
+            body="У этой учётной записи нет доступа к очереди. Владелец может выдать администратору доступ суперадминистратора."
+            title="Раздел недоступен"
+            tone="error"
+          />
+          <SecondaryButton
+            disabled={refreshing}
+            label={refreshing ? "Проверяем доступ…" : "Проверить доступ"}
+            onPress={() => void load(true)}
+          />
+        </View>
       ) : (
         <>
           <View style={styles.quickActions}>

@@ -43,6 +43,12 @@ export const initialSessionState: SessionState = {
   failure: null,
 };
 
+export function isSessionRestoring(
+  state: Pick<SessionState, "phase">,
+): boolean {
+  return state.phase === "restoring";
+}
+
 export function sessionReducer(
   state: SessionState,
   event: SessionEvent,
