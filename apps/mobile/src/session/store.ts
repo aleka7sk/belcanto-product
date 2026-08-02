@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 import { decodeSessionTokens, type SessionTokens } from "@/api/contracts";
 
@@ -11,6 +12,19 @@ export interface SecureKeyValueStore {
   deleteItemAsync(key: string): Promise<void>;
 }
 
+export function createMemorySessionKeyValueStore(): SecureKeyValueStore {
+  const values = new Map<string, string>();
+  return {
+    getItemAsync: async (key) => values.get(key) ?? null,
+    setItemAsync: async (key, value) => {
+      values.set(key, value);
+    },
+    deleteItemAsync: async (key) => {
+      values.delete(key);
+    },
+  };
+}
+
 export const expoSecureKeyValueStore: SecureKeyValueStore = {
   getItemAsync: (key) => SecureStore.getItemAsync(key),
   setItemAsync: (key, value) =>
@@ -19,6 +33,24 @@ export const expoSecureKeyValueStore: SecureKeyValueStore = {
     }),
   deleteItemAsync: (key) => SecureStore.deleteItemAsync(key),
 };
+
+/**
+ * Web sessions intentionally survive only for the lifetime of this JavaScript
+ * context. Persisting bearer and refresh tokens in browser storage would turn
+ * an XSS defect into a durable credential leak.
+ */
+export const memoryOnlyWebKeyValueStore = createMemorySessionKeyValueStore();
+
+export function selectSessionKeyValueStore(
+  platform: string,
+  nativeStore: SecureKeyValueStore = expoSecureKeyValueStore,
+  webStore: SecureKeyValueStore = memoryOnlyWebKeyValueStore,
+): SecureKeyValueStore {
+  return platform === "web" ? webStore : nativeStore;
+}
+
+export const defaultSessionKeyValueStore: SecureKeyValueStore =
+  selectSessionKeyValueStore(Platform.OS);
 
 export interface SessionStore {
   load(): Promise<SessionTokens | null>;
@@ -39,7 +71,7 @@ function decodeStoredSession(value: string): SessionTokens {
 }
 
 export function createSessionStore(
-  storage: SecureKeyValueStore = expoSecureKeyValueStore,
+  storage: SecureKeyValueStore = defaultSessionKeyValueStore,
 ): SessionStore {
   let tail: Promise<void> = Promise.resolve();
   const serialize = <Value>(operation: () => Promise<Value>): Promise<Value> => {

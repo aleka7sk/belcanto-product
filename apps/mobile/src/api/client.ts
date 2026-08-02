@@ -23,6 +23,10 @@ import {
 } from "./contracts";
 import { routes, type RouteDescriptor } from "./routes";
 import type { ActivationLinkPolicy } from "@/activation/links";
+import {
+  isLoopbackHost,
+  isPrivateDevelopmentHost,
+} from "@/runtime/developmentOrigin";
 import { isValidIdempotencyKey } from "@/validation/backend";
 
 type Fetch = typeof globalThis.fetch;
@@ -45,6 +49,7 @@ export interface ApiClientOptions {
   fetch?: Fetch;
   timeoutMs?: number;
   activationLinkPolicy?: ActivationLinkPolicy;
+  allowInsecureDevelopmentOrigin?: boolean;
 }
 
 export interface RequestOptions {
@@ -74,7 +79,10 @@ export class ApiTransportError extends Error {
   }
 }
 
-function normalizedBaseUrl(value: string): string {
+function normalizedBaseUrl(
+  value: string,
+  allowInsecureDevelopmentOrigin: boolean,
+): string {
   const trimmed = value.trim().replace(/\/+$/, "");
   let parsed: URL;
   try {
@@ -82,8 +90,12 @@ function normalizedBaseUrl(value: string): string {
   } catch (error) {
     throw new TypeError("API base URL must be an absolute URL", { cause: error });
   }
-  const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) {
+  const developmentHttp =
+    parsed.protocol === "http:" &&
+    (isLoopbackHost(parsed.hostname) ||
+      (allowInsecureDevelopmentOrigin &&
+        isPrivateDevelopmentHost(parsed.hostname)));
+  if (parsed.protocol !== "https:" && !developmentHttp) {
     throw new TypeError("API base URL must use HTTPS outside localhost");
   }
   if (
@@ -117,7 +129,10 @@ export class ApiClient {
   private readonly activationLinkPolicy: ActivationLinkPolicy;
 
   constructor(options: ApiClientOptions) {
-    this.baseUrl = normalizedBaseUrl(options.baseUrl);
+    this.baseUrl = normalizedBaseUrl(
+      options.baseUrl,
+      options.allowInsecureDevelopmentOrigin === true,
+    );
     this.fetch = options.fetch ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 15_000;
     this.activationLinkPolicy = {

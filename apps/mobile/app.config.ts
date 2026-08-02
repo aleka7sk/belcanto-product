@@ -1,5 +1,8 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
+import { isPrivateDevelopmentHost } from "./src/runtime/developmentOrigin.ts";
+import { colors } from "./src/ui/tokens.ts";
+
 const DEFAULT_DEVELOPMENT_API_ORIGIN = "http://localhost:8080";
 const DEFAULT_DEVELOPMENT_IOS_BUNDLE_ID = "com.belcanto.mobile.dev";
 const DEFAULT_DEVELOPMENT_ANDROID_PACKAGE = "com.belcanto.mobile.dev";
@@ -22,7 +25,7 @@ function cleanOrigin(value: string, name: string, allowLocalHttp: boolean): URL 
   } catch (error) {
     throw new Error(`${name} must be an absolute URL`, { cause: error });
   }
-  const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  const local = isPrivateDevelopmentHost(parsed.hostname);
   if (
     parsed.protocol !== "https:" &&
     !(allowLocalHttp && parsed.protocol === "http:" && local)
@@ -100,9 +103,23 @@ export function buildExpoConfig(
 
   const config: ExpoConfig = {
     name: "Belcanto",
+    orientation: "portrait",
+    platforms: ["ios", "android"],
     slug: "belcanto-mobile",
+    userInterfaceStyle: "dark",
     version: "0.1.0",
-    plugins: ["expo-router", "expo-secure-store"],
+    plugins: [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          backgroundColor: colors.canvas,
+          imageWidth: 120,
+          resizeMode: "contain",
+        },
+      ],
+    ],
     extra: {
       apiBaseUrl: api.origin,
       allowCustomActivationScheme: !production,
@@ -112,6 +129,7 @@ export function buildExpoConfig(
     ios: {
       bundleIdentifier,
       associatedDomains: activation ? [`applinks:${activation.hostname}`] : [],
+      supportsTablet: false,
     },
     android: {
       package: packageName,
@@ -132,6 +150,12 @@ export function buildExpoConfig(
           ]
         : [],
     },
+    androidStatusBar: {
+      backgroundColor: colors.transparent,
+      barStyle: "light-content",
+      translucent: true,
+    },
+    backgroundColor: colors.canvas,
   };
   if (!production) {
     config.scheme = "belcanto";

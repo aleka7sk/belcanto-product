@@ -118,6 +118,32 @@ describe("ApiClient", () => {
     expect(() => new ApiClient({ baseUrl: "http://localhost:8080" })).not.toThrow();
   });
 
+  it("allows private HTTP origins only behind the development option", () => {
+    for (const baseUrl of [
+      "http://localhost:8080",
+      "http://10.0.2.2:8080",
+      "http://192.168.1.24:8080",
+      "http://172.20.0.4:8080",
+    ]) {
+      expect(
+        () =>
+          new ApiClient({
+            baseUrl,
+            allowInsecureDevelopmentOrigin: true,
+          }),
+      ).not.toThrow();
+    }
+    for (const baseUrl of ["http://api.example", "http://8.8.8.8"]) {
+      expect(
+        () =>
+          new ApiClient({
+            baseUrl,
+            allowInsecureDevelopmentOrigin: true,
+          }),
+      ).toThrow("must use HTTPS");
+    }
+  });
+
   it("requires a clean API origin", () => {
     for (const baseUrl of [
       "https://user:pass@api.example",

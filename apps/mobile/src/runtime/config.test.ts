@@ -77,4 +77,27 @@ describe("production application config", () => {
       allowCustomScheme: false,
     });
   });
+
+  it("allows private HTTP origins only in development builds", () => {
+    for (const apiBaseUrl of [
+      "http://127.0.0.1:8080",
+      "http://10.0.2.2:8080",
+      "http://192.168.1.24:8080",
+      "http://172.20.0.4:8080",
+    ]) {
+      expect(
+        buildExpoConfig({ EXPO_PUBLIC_API_BASE_URL: apiBaseUrl }).extra,
+      ).toMatchObject({ apiBaseUrl });
+    }
+
+    expect(() =>
+      buildExpoConfig({ EXPO_PUBLIC_API_BASE_URL: "http://api.example" }),
+    ).toThrow("must use HTTPS");
+    expect(() =>
+      buildExpoConfig({
+        ...productionEnvironment,
+        EXPO_PUBLIC_API_BASE_URL: "http://192.168.1.24:8080",
+      }),
+    ).toThrow("must use HTTPS");
+  });
 });

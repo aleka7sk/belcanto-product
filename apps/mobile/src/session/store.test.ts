@@ -1,9 +1,11 @@
 import type { IsoDateTime, SessionTokens } from "@/api/contracts";
 
 import {
+  createMemorySessionKeyValueStore,
   createSessionStore,
   isAccessTokenUsable,
   isRefreshTokenUsable,
+  selectSessionKeyValueStore,
   type SecureKeyValueStore,
 } from "./store";
 
@@ -35,6 +37,32 @@ describe("secure session store", () => {
     await store.save(tokens);
     await expect(store.load()).resolves.toEqual(tokens);
     expect(memory.read()).toContain('"version":1');
+  });
+
+  it("keeps web session material only in the current memory adapter", async () => {
+    const nativeStorage: SecureKeyValueStore = {
+      getItemAsync: async () => {
+        throw new Error("native storage must not be read on web");
+      },
+      setItemAsync: async () => {
+        throw new Error("native storage must not be written on web");
+      },
+      deleteItemAsync: async () => {
+        throw new Error("native storage must not be cleared on web");
+      },
+    };
+    const currentContext = createSessionStore(
+      selectSessionKeyValueStore(
+        "web",
+        nativeStorage,
+        createMemorySessionKeyValueStore(),
+      ),
+    );
+    await currentContext.save(tokens);
+    await expect(currentContext.load()).resolves.toEqual(tokens);
+
+    const nextContext = createSessionStore(createMemorySessionKeyValueStore());
+    await expect(nextContext.load()).resolves.toBeNull();
   });
 
   it("removes corrupt stored material", async () => {

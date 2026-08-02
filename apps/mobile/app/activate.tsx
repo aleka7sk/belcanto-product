@@ -1,6 +1,5 @@
-import { useActivationLink } from "@/activation/useActivationLinkState";
+import { ActivationScreen } from "@/ui/screens/ActivationScreen";
 
 export default function ActivateRoute() {
-  useActivationLink();
-  return null;
+  return <ActivationScreen />;
 }
