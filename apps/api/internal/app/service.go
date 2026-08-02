@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -756,6 +757,315 @@ func (s *Service) ListStudentOnboarding(ctx context.Context, principal core.Prin
 		return nil, normalizeStoreError("list Student onboarding", err)
 	}
 	return items, nil
+}
+
+type ListStudentsInput struct {
+	AsOf time.Time
+}
+
+func (s *Service) ListStudents(ctx context.Context, principal core.Principal, input ListStudentsInput) ([]core.StudentDirectoryItem, error) {
+	now := s.clock.Now()
+	asOf := input.AsOf
+	if asOf.IsZero() {
+		asOf = now
+	} else {
+		asOf = asOf.UTC()
+		if asOf.Before(now.Add(-time.Minute)) {
+			return nil, core.E(core.CodeInvalidInput, "asOf cannot be in the past", nil)
+		}
+		if asOf.After(now.Add(366 * 24 * time.Hour)) {
+			return nil, core.E(core.CodeInvalidInput, "asOf cannot be more than 366 days in the future", nil)
+		}
+		if asOf.Before(now) {
+			asOf = now
+		}
+	}
+	items, err := s.store.ListStudents(ctx, principal, asOf, now)
+	if err != nil {
+		return nil, normalizeStoreError("list Students", err)
+	}
+	return items, nil
+}
+
+type ScheduleLessonInput struct {
+	Title            string
+	StartsAt         time.Time
+	DurationMinutes  int
+	Location         string
+	TeacherAccountID string
+	StudentIDs       []string
+	IdempotencyKey   string
+}
+
+func (s *Service) ScheduleLesson(ctx context.Context, principal core.Principal, input ScheduleLessonInput) (core.Lesson, error) {
+	var err error
+	now := s.clock.Now()
+	input.Title, err = security.ValidateText("lesson title", input.Title, 1, 200)
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	if input.StartsAt.IsZero() || !input.StartsAt.After(now) {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, "startsAt must be in the future", nil)
+	}
+	input.StartsAt = input.StartsAt.UTC()
+	if input.DurationMinutes < 1 || input.DurationMinutes > 1440 {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, "durationMinutes must be between 1 and 1440", nil)
+	}
+	if input.Location != "" {
+		input.Location, err = security.ValidateText("lesson location", input.Location, 1, 200)
+		if err != nil {
+			return core.Lesson{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+	}
+	input.TeacherAccountID, err = security.ValidateIdentifier("Teacher account id", input.TeacherAccountID, 128)
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	input.StudentIDs, err = validateUniqueIdentifiers("student id", input.StudentIDs)
+	if err != nil {
+		return core.Lesson{}, err
+	}
+	if len(input.StudentIDs) > 100 {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, "at most 100 Students are allowed", nil)
+	}
+	input.IdempotencyKey, err = security.ValidateIdempotencyKey(input.IdempotencyKey)
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	fingerprint, err := security.Fingerprint(input)
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInternal, "could not fingerprint Lesson scheduling", err)
+	}
+	lessonID, err := security.NewID("lesson")
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInternal, "could not generate Lesson id", err)
+	}
+	result, err := s.store.ScheduleLesson(ctx, core.ScheduleLessonCommand{
+		TenantID: principal.TenantID, ActorAccountID: principal.AccountID,
+		LessonID: lessonID, Title: input.Title, StartsAt: input.StartsAt,
+		DurationMinutes: input.DurationMinutes, Location: input.Location,
+		TeacherAccountID: input.TeacherAccountID, StudentIDs: input.StudentIDs,
+		IdempotencyKey: input.IdempotencyKey, PayloadFingerprint: fingerprint,
+		Now: now,
+	})
+	if err != nil {
+		return core.Lesson{}, normalizeStoreError("schedule Lesson", err)
+	}
+	return result, nil
+}
+
+type ListLessonsInput struct {
+	From             time.Time
+	To               time.Time
+	StudentID        string
+	TeacherAccountID string
+}
+
+func (s *Service) ListLessons(ctx context.Context, principal core.Principal, input ListLessonsInput) ([]core.Lesson, error) {
+	if input.From.IsZero() || input.To.IsZero() || !input.To.After(input.From) {
+		return nil, core.E(core.CodeInvalidInput, "from and to must define a valid time range", nil)
+	}
+	if input.To.Sub(input.From) > 366*24*time.Hour {
+		return nil, core.E(core.CodeInvalidInput, "Lesson time range cannot exceed 366 days", nil)
+	}
+	var err error
+	if input.StudentID != "" {
+		input.StudentID, err = security.ValidateIdentifier("student id", input.StudentID, 128)
+		if err != nil {
+			return nil, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+	}
+	if input.TeacherAccountID != "" {
+		input.TeacherAccountID, err = security.ValidateIdentifier("Teacher account id", input.TeacherAccountID, 128)
+		if err != nil {
+			return nil, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+	}
+	items, err := s.store.ListLessons(ctx, principal, core.LessonListQuery{
+		From: input.From.UTC(), To: input.To.UTC(), StudentID: input.StudentID,
+		TeacherAccountID: input.TeacherAccountID,
+	}, s.clock.Now())
+	if err != nil {
+		return nil, normalizeStoreError("list Lessons", err)
+	}
+	return items, nil
+}
+
+func (s *Service) GetLesson(ctx context.Context, principal core.Principal, lessonID string) (core.Lesson, error) {
+	lessonID, err := security.ValidateIdentifier("lesson id", lessonID, 128)
+	if err != nil {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	result, err := s.store.GetLesson(ctx, principal, lessonID, s.clock.Now())
+	if err != nil {
+		return core.Lesson{}, normalizeStoreError("read Lesson", err)
+	}
+	return result, nil
+}
+
+type ReplaceLessonTeachersInput struct {
+	Lessons             []core.ReplaceLessonTeacherTarget
+	NewTeacherAccountID string
+	IdempotencyKey      string
+}
+
+func (s *Service) ReplaceLessonTeachers(ctx context.Context, principal core.Principal, input ReplaceLessonTeachersInput) (core.LessonTeacherReplacementResult, error) {
+	var err error
+	input.NewTeacherAccountID, err = security.ValidateIdentifier("new Teacher account id", input.NewTeacherAccountID, 128)
+	if err != nil {
+		return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	if len(input.Lessons) == 0 {
+		return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, "at least one Lesson is required", nil)
+	}
+	if len(input.Lessons) > 100 {
+		return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, "at most 100 Lessons are allowed", nil)
+	}
+	seen := make(map[string]struct{}, len(input.Lessons))
+	for index := range input.Lessons {
+		input.Lessons[index].LessonID, err = security.ValidateIdentifier("lesson id", input.Lessons[index].LessonID, 128)
+		if err != nil {
+			return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+		if input.Lessons[index].ExpectedVersion < 0 {
+			return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, "expectedVersion must be non-negative", nil)
+		}
+		input.Lessons[index].ExpectedPreviousTeacherAccountID, err = security.ValidateIdentifier("expected previous Teacher account id", input.Lessons[index].ExpectedPreviousTeacherAccountID, 128)
+		if err != nil {
+			return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+		if _, duplicate := seen[input.Lessons[index].LessonID]; duplicate {
+			return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, "lesson ids must be unique", nil)
+		}
+		seen[input.Lessons[index].LessonID] = struct{}{}
+	}
+	sort.Slice(input.Lessons, func(left, right int) bool { return input.Lessons[left].LessonID < input.Lessons[right].LessonID })
+	input.IdempotencyKey, err = security.ValidateIdempotencyKey(input.IdempotencyKey)
+	if err != nil {
+		return core.LessonTeacherReplacementResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	fingerprint, err := security.Fingerprint(input)
+	if err != nil {
+		return core.LessonTeacherReplacementResult{}, core.E(core.CodeInternal, "could not fingerprint Lesson Teacher replacement", err)
+	}
+	result, err := s.store.ReplaceLessonTeachers(ctx, core.ReplaceLessonTeachersCommand{
+		TenantID: principal.TenantID, ActorAccountID: principal.AccountID,
+		Targets: input.Lessons, NewTeacherAccountID: input.NewTeacherAccountID,
+		IdempotencyKey:     input.IdempotencyKey,
+		PayloadFingerprint: fingerprint, Now: s.clock.Now(),
+	})
+	if err != nil {
+		return core.LessonTeacherReplacementResult{}, normalizeStoreError("replace Lesson Teachers", err)
+	}
+	return result, nil
+}
+
+type ReassignPrimaryTeachersInput struct {
+	Students            []core.PrimaryTeacherReassignmentTarget
+	NewTeacherAccountID string
+	EffectiveMode       core.PrimaryTeacherEffectiveMode
+	EffectiveFrom       time.Time
+	IdempotencyKey      string
+}
+
+func (s *Service) ReassignPrimaryTeachers(ctx context.Context, principal core.Principal, input ReassignPrimaryTeachersInput) (core.PrimaryTeacherReassignmentResult, error) {
+	var err error
+	now := s.clock.Now()
+	if len(input.Students) == 0 {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "at least one Student is required", nil)
+	}
+	if len(input.Students) > 100 {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "at most 100 Students are allowed", nil)
+	}
+	seen := make(map[string]struct{}, len(input.Students))
+	for index := range input.Students {
+		input.Students[index].StudentID, err = security.ValidateIdentifier("student id", input.Students[index].StudentID, 128)
+		if err != nil {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+		if input.Students[index].ExpectedAssignmentVersion < 0 {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "expectedAssignmentVersion must be non-negative", nil)
+		}
+		if _, duplicate := seen[input.Students[index].StudentID]; duplicate {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "Student ids must be unique", nil)
+		}
+		seen[input.Students[index].StudentID] = struct{}{}
+	}
+	sort.Slice(input.Students, func(left, right int) bool { return input.Students[left].StudentID < input.Students[right].StudentID })
+	input.NewTeacherAccountID, err = security.ValidateIdentifier("new Teacher account id", input.NewTeacherAccountID, 128)
+	if err != nil {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	switch input.EffectiveMode {
+	case core.PrimaryTeacherEffectiveImmediate:
+		if !input.EffectiveFrom.IsZero() {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "effectiveFrom must be omitted for immediate reassignment", nil)
+		}
+	case core.PrimaryTeacherEffectiveScheduled:
+		if input.EffectiveFrom.IsZero() {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "effectiveFrom is required for scheduled reassignment", nil)
+		}
+		input.EffectiveFrom = input.EffectiveFrom.UTC()
+	default:
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "effectiveMode must be immediate or scheduled", nil)
+	}
+	input.IdempotencyKey, err = security.ValidateIdempotencyKey(input.IdempotencyKey)
+	if err != nil {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	fingerprint, err := security.Fingerprint(input)
+	if err != nil {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInternal, "could not fingerprint primary Teacher reassignment", err)
+	}
+	ids, err := newIDs(repeatPrefix("assignment", len(input.Students))...)
+	if err != nil {
+		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInternal, "could not generate Teacher assignment ids", err)
+	}
+	targets := make([]core.PrimaryTeacherReassignmentTarget, len(input.Students))
+	for index, target := range input.Students {
+		target.AssignmentID = ids[index]
+		targets[index] = target
+	}
+	result, err := s.store.ReassignPrimaryTeachers(ctx, core.ReassignPrimaryTeachersCommand{
+		TenantID: principal.TenantID, ActorAccountID: principal.AccountID,
+		Targets: targets, NewTeacherAccountID: input.NewTeacherAccountID,
+		EffectiveMode: input.EffectiveMode, EffectiveFrom: input.EffectiveFrom,
+		IdempotencyKey: input.IdempotencyKey, PayloadFingerprint: fingerprint,
+		Now: now,
+	})
+	if err != nil {
+		return core.PrimaryTeacherReassignmentResult{}, normalizeStoreError("reassign primary Teachers", err)
+	}
+	return result, nil
+}
+
+func validateUniqueIdentifiers(label string, values []string) ([]string, error) {
+	if len(values) == 0 {
+		return nil, core.E(core.CodeInvalidInput, "at least one "+label+" is required", nil)
+	}
+	result := append([]string(nil), values...)
+	seen := make(map[string]struct{}, len(result))
+	for index := range result {
+		value, err := security.ValidateIdentifier(label, result[index], 128)
+		if err != nil {
+			return nil, core.E(core.CodeInvalidInput, err.Error(), nil)
+		}
+		if _, duplicate := seen[value]; duplicate {
+			return nil, core.E(core.CodeInvalidInput, label+" values must be unique", nil)
+		}
+		seen[value] = struct{}{}
+		result[index] = value
+	}
+	sort.Strings(result)
+	return result, nil
+}
+
+func repeatPrefix(prefix string, count int) []string {
+	result := make([]string, count)
+	for index := range result {
+		result[index] = prefix
+	}
+	return result
 }
 
 func (s *Service) reauthenticateOwner(ctx context.Context, principal core.Principal, currentPassword string) error {

@@ -6,18 +6,27 @@ import {
   type ActivationPreviewRequest,
   type BootstrapView,
   type CompleteActivationRequest,
+  type CreateLessonRequest,
   type CreateStudentRequest,
   type DelegationResult,
   type FirstMinute,
   type GrantDelegationRequest,
   type InvitationResult,
+  type Lesson,
+  type LessonListQuery,
   type PublishFirstMinuteRequest,
+  type ReassignPrimaryTeachersRequest,
+  type ReassignPrimaryTeachersResult,
   type RefreshSessionRequest,
+  type ReplaceLessonTeachersRequest,
+  type ReplaceLessonTeachersResult,
   type RevokeDelegationRequest,
   type SessionTokens,
   type SignInRequest,
   type StaffMember,
   type StaffRole,
+  type StudentDirectoryItem,
+  type StudentDirectoryQuery,
   type StudentOnboardingItem,
   type StudentResult,
 } from "./contracts";
@@ -183,6 +192,72 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<StaffMember[]> {
     return this.request(routes.listStaff(role), { accessToken, signal });
+  }
+
+  listStudents(
+    accessToken: string,
+    query: StudentDirectoryQuery = {},
+    signal?: AbortSignal,
+  ): Promise<StudentDirectoryItem[]> {
+    return this.request(routes.listStudents(query), { accessToken, signal });
+  }
+
+  listLessons(
+    accessToken: string,
+    query: LessonListQuery,
+    signal?: AbortSignal,
+  ): Promise<Lesson[]> {
+    return this.request(routes.listLessons(query), { accessToken, signal });
+  }
+
+  getLesson(
+    accessToken: string,
+    lessonId: string,
+    signal?: AbortSignal,
+  ): Promise<Lesson> {
+    return this.request(routes.getLesson(lessonId), { accessToken, signal });
+  }
+
+  createLesson(
+    accessToken: string,
+    body: CreateLessonRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Lesson> {
+    return this.request(routes.createLesson, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  reassignPrimaryTeachers(
+    accessToken: string,
+    body: ReassignPrimaryTeachersRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<ReassignPrimaryTeachersResult> {
+    return this.request(routes.reassignPrimaryTeachers, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  replaceLessonTeachers(
+    accessToken: string,
+    body: ReplaceLessonTeachersRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<ReplaceLessonTeachersResult> {
+    return this.request(routes.replaceLessonTeachers, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
   }
 
   listStudentOnboarding(

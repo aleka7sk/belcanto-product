@@ -30,6 +30,7 @@ const (
 type httpFixture struct {
 	server        *httptest.Server
 	service       *app.Service
+	store         *memory.Store
 	ownerAccess   string
 	adminAccess   string
 	teacherAccess string
@@ -107,7 +108,7 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 	server := httptest.NewServer(httpapi.New(service))
 	t.Cleanup(server.Close)
 	return &httpFixture{
-		server: server, service: service, ownerAccess: ownerTokens.AccessToken,
+		server: server, service: service, store: store, ownerAccess: ownerTokens.AccessToken,
 		adminAccess: adminTokens.AccessToken, teacherAccess: teacherTokens.AccessToken,
 		owner: owner, admin: admin, teacher: teacher,
 	}
@@ -135,7 +136,14 @@ func TestHTTPClosedAccessJourney(t *testing.T) {
 	assertHTTPError(t, response, http.StatusUnprocessableEntity, core.CodeInvalidInput)
 
 	response = fixture.do(t, http.MethodGet, "/v1/staff?role=Teacher", nil, fixture.adminAccess, "")
-	assertHTTPError(t, response, http.StatusForbidden, core.CodeForbidden)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("ordinary Administrator Teacher discovery status = %d, body=%s", response.StatusCode, readBody(t, response))
+	}
+	var teachers []core.StaffMember
+	decodeResponse(t, response, &teachers)
+	if len(teachers) != 1 || teachers[0].AccountID != fixture.teacher.AccountID {
+		t.Fatalf("ordinary Administrator Teacher discovery = %#v", teachers)
+	}
 	response = fixture.do(t, http.MethodGet, "/v1/student-onboarding", nil, fixture.adminAccess, "")
 	assertHTTPError(t, response, http.StatusForbidden, core.CodeForbidden)
 	response = fixture.do(t, http.MethodGet, "/v1/staff?role=Student", nil, fixture.ownerAccess, "")
@@ -179,7 +187,7 @@ func TestHTTPClosedAccessJourney(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("delegated Teacher discovery status = %d, body=%s", response.StatusCode, readBody(t, response))
 	}
-	var teachers []core.StaffMember
+	teachers = nil
 	decodeResponse(t, response, &teachers)
 	if len(teachers) != 1 || teachers[0].AccountID != fixture.teacher.AccountID {
 		t.Fatalf("Teacher discovery = %#v", teachers)

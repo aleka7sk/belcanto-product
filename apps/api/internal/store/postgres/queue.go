@@ -37,6 +37,8 @@ func (s *Store) ListStudentOnboarding(ctx context.Context, principal core.Princi
 			JOIN accounts a ON a.tenant_id = s.tenant_id AND a.id = s.account_id
 			JOIN teacher_assignments ta
 			  ON ta.tenant_id = s.tenant_id AND ta.student_id = s.id AND ta.status = 'active'
+			 AND ta.effective_from <= $3
+			 AND (ta.effective_until IS NULL OR $3 < ta.effective_until)
 			LEFT JOIN LATERAL (
 			    SELECT i.id, i.expires_at
 			    FROM activation_invitations i

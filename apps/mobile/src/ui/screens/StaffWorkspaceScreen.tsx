@@ -10,8 +10,11 @@ import {
 
 import {
   canCreateStudents,
+  canCreateLessons,
   canDelegateStudentOnboarding,
   canOpenStudentOnboardingQueue,
+  canReassignPrimaryTeachers,
+  canReplaceLessonTeachers,
 } from "@/access";
 import { useApiClient, type StudentOnboardingItem } from "@/api";
 import { useSession } from "@/session";
@@ -104,6 +107,9 @@ export function StaffWorkspaceScreen({
   const allowed = canOpenStudentOnboardingQueue(bootstrap);
   const createAllowed = canCreateStudents(bootstrap);
   const delegateAllowed = canDelegateStudentOnboarding(bootstrap);
+  const createLessonAllowed = canCreateLessons(bootstrap);
+  const changeTeacherAllowed =
+    canReplaceLessonTeachers(bootstrap) && canReassignPrimaryTeachers(bootstrap);
 
   const leave = async () => {
     await signOut();
@@ -129,10 +135,10 @@ export function StaffWorkspaceScreen({
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.role}>{roleLabel(bootstrap.roles).toUpperCase()}</Text>
       <Text accessibilityRole="header" style={styles.title}>
-        Вход учеников
+        Рабочее пространство
       </Text>
       <Text style={styles.subtitle}>
-        Один живой путь: первый ориентир, персональное приглашение и активация.
+        Внутреннее расписание, ученики и закрытый доступ — в одном месте.
       </Text>
 
       {onOpenStudent ? (
@@ -141,12 +147,49 @@ export function StaffWorkspaceScreen({
         </View>
       ) : null}
 
+      <View style={styles.quickActions}>
+        {createLessonAllowed ? (
+          <View style={styles.actionGrow}>
+            <PrimaryButton
+              label="Занятия"
+              onPress={() => router.push("/(protected)/lessons")}
+            />
+          </View>
+        ) : null}
+        {changeTeacherAllowed ? (
+          <View style={styles.actionGrow}>
+            <SecondaryButton
+              label="Сменить педагога"
+              onPress={() => router.push("/(protected)/teacher-change")}
+            />
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.quickActions}>
+        {createAllowed ? (
+          <View style={styles.actionGrow}>
+            <SecondaryButton
+              label="Добавить ученика"
+              onPress={() => router.push("/(protected)/create-student")}
+            />
+          </View>
+        ) : null}
+        {delegateAllowed ? (
+          <View style={styles.actionGrow}>
+            <SecondaryButton
+              label="Суперадмин"
+              onPress={() => router.push("/(protected)/access")}
+            />
+          </View>
+        ) : null}
+      </View>
+
       {!allowed ? (
         <View style={styles.stackGap}>
           <InlineNotice
-            body="У этой учётной записи нет доступа к очереди. Владелец может выдать администратору доступ суперадминистратора."
-            title="Раздел недоступен"
-            tone="error"
+            body="Расписание доступно независимо. Для очереди активации владелец может отдельно выдать администратору доступ суперадминистратора."
+            title="Очередь доступа скрыта"
           />
           <SecondaryButton
             disabled={refreshing}
@@ -156,25 +199,6 @@ export function StaffWorkspaceScreen({
         </View>
       ) : (
         <>
-          <View style={styles.quickActions}>
-            {createAllowed ? (
-              <View style={styles.actionGrow}>
-                <PrimaryButton
-                  label="Добавить ученика"
-                  onPress={() => router.push("/(protected)/create-student")}
-                />
-              </View>
-            ) : null}
-            {delegateAllowed ? (
-              <View style={styles.actionGrow}>
-                <SecondaryButton
-                  label="Суперадмин"
-                  onPress={() => router.push("/(protected)/access")}
-                />
-              </View>
-            ) : null}
-          </View>
-
           <View style={styles.sectionHeader}>
             <Text style={uiStyles.sectionTitle}>Очередь доступа</Text>
             <Text style={uiStyles.supporting}>{items.length} учеников</Text>

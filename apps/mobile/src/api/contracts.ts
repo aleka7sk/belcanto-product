@@ -20,6 +20,10 @@ export const PERMISSIONS = [
   "student_invitations.reissue",
   "student_invitations.revoke",
   "student_onboarding.delegate",
+  "lessons.read",
+  "lessons.create",
+  "lesson_teachers.replace",
+  "student_primary_teachers.reassign",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -29,7 +33,26 @@ const DELEGATED_STUDENT_ONBOARDING_PERMISSIONS = [
   "student_onboarding.read",
 ] as const satisfies readonly Permission[];
 
-const OWNER_STUDENT_ONBOARDING_PERMISSIONS = PERMISSIONS;
+const OWNER_STUDENT_ONBOARDING_PERMISSIONS = [
+  "students.create",
+  "student_onboarding.read",
+  "student_invitations.issue",
+  "student_invitations.reissue",
+  "student_invitations.revoke",
+  "student_onboarding.delegate",
+] as const satisfies readonly Permission[];
+
+const LESSON_READER_PERMISSIONS = ["lessons.read"] as const satisfies readonly Permission[];
+const LESSON_CREATOR_PERMISSIONS = [
+  "lessons.read",
+  "lessons.create",
+] as const satisfies readonly Permission[];
+const LESSON_MANAGER_PERMISSIONS = [
+  "lessons.read",
+  "lessons.create",
+  "lesson_teachers.replace",
+  "student_primary_teachers.reassign",
+] as const satisfies readonly Permission[];
 
 export type IsoDateTime = string & { readonly __isoDateTime: unique symbol };
 
@@ -202,6 +225,110 @@ export interface InvitationResult {
   status: "issued";
   expiresAt: IsoDateTime;
   activationLink: string;
+}
+
+export interface LessonTeacher {
+  accountId: string;
+  fullName: string;
+}
+
+export interface AssignedTeacherSummary extends LessonTeacher {
+  status: "active" | "inactive";
+}
+
+export interface LessonStudent {
+  studentId: string;
+  fullName: string;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  startsAt: IsoDateTime;
+  durationMinutes: number;
+  location?: string;
+  teacher: LessonTeacher;
+  students: LessonStudent[];
+  status: "scheduled";
+  version: number;
+}
+
+export type LessonSummary = Lesson;
+export type LessonDetail = Lesson;
+
+export interface LessonListQuery {
+  from: IsoDateTime;
+  to: IsoDateTime;
+  studentId?: string;
+  teacherAccountId?: string;
+}
+
+export interface StudentDirectoryQuery {
+  asOf?: IsoDateTime;
+}
+
+export interface CreateLessonRequest {
+  title: string;
+  startsAt: IsoDateTime;
+  durationMinutes: number;
+  location?: string;
+  teacherAccountId: string;
+  studentIds: string[];
+}
+
+export interface StudentDirectoryItem {
+  studentId: string;
+  fullName: string;
+  primaryTeacher: AssignedTeacherSummary;
+  primaryTeacherAssignmentVersion: number;
+}
+
+export interface PrimaryTeacherReassignmentInput {
+  studentId: string;
+  expectedAssignmentVersion: number;
+}
+
+export type ReassignPrimaryTeachersRequest =
+  | {
+      students: PrimaryTeacherReassignmentInput[];
+      newTeacherAccountId: string;
+      effectiveMode: "immediate";
+      effectiveFrom?: never;
+    }
+  | {
+      students: PrimaryTeacherReassignmentInput[];
+      newTeacherAccountId: string;
+      effectiveMode: "scheduled";
+      effectiveFrom: IsoDateTime;
+    };
+
+export interface PrimaryTeacherAssignmentResult {
+  studentId: string;
+  previousTeacherAccountId: string;
+  newTeacherAccountId: string;
+  effectiveFrom: IsoDateTime;
+  version: number;
+}
+
+export interface ReassignPrimaryTeachersResult {
+  reassignedCount: number;
+  assignments: PrimaryTeacherAssignmentResult[];
+}
+
+export interface LessonTeacherReplacementInput {
+  lessonId: string;
+  expectedVersion: number;
+  expectedPreviousTeacherAccountId: string;
+}
+
+export interface ReplaceLessonTeachersRequest {
+  lessons: LessonTeacherReplacementInput[];
+  newTeacherAccountId: string;
+}
+
+export interface ReplaceLessonTeachersResult {
+  updatedCount: number;
+  lessons: Lesson[];
 }
 
 export interface EmptyRequest {
@@ -442,6 +569,201 @@ export const decodeFirstMinute: Decoder<FirstMinute> = (value) => {
   };
 };
 
+function decodeLessonTeacher(value: unknown, contract: string, path: string): LessonTeacher {
+  const source = record(value, contract, path);
+  exactKeys(source, ["accountId", "fullName"], contract, path);
+  return {
+    accountId: identifierField(source, "accountId", contract)!,
+    fullName: stringField(source, "fullName", contract)!,
+  };
+}
+
+function decodeAssignedTeacher(
+  value: unknown,
+  contract: string,
+  path: string,
+): AssignedTeacherSummary {
+  const source = record(value, contract, path);
+  exactKeys(source, ["accountId", "fullName", "status"], contract, path);
+  return {
+    accountId: identifierField(source, "accountId", contract)!,
+    fullName: stringField(source, "fullName", contract)!,
+    status: oneOf(
+      source.status,
+      ["active", "inactive"] as const,
+      contract,
+      `${path}.status`,
+    ),
+  };
+}
+
+function decodeLessonStudent(value: unknown, contract: string, path: string): LessonStudent {
+  const source = record(value, contract, path);
+  exactKeys(source, ["studentId", "fullName"], contract, path);
+  return {
+    studentId: identifierField(source, "studentId", contract)!,
+    fullName: stringField(source, "fullName", contract)!,
+  };
+}
+
+export const decodeLesson: Decoder<Lesson> = (value) => {
+  const contract = "Lesson";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "title",
+      "startsAt",
+      "durationMinutes",
+      "location",
+      "teacher",
+      "students",
+      "status",
+      "version",
+    ],
+    contract,
+  );
+  if (!Array.isArray(source.students) || source.students.length === 0) {
+    throw new ContractDecodeError(contract, "$.students");
+  }
+  const students = source.students.map((student, index) =>
+    decodeLessonStudent(student, contract, `$.students[${index}]`),
+  );
+  if (new Set(students.map((student) => student.studentId)).size !== students.length) {
+    throw new ContractDecodeError(contract, "$.students");
+  }
+  const lesson: Lesson = {
+    id: identifierField(source, "id", contract)!,
+    title: stringField(source, "title", contract)!,
+    startsAt: isoDateField(source, "startsAt", contract)!,
+    durationMinutes: numberField(source, "durationMinutes", contract, 1),
+    teacher: decodeLessonTeacher(source.teacher, contract, "$.teacher"),
+    students,
+    status: oneOf(source.status, ["scheduled"] as const, contract, "$.status"),
+    version: numberField(source, "version", contract),
+  };
+  const location = stringField(source, "location", contract, true);
+  if (location !== undefined) lesson.location = location;
+  return lesson;
+};
+
+export const decodeLessons: Decoder<Lesson[]> = (value) => {
+  if (!Array.isArray(value)) throw new ContractDecodeError("Lesson[]", "$");
+  const lessons = value.map((lesson, index) => {
+    try {
+      return decodeLesson(lesson);
+    } catch (error) {
+      if (error instanceof ContractDecodeError) {
+        throw new ContractDecodeError("Lesson[]", `$[${index}]${error.path.slice(1)}`);
+      }
+      throw error;
+    }
+  });
+  if (new Set(lessons.map((lesson) => lesson.id)).size !== lessons.length) {
+    throw new ContractDecodeError("Lesson[]", "$");
+  }
+  return lessons;
+};
+
+export const decodeStudentDirectory: Decoder<StudentDirectoryItem[]> = (value) => {
+  const contract = "StudentDirectoryItem[]";
+  if (!Array.isArray(value)) throw new ContractDecodeError(contract, "$");
+  const students = value.map((item, index) => {
+    const source = record(item, contract, `$[${index}]`);
+    exactKeys(
+      source,
+      ["studentId", "fullName", "primaryTeacher", "primaryTeacherAssignmentVersion"],
+      contract,
+      `$[${index}]`,
+    );
+    return {
+      studentId: identifierField(source, "studentId", contract)!,
+      fullName: stringField(source, "fullName", contract)!,
+      primaryTeacher: decodeAssignedTeacher(
+        source.primaryTeacher,
+        contract,
+        `$[${index}].primaryTeacher`,
+      ),
+      primaryTeacherAssignmentVersion: numberField(
+        source,
+        "primaryTeacherAssignmentVersion",
+        contract,
+      ),
+    };
+  });
+  if (new Set(students.map((student) => student.studentId)).size !== students.length) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  return students;
+};
+
+export const decodeReassignPrimaryTeachersResult: Decoder<
+  ReassignPrimaryTeachersResult
+> = (value) => {
+  const contract = "ReassignPrimaryTeachersResult";
+  const source = record(value, contract);
+  exactKeys(source, ["reassignedCount", "assignments"], contract);
+  if (!Array.isArray(source.assignments)) {
+    throw new ContractDecodeError(contract, "$.assignments");
+  }
+  if (source.assignments.length === 0) {
+    throw new ContractDecodeError(contract, "$.assignments");
+  }
+  const assignments = source.assignments.map((item, index) => {
+    const assignment = record(item, contract, `$.assignments[${index}]`);
+    exactKeys(
+      assignment,
+      [
+        "studentId",
+        "previousTeacherAccountId",
+        "newTeacherAccountId",
+        "effectiveFrom",
+        "version",
+      ],
+      contract,
+      `$.assignments[${index}]`,
+    );
+    return {
+      studentId: identifierField(assignment, "studentId", contract)!,
+      previousTeacherAccountId: identifierField(
+        assignment,
+        "previousTeacherAccountId",
+        contract,
+      )!,
+      newTeacherAccountId: identifierField(
+        assignment,
+        "newTeacherAccountId",
+        contract,
+      )!,
+      effectiveFrom: isoDateField(assignment, "effectiveFrom", contract)!,
+      version: numberField(assignment, "version", contract, 1),
+    };
+  });
+  const reassignedCount = numberField(source, "reassignedCount", contract, 1);
+  if (reassignedCount !== assignments.length) {
+    throw new ContractDecodeError(contract, "$.reassignedCount");
+  }
+  return { reassignedCount, assignments };
+};
+
+export const decodeReplaceLessonTeachersResult: Decoder<
+  ReplaceLessonTeachersResult
+> = (value) => {
+  const contract = "ReplaceLessonTeachersResult";
+  const source = record(value, contract);
+  exactKeys(source, ["updatedCount", "lessons"], contract);
+  const lessons = decodeLessons(source.lessons);
+  if (lessons.length === 0) {
+    throw new ContractDecodeError(contract, "$.lessons");
+  }
+  const updatedCount = numberField(source, "updatedCount", contract, 1);
+  if (updatedCount !== lessons.length) {
+    throw new ContractDecodeError(contract, "$.updatedCount");
+  }
+  return { updatedCount, lessons };
+};
+
 export const decodeBootstrapView: Decoder<BootstrapView> = (value) => {
   const contract = "BootstrapView";
   const source = record(value, contract);
@@ -479,23 +801,23 @@ export const decodeBootstrapView: Decoder<BootstrapView> = (value) => {
   ): boolean =>
     permissions.length === expected.length &&
     expected.every((permission) => permissions.includes(permission));
+  const expectedPermissions = new Set<Permission>();
+  const addExpected = (values: readonly Permission[]) => {
+    for (const permission of values) expectedPermissions.add(permission);
+  };
+  if (isOwner) {
+    addExpected(OWNER_STUDENT_ONBOARDING_PERMISSIONS);
+    addExpected(LESSON_MANAGER_PERMISSIONS);
+  } else {
+    if (roles.includes("Administrator")) addExpected(LESSON_MANAGER_PERMISSIONS);
+    if (roles.includes("Teacher")) addExpected(LESSON_CREATOR_PERMISSIONS);
+    if (roles.includes("Student")) addExpected(LESSON_READER_PERMISSIONS);
+    if (hasOnboardingProfile) addExpected(DELEGATED_STUDENT_ONBOARDING_PERMISSIONS);
+  }
   if (
-    (isOwner &&
-      (hasOnboardingProfile ||
-        !samePermissionSet(OWNER_STUDENT_ONBOARDING_PERMISSIONS))) ||
-    (!isOwner &&
-      hasOnboardingProfile &&
-      (!roles.includes("Administrator") ||
-        !samePermissionSet(DELEGATED_STUDENT_ONBOARDING_PERMISSIONS))) ||
-    (!isOwner && !hasOnboardingProfile && permissions.length > 0) ||
-    (!isOwner &&
-      permissions.some(
-        (permission) =>
-          permission === "student_invitations.issue" ||
-          permission === "student_invitations.reissue" ||
-          permission === "student_invitations.revoke" ||
-          permission === "student_onboarding.delegate",
-      ))
+    (isOwner && hasOnboardingProfile) ||
+    (hasOnboardingProfile && !roles.includes("Administrator")) ||
+    !samePermissionSet([...expectedPermissions])
   ) {
     throw new ContractDecodeError(contract, "$.permissions");
   }

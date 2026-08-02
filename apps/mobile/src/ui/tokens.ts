@@ -11,6 +11,8 @@ export const figmaVisualSource = {
   signIn: "26:35",
   confirmation: "26:37",
   studentHome: "30:3",
+  studentSchedule: "30:5",
+  studentLesson: "30:7",
 } as const;
 
 export const colors = {

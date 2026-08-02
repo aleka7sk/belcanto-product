@@ -37,3 +37,72 @@ export function parseStrictRfc3339(value: string): number | null {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
 }
+
+const HUMAN_DATE_PATTERN = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+const HUMAN_TIME_PATTERN = /^(\d{2}):(\d{2})$/;
+const BELCANTO_TIME_ZONE = "Asia/Almaty";
+
+function zonedParts(timestamp: number): Record<string, number> {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+    timeZone: BELCANTO_TIME_ZONE,
+  }).formatToParts(new Date(timestamp));
+  return Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+}
+
+/** Converts human Belcanto date/time fields to an instant in Asia/Almaty. */
+export function parseAlmatyLocalDateTime(
+  dateValue: string,
+  timeValue: string,
+): number | null {
+  const date = HUMAN_DATE_PATTERN.exec(dateValue.trim());
+  const time = HUMAN_TIME_PATTERN.exec(timeValue.trim());
+  if (date === null || time === null) return null;
+  const day = Number(date[1]);
+  const month = Number(date[2]);
+  const year = Number(date[3]);
+  const hour = Number(time[1]);
+  const minute = Number(time[2]);
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > daysInMonth(year, month) ||
+    hour > 23 ||
+    minute > 59
+  ) {
+    return null;
+  }
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let timestamp = desiredAsUtc;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = zonedParts(timestamp);
+    const representedAsUtc = Date.UTC(
+      parts.year!,
+      parts.month! - 1,
+      parts.day!,
+      parts.hour!,
+      parts.minute!,
+      parts.second!,
+    );
+    timestamp += desiredAsUtc - representedAsUtc;
+  }
+  const verified = zonedParts(timestamp);
+  return verified.year === year &&
+    verified.month === month &&
+    verified.day === day &&
+    verified.hour === hour &&
+    verified.minute === minute
+    ? timestamp
+    : null;
+}

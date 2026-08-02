@@ -48,3 +48,36 @@ func TestTenantScopedIdentityAndReplacementInvariantsAreDeclared(t *testing.T) {
 		}
 	}
 }
+
+func TestInternalSchedulingAndTemporalAssignmentInvariantsAreDeclared(t *testing.T) {
+	compact := strings.Join(strings.Fields(strings.ToLower(internalSchedulingUp)), " ")
+	required := []string{
+		"add column effective_from timestamptz",
+		"add column effective_until timestamptz",
+		"add column version bigint not null default 0 check (version >= 0)",
+		"add constraint teacher_assignments_no_active_overlap exclude using gist",
+		"tstzrange(effective_from, effective_until, '[)') with &&",
+		"create table lessons",
+		"duration_minutes integer not null check (duration_minutes between 1 and 1440)",
+		"status text not null check (status = 'scheduled')",
+		"foreign key (tenant_id, teacher_account_id) references accounts(tenant_id, id)",
+		"create table lesson_participants",
+		"primary key (tenant_id, lesson_id, student_id)",
+		"foreign key (tenant_id, lesson_id) references lessons(tenant_id, id) on delete restrict",
+		"foreign key (tenant_id, student_id) references students(tenant_id, id) on delete restrict",
+	}
+	for _, declaration := range required {
+		if !strings.Contains(compact, declaration) {
+			t.Fatalf("internal scheduling migration is missing invariant %q", declaration)
+		}
+	}
+	down := strings.Join(strings.Fields(strings.ToLower(internalSchedulingDown)), " ")
+	for _, declaration := range []string{
+		"cannot roll back internal scheduling after temporal teacher reassignment data exists",
+		"create unique index if not exists teacher_assignments_one_active_primary",
+	} {
+		if !strings.Contains(down, declaration) {
+			t.Fatalf("internal scheduling rollback is missing safety declaration %q", declaration)
+		}
+	}
+}

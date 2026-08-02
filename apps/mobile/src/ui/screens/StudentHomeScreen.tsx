@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -10,7 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { FirstMinute } from "@/api";
+import type { FirstMinute, IsoDateTime, Lesson } from "@/api";
+import { useApiClient } from "@/api";
 import { useSession } from "@/session";
 import stageHero from "../../../assets/images/welcome-stage.png";
 import {
@@ -20,6 +22,7 @@ import {
   SecondaryButton,
   uiStyles,
 } from "../components";
+import { LessonCard, StudentBottomNavigation } from "../lessonComponents";
 import {
   colors,
   fonts,
@@ -28,20 +31,57 @@ import {
   spacing,
   typeScale,
 } from "../tokens";
-import { formatBelcantoDate } from "../viewModels";
+import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
 
 export function StudentHomeScreen({
   fullName,
+  studentId,
   firstMinute,
   onOpenStaff,
 }: {
   fullName: string;
+  studentId: string;
   firstMinute: FirstMinute;
   onOpenStaff?: (() => void) | undefined;
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { signOut } = useSession();
+  const api = useApiClient();
+  const { signOut, runAuthenticated } = useSession();
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(true);
+  const [lessonError, setLessonError] = useState<string | null>(null);
+  const loadLessons = useCallback(async () => {
+    setLoadingLessons(true);
+    setLessonError(null);
+    const now = new Date();
+    const to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    try {
+      const result = await runAuthenticated((accessToken) =>
+        api.listLessons(accessToken, {
+          from: now.toISOString() as IsoDateTime,
+          to: to.toISOString() as IsoDateTime,
+          studentId,
+        }),
+      );
+      setLessons(
+        [...result].sort(
+          (left, right) =>
+            new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+        ),
+      );
+    } catch (error) {
+      setLessonError(apiErrorMessage(error));
+    } finally {
+      setLoadingLessons(false);
+    }
+  }, [api, runAuthenticated, studentId]);
+
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => { if (active) void loadLessons(); });
+    return () => { active = false; };
+  }, [loadLessons]);
   const leave = async () => {
     await signOut();
     router.replace("/");
@@ -87,6 +127,40 @@ export function StudentHomeScreen({
               { paddingBottom: insets.bottom + spacing.xxl },
             ]}
           >
+            <View style={styles.sectionHeader}>
+              <Text style={uiStyles.sectionTitle}>Ближайший урок</Text>
+              <Text style={uiStyles.supporting}>Реальное расписание школы</Text>
+            </View>
+            {loadingLessons ? (
+              <PremiumCard><Text style={uiStyles.body}>Загружаем расписание…</Text></PremiumCard>
+            ) : null}
+            {lessonError ? (
+              <PremiumCard>
+                <Text style={uiStyles.sectionTitle}>Расписание не загрузилось</Text>
+                <Text style={[uiStyles.body, styles.cardIntro]}>{lessonError}</Text>
+                <SecondaryButton label="Повторить" onPress={() => void loadLessons()} />
+              </PremiumCard>
+            ) : null}
+            {!loadingLessons && !lessonError && lessons[0] ? (
+              <LessonCard
+                lesson={lessons[0]}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(protected)/lesson/[lessonId]",
+                    params: { lessonId: lessons[0]!.id },
+                  })
+                }
+              />
+            ) : null}
+            {!loadingLessons && !lessonError && lessons.length === 0 ? (
+              <PremiumCard>
+                <Text style={uiStyles.sectionTitle}>Уроков пока нет</Text>
+                <Text style={[uiStyles.body, styles.emptyBody]}>
+                  Здесь появится ближайшее занятие, когда школа добавит его в расписание.
+                </Text>
+              </PremiumCard>
+            ) : null}
+
             <PremiumCard>
               <Text style={uiStyles.cardTitle}>Ваша первая минута в Belcanto</Text>
               <Text style={[uiStyles.supporting, styles.cardIntro]}>
@@ -120,6 +194,11 @@ export function StudentHomeScreen({
               />
             ) : null}
             <SecondaryButton label="Выйти" onPress={() => void leave()} />
+            <StudentBottomNavigation
+              active="home"
+              onOpenHome={() => undefined}
+              onOpenSchedule={() => router.push("/(protected)/schedule")}
+            />
           </View>
         </View>
       </ScrollView>
@@ -176,7 +255,9 @@ const styles = StyleSheet.create({
     ...typeScale.eyebrow,
   },
   content: { gap: spacing.lg, paddingHorizontal: metrics.homeGutter, paddingTop: spacing.lg },
+  sectionHeader: { gap: spacing.xs, marginBottom: -spacing.sm },
   cardIntro: { marginBottom: spacing.lg, marginTop: spacing.sm },
+  emptyBody: { marginTop: spacing.sm },
   focusRow: {
     borderTopColor: colors.borderGlass,
     borderTopWidth: 1,

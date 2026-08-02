@@ -29,6 +29,26 @@ var initialUp string
 //go:embed 000001_initial.down.sql
 var initialDown string
 
+//go:embed 000002_internal_scheduling.up.sql
+var internalSchedulingUp string
+
+//go:embed 000002_internal_scheduling.down.sql
+var internalSchedulingDown string
+
+type migration struct {
+	version     int64
+	description string
+	up          string
+	down        string
+}
+
+func registeredMigrations() []migration {
+	return []migration{
+		{version: initialVersion, description: "Belcanto B.0 initial schema", up: initialUp, down: initialDown},
+		{version: 2, description: "Belcanto L.1 internal scheduling", up: internalSchedulingUp, down: internalSchedulingDown},
+	}
+}
+
 func Up(ctx context.Context, pool *pgxpool.Pool) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -41,29 +61,31 @@ func Up(ctx context.Context, pool *pgxpool.Pool) error {
 	if _, err := tx.Exec(ctx, ledgerDDL); err != nil {
 		return fmt.Errorf("create migration ledger: %w", err)
 	}
-	digest := sha256.Sum256([]byte(initialUp))
-	wantChecksum := hex.EncodeToString(digest[:])
-	var storedChecksum string
-	err = tx.QueryRow(ctx, `
-		SELECT checksum FROM schema_migrations WHERE version = $1
-	`, initialVersion).Scan(&storedChecksum)
-	if err == nil {
-		if storedChecksum != wantChecksum {
-			return fmt.Errorf("migration %d checksum drift: database=%s binary=%s", initialVersion, storedChecksum, wantChecksum)
+	for _, candidate := range registeredMigrations() {
+		digest := sha256.Sum256([]byte(candidate.up))
+		wantChecksum := hex.EncodeToString(digest[:])
+		var storedChecksum string
+		err = tx.QueryRow(ctx, `
+			SELECT checksum FROM schema_migrations WHERE version = $1
+		`, candidate.version).Scan(&storedChecksum)
+		if err == nil {
+			if storedChecksum != wantChecksum {
+				return fmt.Errorf("migration %d checksum drift: database=%s binary=%s", candidate.version, storedChecksum, wantChecksum)
+			}
+			continue
 		}
-		return tx.Commit(ctx)
-	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("read migration ledger: %w", err)
-	}
-	if _, err := tx.Exec(ctx, initialUp); err != nil {
-		return fmt.Errorf("apply initial migration: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO schema_migrations (version, checksum, description, applied_at)
-		VALUES ($1, $2, 'Belcanto B.0 initial schema', transaction_timestamp())
-	`, initialVersion, wantChecksum); err != nil {
-		return fmt.Errorf("record initial migration: %w", err)
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("read migration %d ledger: %w", candidate.version, err)
+		}
+		if _, err := tx.Exec(ctx, candidate.up); err != nil {
+			return fmt.Errorf("apply migration %d: %w", candidate.version, err)
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO schema_migrations (version, checksum, description, applied_at)
+			VALUES ($1, $2, $3, transaction_timestamp())
+		`, candidate.version, wantChecksum, candidate.description); err != nil {
+			return fmt.Errorf("record migration %d: %w", candidate.version, err)
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit initial migration: %w", err)
@@ -80,8 +102,11 @@ func Down(ctx context.Context, pool *pgxpool.Pool) error {
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, migrationLockKey); err != nil {
 		return fmt.Errorf("lock migration ledger: %w", err)
 	}
-	if _, err := tx.Exec(ctx, initialDown); err != nil {
-		return fmt.Errorf("revert initial migration: %w", err)
+	migrations := registeredMigrations()
+	for index := len(migrations) - 1; index >= 0; index-- {
+		if _, err := tx.Exec(ctx, migrations[index].down); err != nil {
+			return fmt.Errorf("revert migration %d: %w", migrations[index].version, err)
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit migration rollback: %w", err)

@@ -241,8 +241,8 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO teacher_assignments (
 				id, tenant_id, student_id, teacher_account_id, status,
-				assigned_by_account_id, assigned_at
-			) VALUES ($1, $2, $3, $4, 'active', $5, $6)
+				assigned_by_account_id, assigned_at, effective_from
+			) VALUES ($1, $2, $3, $4, 'active', $5, $6, $6)
 		`, command.TeacherAssignmentID, command.TenantID, command.StudentID,
 			command.TeacherAccountID, command.ActorAccountID, command.Now); err != nil {
 			return fmt.Errorf("assign student Teacher: %w", err)
@@ -284,6 +284,9 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirstMinuteCommand) (core.FirstMinute, error) {
 	var result core.FirstMinute
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		if err := lockAssignmentSubjects(ctx, tx, command.TenantID, []string{command.StudentID}); err != nil {
+			return err
+		}
 		var version int64
 		err := tx.QueryRow(ctx, `
 			SELECT version
@@ -307,9 +310,11 @@ func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirs
 				  ON rg.tenant_id = a.tenant_id AND rg.account_id = a.id
 				WHERE ta.tenant_id = $1 AND ta.student_id = $2
 				  AND ta.teacher_account_id = $3 AND ta.status = 'active'
+				  AND ta.effective_from <= $4
+				  AND (ta.effective_until IS NULL OR $4 < ta.effective_until)
 				  AND a.status = 'active' AND rg.role_type = 'Teacher' AND rg.status = 'active'
 			)
-		`, command.TenantID, command.StudentID, command.ActorAccountID).Scan(&assigned); err != nil {
+		`, command.TenantID, command.StudentID, command.ActorAccountID, command.Now).Scan(&assigned); err != nil {
 			return fmt.Errorf("check assigned Teacher: %w", err)
 		}
 		if !assigned {
@@ -622,6 +627,7 @@ func (s *Store) BootstrapView(ctx context.Context, principal core.Principal, now
 		AccountID: principal.AccountID, Roles: roles,
 		AccessProfiles: []string{}, Permissions: []string{},
 	}
+	view.Permissions = append(view.Permissions, core.LessonPermissionSetForRoles(roles)...)
 	if principalHasRole(roles, core.RoleOwner) {
 		view.Permissions = append(view.Permissions, core.OwnerStudentOnboardingPermissionSet()...)
 	} else if principalHasRole(roles, core.RoleAdministrator) {
@@ -698,16 +704,12 @@ func (s *Store) ListStaff(ctx context.Context, principal core.Principal, role co
 		if err != nil {
 			return err
 		}
-		allowed := owner
-		delegationID := ""
-		if !owner && role == core.RoleTeacher {
-			var delegated bool
-			delegationID, delegated, err = onboardingAuthority(ctx, tx, principal.TenantID, principal.AccountID, now)
-			if err != nil {
-				return err
-			}
-			allowed = delegated && delegationID != ""
+		administrator, err := hasActiveRole(ctx, tx, principal.TenantID, principal.AccountID, core.RoleAdministrator)
+		if err != nil {
+			return err
 		}
+		allowed := owner || (administrator && role == core.RoleTeacher)
+		delegationID := ""
 		if !allowed {
 			return core.E(core.CodeForbidden, "staff discovery permission is required", nil)
 		}

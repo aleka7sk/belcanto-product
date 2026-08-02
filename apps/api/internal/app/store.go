@@ -32,4 +32,10 @@ type Store interface {
 	BootstrapView(context.Context, core.Principal, time.Time) (core.BootstrapView, error)
 	ListStaff(context.Context, core.Principal, core.Role, time.Time) ([]core.StaffMember, error)
 	ListStudentOnboarding(context.Context, core.Principal, time.Time) ([]core.StudentOnboardingItem, error)
+	ListStudents(context.Context, core.Principal, time.Time, time.Time) ([]core.StudentDirectoryItem, error)
+	ScheduleLesson(context.Context, core.ScheduleLessonCommand) (core.Lesson, error)
+	ListLessons(context.Context, core.Principal, core.LessonListQuery, time.Time) ([]core.Lesson, error)
+	GetLesson(context.Context, core.Principal, string, time.Time) (core.Lesson, error)
+	ReplaceLessonTeachers(context.Context, core.ReplaceLessonTeachersCommand) (core.LessonTeacherReplacementResult, error)
+	ReassignPrimaryTeachers(context.Context, core.ReassignPrimaryTeachersCommand) (core.PrimaryTeacherReassignmentResult, error)
 }

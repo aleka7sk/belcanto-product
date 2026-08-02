@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 
-import { canOpenStudentOnboardingQueue } from "@/access";
+import { canOpenOperationalWorkspace } from "@/access";
 import { useSession } from "@/session";
 import { LoadingScreen } from "@/ui/components";
 import { StaffWorkspaceScreen } from "@/ui/screens/StaffWorkspaceScreen";
@@ -11,7 +11,7 @@ export default function ProtectedEntryRoute() {
   const { state } = useSession();
   const bootstrap = state.bootstrap;
   if (bootstrap === null) return <LoadingScreen />;
-  const hasStaffWorkspace = canOpenStudentOnboardingQueue(bootstrap);
+  const hasStaffWorkspace = canOpenOperationalWorkspace(bootstrap);
   const hasStudentWorkspace =
     bootstrap.roles.includes("Student") &&
     bootstrap.fullName !== undefined &&
@@ -24,6 +24,7 @@ export default function ProtectedEntryRoute() {
       <StudentHomeScreen
         firstMinute={bootstrap.firstMinute}
         fullName={bootstrap.fullName}
+        studentId={bootstrap.studentId}
         onOpenStaff={
           hasStaffWorkspace
             ? () => router.replace({ pathname: "/(protected)", params: { workspace: "staff" } })

@@ -6,6 +6,9 @@ import {
   prepareFirstMinute,
   prepareGrantDelegation,
   prepareInvitation,
+  prepareCreateLesson,
+  prepareReassignPrimaryTeachers,
+  prepareReplaceLessonTeachers,
   prepareRevokeInvitation,
   prepareSignIn,
   type IdempotencyKeyFactory,
@@ -129,6 +132,201 @@ describe("pure request controllers", () => {
     expect(
       prepareRevokeInvitation({ invitationId: "inv_1" }, "intent_5"),
     ).toMatchObject({ ok: true, value: { invitationId: "inv_1" } });
+  });
+
+  it("converts human Almaty lesson time and keeps explicit Students", () => {
+    expect(
+      prepareCreateLesson(
+        {
+          title: " Индивидуальный урок ",
+          startsOn: "10.08.2026",
+          startsAtTime: "18:00",
+          durationMinutes: "60",
+          location: " Класс 2 ",
+          teacherAccountId: "teacher_1",
+          studentIds: ["student_1", "student_2"],
+        },
+        "lesson_intent",
+        new Date("2026-08-02T00:00:00Z"),
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        body: {
+          title: "Индивидуальный урок",
+          startsAt: "2026-08-10T13:00:00.000Z",
+          durationMinutes: 60,
+          location: "Класс 2",
+          teacherAccountId: "teacher_1",
+          studentIds: ["student_1", "student_2"],
+        },
+        idempotencyKey: "lesson_intent",
+      },
+    });
+  });
+
+  it("uses stable server-clock mode and preserves exact assignment versions", () => {
+    const draft = {
+      students: [
+        { studentId: "student_2", expectedAssignmentVersion: 5 },
+        { studentId: "student_1", expectedAssignmentVersion: 3 },
+      ],
+      newTeacherAccountId: "teacher_2",
+      effectiveImmediately: true,
+      effectiveOn: "",
+      effectiveAtTime: "",
+    };
+    const first = prepareReassignPrimaryTeachers(
+      draft,
+      "reassign_intent",
+      new Date("2026-08-02T10:00:00Z"),
+    );
+    const retry = prepareReassignPrimaryTeachers(
+      draft,
+      "reassign_intent",
+      new Date("2026-08-02T11:00:00Z"),
+    );
+    expect(first).toMatchObject({
+      ok: true,
+      value: {
+        body: {
+          students: [
+            { studentId: "student_2", expectedAssignmentVersion: 5 },
+            { studentId: "student_1", expectedAssignmentVersion: 3 },
+          ],
+          effectiveMode: "immediate",
+        },
+      },
+    });
+    expect(retry).toEqual(first);
+    if (first.ok) expect(first.value.body).not.toHaveProperty("effectiveFrom");
+  });
+
+  it("converts scheduled reassignment time in Almaty", () => {
+    expect(
+      prepareReassignPrimaryTeachers(
+        {
+          students: [{ studentId: "student_1", expectedAssignmentVersion: 3 }],
+          newTeacherAccountId: "teacher_2",
+          effectiveImmediately: false,
+          effectiveOn: "10.08.2026",
+          effectiveAtTime: "09:00",
+        },
+        "scheduled_intent",
+        new Date("2026-08-02T10:00:00Z"),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        body: {
+          effectiveMode: "scheduled",
+          effectiveFrom: "2026-08-10T04:00:00.000Z",
+        },
+      },
+    });
+  });
+
+  it("rejects empty selections and preserves exact Lesson concurrency guards", () => {
+    expect(
+      prepareReplaceLessonTeachers(
+        { lessons: [], newTeacherAccountId: "teacher_2" },
+        "replace_empty",
+      ),
+    ).toMatchObject({ ok: false, issues: [{ field: "lessons", code: "required" }] });
+    expect(
+      prepareReplaceLessonTeachers(
+        {
+          lessons: [
+            {
+              lessonId: "lesson_9",
+              expectedVersion: 8,
+              expectedPreviousTeacherAccountId: "teacher_9",
+            },
+            {
+              lessonId: "lesson_2",
+              expectedVersion: 1,
+              expectedPreviousTeacherAccountId: "teacher_2",
+            },
+          ],
+          newTeacherAccountId: "teacher_2",
+        },
+        "replace_intent",
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        body: {
+          lessons: [
+            {
+              lessonId: "lesson_9",
+              expectedVersion: 8,
+              expectedPreviousTeacherAccountId: "teacher_9",
+            },
+            {
+              lessonId: "lesson_2",
+              expectedVersion: 1,
+              expectedPreviousTeacherAccountId: "teacher_2",
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("enforces the backend limit of 100 selected objects", () => {
+    const studentIds = Array.from({ length: 101 }, (_, index) => `student_${index}`);
+    expect(
+      prepareCreateLesson(
+        {
+          title: "Урок",
+          startsOn: "10.08.2026",
+          startsAtTime: "18:00",
+          durationMinutes: "60",
+          location: "",
+          teacherAccountId: "teacher_1",
+          studentIds,
+        },
+        "lesson_limit",
+        new Date("2026-08-02T00:00:00Z"),
+      ),
+    ).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([{ field: "studentIds", code: "invalid_value" }]),
+    });
+    expect(
+      prepareReassignPrimaryTeachers(
+        {
+          students: studentIds.map((studentId) => ({
+            studentId,
+            expectedAssignmentVersion: 1,
+          })),
+          newTeacherAccountId: "teacher_2",
+          effectiveImmediately: true,
+          effectiveOn: "",
+          effectiveAtTime: "",
+        },
+        "reassign_limit",
+      ),
+    ).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([{ field: "students", code: "invalid_value" }]),
+    });
+    expect(
+      prepareReplaceLessonTeachers(
+        {
+          lessons: studentIds.map((_, index) => ({
+            lessonId: `lesson_${index}`,
+            expectedVersion: index,
+            expectedPreviousTeacherAccountId: "teacher_1",
+          })),
+          newTeacherAccountId: "teacher_2",
+        },
+        "replace_limit",
+      ),
+    ).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([{ field: "lessons", code: "invalid_value" }]),
+    });
   });
 
   it("prepares activation but never creates a session", () => {

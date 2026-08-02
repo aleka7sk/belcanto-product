@@ -4,5 +4,6 @@ export * from "./delegation";
 export * from "./firstMinute";
 export * from "./invitation";
 export * from "./idempotency";
+export * from "./lesson";
 export * from "./signIn";
 export * from "./student";

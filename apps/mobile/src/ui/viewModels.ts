@@ -8,6 +8,8 @@ import type {
   StudentOnboardingState,
 } from "@/api/contracts";
 
+const BELCANTO_TIME_ZONE = "Asia/Almaty";
+
 const issueMessages: Record<FormIssueCode, string> = {
   required: "Заполните это поле",
   invalid_format: "Проверьте формат значения",
@@ -92,8 +94,55 @@ export function formatBelcantoDate(value: IsoDateTime | string): string {
   return new Intl.DateTimeFormat("ru-KZ", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: "Asia/Almaty",
+    timeZone: BELCANTO_TIME_ZONE,
   }).format(date);
+}
+
+export function formatLessonTime(value: IsoDateTime | string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("ru-KZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: BELCANTO_TIME_ZONE,
+  }).format(date);
+}
+
+export function formatLessonDay(value: IsoDateTime | string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Дата";
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+    timeZone: BELCANTO_TIME_ZONE,
+  })
+    .format(date)
+    .replace(".", "");
+}
+
+export function dateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: BELCANTO_TIME_ZONE,
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export function nextScheduleDates(now = new Date(), count = 7): Date[] {
+  return Array.from({ length: count }, (_, index) =>
+    new Date(now.getTime() + index * 24 * 60 * 60 * 1000),
+  );
+}
+
+export function initials(value: string): string {
+  const words = value.trim().split(/\s+/u).filter(Boolean);
+  if (words.length === 0) return "Б";
+  return words.slice(0, 2).map((word) => Array.from(word)[0]).join("").toUpperCase();
 }
 
 export function roleLabel(roles: readonly string[]): string {

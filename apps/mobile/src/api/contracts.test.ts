@@ -4,8 +4,13 @@ import {
   decodeBootstrapView,
   decodeFirstMinute,
   decodeInvitationResult,
+  decodeLesson,
+  decodeLessons,
+  decodeReassignPrimaryTeachersResult,
+  decodeReplaceLessonTeachersResult,
   decodeSessionTokens,
   decodeStaffMembers,
+  decodeStudentDirectory,
   decodeStudentOnboardingItems,
   decodeVoid,
 } from "./contracts";
@@ -17,12 +22,23 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Administrator"],
         accessProfiles: ["StudentOnboardingManager.v1"],
-        permissions: ["students.create", "student_onboarding.read"],
+        permissions: [
+          "students.create",
+          "student_onboarding.read",
+          "lessons.read",
+          "lessons.create",
+          "lesson_teachers.replace",
+          "student_primary_teachers.reassign",
+        ],
       }),
     ).toMatchObject({
       roles: ["Administrator"],
       accessProfiles: ["StudentOnboardingManager.v1"],
-      permissions: ["students.create", "student_onboarding.read"],
+      permissions: expect.arrayContaining([
+        "students.create",
+        "student_onboarding.read",
+        "lessons.create",
+      ]),
     });
   });
 
@@ -32,7 +48,15 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Administrator"],
         accessProfiles: ["StudentOnboardingManager.v1"],
-        permissions: ["students.create", "student_invitations.issue"],
+        permissions: [
+          "students.create",
+          "student_onboarding.read",
+          "student_invitations.issue",
+          "lessons.read",
+          "lessons.create",
+          "lesson_teachers.replace",
+          "student_primary_teachers.reassign",
+        ],
       }),
     ).toThrow(ContractDecodeError);
   });
@@ -43,7 +67,7 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Student"],
         accessProfiles: [],
-        permissions: [],
+        permissions: ["lessons.read"],
       }),
     ).toThrow(ContractDecodeError);
     expect(() =>
@@ -51,7 +75,7 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Student"],
         accessProfiles: [],
-        permissions: [],
+        permissions: ["lessons.read"],
         studentId: "student_1",
         fullName: "Student",
         firstMinute: {
@@ -69,7 +93,7 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Student"],
         accessProfiles: [],
-        permissions: [],
+        permissions: ["lessons.read"],
         studentId: "student_1",
         fullName: "Student",
         firstMinute: {
@@ -87,7 +111,7 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["Teacher"],
         accessProfiles: [],
-        permissions: [],
+        permissions: ["lessons.read", "lessons.create"],
         studentId: "student_1",
         fullName: "Student",
         firstMinute: {
@@ -108,7 +132,7 @@ describe("API contract decoders", () => {
         accountId: "account_1",
         roles: ["SuperAdmin"],
         accessProfiles: [],
-        permissions: [],
+        permissions: ["lessons.read", "lessons.create"],
       }),
     ).toThrow(ContractDecodeError);
     expect(() =>
@@ -135,6 +159,46 @@ describe("API contract decoders", () => {
         accessExpiresAt: "not-a-date",
         refreshExpiresAt: "2026-09-01T10:00:00Z",
       }),
+    ).toThrow(ContractDecodeError);
+  });
+
+  it("decodes exact Lesson and Student directory contracts", () => {
+    const lesson = {
+      id: "lesson_1",
+      title: "Индивидуальный урок",
+      startsAt: "2026-08-10T13:00:00Z",
+      durationMinutes: 60,
+      location: "Класс 2",
+      teacher: { accountId: "teacher_1", fullName: "Мария Орлова" },
+      students: [{ studentId: "student_1", fullName: "Алина Соколова" }],
+      status: "scheduled",
+      version: 4,
+    };
+    expect(decodeLesson(lesson)).toEqual(lesson);
+    expect(decodeLessons([lesson])).toHaveLength(1);
+    expect(
+      decodeStudentDirectory([
+        {
+          studentId: "student_1",
+          fullName: "Алина Соколова",
+          primaryTeacher: { ...lesson.teacher, status: "inactive" },
+          primaryTeacherAssignmentVersion: 7,
+        },
+      ])[0],
+    ).toMatchObject({
+      studentId: "student_1",
+      primaryTeacher: { status: "inactive" },
+      primaryTeacherAssignmentVersion: 7,
+    });
+    expect(() => decodeLessons([lesson, lesson])).toThrow(ContractDecodeError);
+  });
+
+  it("requires result counts to match exact returned objects", () => {
+    expect(() =>
+      decodeReassignPrimaryTeachersResult({ reassignedCount: 1, assignments: [] }),
+    ).toThrow(ContractDecodeError);
+    expect(() =>
+      decodeReplaceLessonTeachersResult({ updatedCount: 1, lessons: [] }),
     ).toThrow(ContractDecodeError);
   });
 

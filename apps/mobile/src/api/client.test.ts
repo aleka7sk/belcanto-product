@@ -1,4 +1,5 @@
 import { ApiClient, ApiTransportError } from "./client";
+import type { IsoDateTime } from "./contracts";
 
 function mockResponse(status: number, body?: unknown): Response {
   return {
@@ -98,6 +99,107 @@ describe("ApiClient", () => {
       expect(init?.headers).toMatchObject({ Authorization: "Bearer access" });
       expect(init?.headers).not.toHaveProperty("Content-Type");
     }
+  });
+
+  it("uses exact scheduling list filters and Student directory route", async () => {
+    const fetch = fetchMock(mockResponse(200, []));
+    const api = new ApiClient({ baseUrl: "https://api.example", fetch });
+    await api.listStudents("access", {
+      asOf: "2026-08-10T13:00:00Z" as IsoDateTime,
+    });
+    await api.listLessons("access", {
+      from: "2026-08-02T10:00:00Z" as IsoDateTime,
+      to: "2026-08-10T10:00:00Z" as IsoDateTime,
+      studentId: "student_1",
+      teacherAccountId: "teacher_1",
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "https://api.example/v1/students?asOf=2026-08-10T13%3A00%3A00Z",
+    );
+    expect(fetch.mock.calls[1]?.[0]).toBe(
+      "https://api.example/v1/lessons?from=2026-08-02T10%3A00%3A00Z&to=2026-08-10T10%3A00%3A00Z&studentId=student_1&teacherAccountId=teacher_1",
+    );
+  });
+
+  it("sends exact optimistic versions for both Teacher change operations", async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValueOnce(
+        mockResponse(201, {
+          reassignedCount: 1,
+          assignments: [
+            {
+              studentId: "student_1",
+              previousTeacherAccountId: "teacher_1",
+              newTeacherAccountId: "teacher_2",
+              effectiveFrom: "2026-08-03T05:00:00Z",
+              version: 8,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        mockResponse(200, {
+          updatedCount: 1,
+          lessons: [
+            {
+              id: "lesson_1",
+              title: "Урок",
+              startsAt: "2026-08-10T13:00:00Z",
+              durationMinutes: 60,
+              teacher: { accountId: "teacher_2", fullName: "Новый педагог" },
+              students: [{ studentId: "student_1", fullName: "Ученик" }],
+              status: "scheduled",
+              version: 5,
+            },
+          ],
+        }),
+      ) as jest.MockedFunction<typeof globalThis.fetch>;
+    const api = new ApiClient({ baseUrl: "https://api.example", fetch });
+    await api.reassignPrimaryTeachers(
+      "access",
+      {
+        students: [{ studentId: "student_1", expectedAssignmentVersion: 7 }],
+        newTeacherAccountId: "teacher_2",
+        effectiveMode: "immediate",
+      },
+      "reassign_intent",
+    );
+    await api.replaceLessonTeachers(
+      "access",
+      {
+        lessons: [
+          {
+            lessonId: "lesson_1",
+            expectedVersion: 4,
+            expectedPreviousTeacherAccountId: "teacher_1",
+          },
+        ],
+        newTeacherAccountId: "teacher_2",
+      },
+      "replace_intent",
+    );
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "https://api.example/v1/students/primary-teacher-reassignments",
+    );
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({
+      students: [{ studentId: "student_1", expectedAssignmentVersion: 7 }],
+      newTeacherAccountId: "teacher_2",
+      effectiveMode: "immediate",
+    });
+    expect(fetch.mock.calls[1]?.[0]).toBe(
+      "https://api.example/v1/lessons/teacher-replacements",
+    );
+    expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toEqual({
+      lessons: [
+        {
+          lessonId: "lesson_1",
+          expectedVersion: 4,
+          expectedPreviousTeacherAccountId: "teacher_1",
+        },
+      ],
+      newTeacherAccountId: "teacher_2",
+    });
   });
 
   it("does not invoke fetch for an already-aborted signal", async () => {

@@ -23,6 +23,10 @@ const (
 	PermissionStudentInvitationsReissue = "student_invitations.reissue"
 	PermissionStudentInvitationsRevoke  = "student_invitations.revoke"
 	PermissionStudentOnboardingDelegate = "student_onboarding.delegate"
+	PermissionLessonsRead               = "lessons.read"
+	PermissionLessonsCreate             = "lessons.create"
+	PermissionLessonTeachersReplace     = "lesson_teachers.replace"
+	PermissionStudentTeachersReassign   = "student_primary_teachers.reassign"
 )
 
 func StudentOnboardingManagerV1PermissionSet() []string {
@@ -41,6 +45,32 @@ func OwnerStudentOnboardingPermissionSet() []string {
 		PermissionStudentInvitationsRevoke,
 		PermissionStudentOnboardingDelegate,
 	}
+}
+
+func LessonPermissionSetForRoles(roles []Role) []string {
+	hasRole := func(role Role) bool {
+		for _, candidate := range roles {
+			if candidate == role {
+				return true
+			}
+		}
+		return false
+	}
+	if hasRole(RoleOwner) || hasRole(RoleAdministrator) {
+		return []string{
+			PermissionLessonsRead,
+			PermissionLessonsCreate,
+			PermissionLessonTeachersReplace,
+			PermissionStudentTeachersReassign,
+		}
+	}
+	if hasRole(RoleTeacher) {
+		return []string{PermissionLessonsRead, PermissionLessonsCreate}
+	}
+	if hasRole(RoleStudent) {
+		return []string{PermissionLessonsRead}
+	}
+	return []string{}
 }
 
 type ErrorCode string
@@ -361,4 +391,129 @@ type StudentOnboardingItem struct {
 	OnboardingState     OnboardingState `json:"onboardingState"`
 	InvitationID        string          `json:"invitationId,omitempty"`
 	InvitationExpiresAt *time.Time      `json:"invitationExpiresAt,omitempty"`
+}
+
+type LessonStatus string
+
+const LessonScheduled LessonStatus = "scheduled"
+
+type TeacherSummary struct {
+	AccountID string `json:"accountId"`
+	FullName  string `json:"fullName"`
+}
+
+type AssignedTeacherSummary struct {
+	AccountID string `json:"accountId"`
+	FullName  string `json:"fullName"`
+	Status    string `json:"status"`
+}
+
+const (
+	AssignedTeacherActive   = "active"
+	AssignedTeacherInactive = "inactive"
+)
+
+type LessonStudent struct {
+	StudentID string `json:"studentId"`
+	FullName  string `json:"fullName"`
+}
+
+type Lesson struct {
+	ID              string          `json:"id"`
+	Title           string          `json:"title"`
+	StartsAt        time.Time       `json:"startsAt"`
+	DurationMinutes int             `json:"durationMinutes"`
+	Location        string          `json:"location,omitempty"`
+	Teacher         TeacherSummary  `json:"teacher"`
+	Students        []LessonStudent `json:"students"`
+	Status          LessonStatus    `json:"status"`
+	Version         int64           `json:"version"`
+}
+
+type StudentDirectoryItem struct {
+	StudentID                       string                 `json:"studentId"`
+	FullName                        string                 `json:"fullName"`
+	PrimaryTeacher                  AssignedTeacherSummary `json:"primaryTeacher"`
+	PrimaryTeacherAssignmentVersion int64                  `json:"primaryTeacherAssignmentVersion"`
+}
+
+type ScheduleLessonCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	LessonID           string
+	Title              string
+	StartsAt           time.Time
+	DurationMinutes    int
+	Location           string
+	TeacherAccountID   string
+	StudentIDs         []string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type LessonListQuery struct {
+	From             time.Time
+	To               time.Time
+	StudentID        string
+	TeacherAccountID string
+}
+
+type ReplaceLessonTeacherTarget struct {
+	LessonID                         string `json:"lessonId"`
+	ExpectedVersion                  int64  `json:"expectedVersion"`
+	ExpectedPreviousTeacherAccountID string `json:"expectedPreviousTeacherAccountId"`
+}
+
+type ReplaceLessonTeachersCommand struct {
+	TenantID            string
+	ActorAccountID      string
+	Targets             []ReplaceLessonTeacherTarget
+	NewTeacherAccountID string
+	IdempotencyKey      string
+	PayloadFingerprint  []byte
+	Now                 time.Time
+}
+
+type LessonTeacherReplacementResult struct {
+	UpdatedCount int      `json:"updatedCount"`
+	Lessons      []Lesson `json:"lessons"`
+}
+
+type PrimaryTeacherReassignmentTarget struct {
+	StudentID                 string `json:"studentId"`
+	ExpectedAssignmentVersion int64  `json:"expectedAssignmentVersion"`
+	AssignmentID              string `json:"-"`
+}
+
+type PrimaryTeacherEffectiveMode string
+
+const (
+	PrimaryTeacherEffectiveImmediate PrimaryTeacherEffectiveMode = "immediate"
+	PrimaryTeacherEffectiveScheduled PrimaryTeacherEffectiveMode = "scheduled"
+)
+
+type ReassignPrimaryTeachersCommand struct {
+	TenantID            string
+	ActorAccountID      string
+	Targets             []PrimaryTeacherReassignmentTarget
+	NewTeacherAccountID string
+	EffectiveMode       PrimaryTeacherEffectiveMode
+	EffectiveFrom       time.Time
+	IdempotencyKey      string
+	PayloadFingerprint  []byte
+	Now                 time.Time
+}
+
+type PrimaryTeacherReassignment struct {
+	StudentID                string    `json:"studentId"`
+	PreviousTeacherAccountID string    `json:"previousTeacherAccountId"`
+	NewTeacherAccountID      string    `json:"newTeacherAccountId"`
+	EffectiveFrom            time.Time `json:"effectiveFrom"`
+	Version                  int64     `json:"version"`
+}
+
+type PrimaryTeacherReassignmentResult struct {
+	ReassignedCount int                          `json:"reassignedCount"`
+	Assignments     []PrimaryTeacherReassignment `json:"assignments"`
 }

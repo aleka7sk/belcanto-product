@@ -50,6 +50,13 @@ func TestMigrationLedgerRepeatConcurrencyAndDrift(t *testing.T) {
 	if ledgerCount != 1 {
 		t.Fatalf("migration ledger rows = %d, want 1", ledgerCount)
 	}
+	var totalLedgerCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&totalLedgerCount); err != nil {
+		t.Fatalf("count all migration ledger rows: %v", err)
+	}
+	if totalLedgerCount != len(registeredMigrations()) {
+		t.Fatalf("total migration ledger rows = %d, want %d", totalLedgerCount, len(registeredMigrations()))
+	}
 	if _, err := pool.Exec(ctx, `UPDATE schema_migrations SET checksum = $2 WHERE version = $1`, initialVersion, strings.Repeat("0", 64)); err != nil {
 		t.Fatalf("corrupt migration checksum for drift test: %v", err)
 	}

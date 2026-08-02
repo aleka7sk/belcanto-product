@@ -3,11 +3,11 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.1.0
+  version: 0.2.0
   description: >-
-    HTTP contract for the closed B.0 onboarding slice. There is intentionally
-    no public sign-up operation: the school creates a Student and the invited
-    person only activates the already prepared Account.
+    HTTP contract for closed B.0 onboarding and L.1 internal Lesson scheduling.
+    There is intentionally no public sign-up operation: the school creates a
+    Student and the invited person only activates the prepared Account.
 
 servers:
   - url: http://localhost:8080
@@ -24,6 +24,8 @@ tags:
     description: Owner-controlled staff discovery and delegated access.
   - name: Onboarding
     description: Managed Student creation and the closed onboarding journey.
+  - name: Scheduling
+    description: Internal Lesson scheduling and explicit Teacher continuity changes.
 
 paths:
   /healthz:
@@ -229,8 +231,9 @@ paths:
       operationId: listStaff
       tags: [Access]
       description: >-
-        Owner can discover active Administrators and Teachers. A delegated
-        Administrator can discover active Teachers only.
+        Owner can discover active Administrators and Teachers. Any active
+        Administrator can discover active Teachers for internal scheduling;
+        B.0 delegation remains unrelated to this permission.
       security:
         - bearerAuth: []
       parameters:
@@ -360,6 +363,44 @@ paths:
           $ref: "#/components/responses/Internal"
 
   /v1/students:
+    get:
+      summary: List the scheduling Student directory
+      operationId: listStudents
+      tags: [Scheduling]
+      description: >-
+        Owner and Administrator receive all same-tenant active enrollments;
+        Teacher receives Students assigned to that active Teacher at asOf.
+        When asOf is omitted, the server uses its current time. Future
+        projection is limited to 366 days. A pending app activation does not
+        hide an enrolled Student. Managers continue to see an inactive
+        assigned Teacher so that continuity transfer remains possible.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: asOf
+          in: query
+          required: false
+          description: Assignment projection timestamp; defaults to server-now.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Deterministically ordered Student scheduling directory.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentDirectoryItem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
     post:
       summary: Create a managed student
       operationId: createStudent
@@ -388,6 +429,208 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/primary-teacher-reassignments:
+    post:
+      summary: Permanently reassign primary Teachers
+      operationId: reassignPrimaryTeachers
+      tags: [Scheduling]
+      description: >-
+        Owner or ordinary Administrator only; independent of B.0 delegation.
+        The full batch is atomic and uses each directory assignment version.
+        It preserves assignment history and never changes existing Lessons.
+        Immediate mode resolves server-now inside the idempotent transaction;
+        scheduled mode requires an explicit future effectiveFrom.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReassignPrimaryTeachersRequest"
+      responses:
+        "201":
+          description: Primary Teacher assignments created for the effective time.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrimaryTeacherReassignmentResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/lessons:
+    get:
+      summary: List role-scoped Lessons
+      operationId: listLessons
+      tags: [Scheduling]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        - name: teacherAccountId
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+      responses:
+        "200":
+          description: Lessons visible within the authenticated role scopes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    post:
+      summary: Schedule a future Lesson
+      operationId: scheduleLesson
+      tags: [Scheduling]
+      description: >-
+        Owner or Administrator may choose any eligible same-tenant Teacher and
+        enrolled Students. Teacher may choose self and only Students assigned
+        to that Teacher at startsAt. Student cannot mutate Lessons. Teacher and
+        Student time intervals cannot overlap an existing scheduled Lesson.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleLessonRequest"
+      responses:
+        "201":
+          description: Scheduled Lesson.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/lessons/teacher-replacements:
+    post:
+      summary: Replace Teacher on selected future Lessons
+      operationId: replaceLessonTeachers
+      tags: [Scheduling]
+      description: >-
+        Owner or ordinary Administrator only; independent of B.0 delegation.
+        Only explicitly listed scheduled future Lessons change. Every target
+        carries expectedVersion and the entire batch is atomic.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplaceLessonTeachersRequest"
+      responses:
+        "200":
+          description: Selected Lessons updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonTeacherReplacementResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/lessons/{lessonId}:
+    get:
+      summary: Read one role-scoped Lesson
+      operationId: getLesson
+      tags: [Scheduling]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+      responses:
+        "200":
+          description: Lesson detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/InvalidInput"
         "500":
@@ -651,6 +894,10 @@ components:
         - student_invitations.reissue
         - student_invitations.revoke
         - student_onboarding.delegate
+        - lessons.read
+        - lessons.create
+        - lesson_teachers.replace
+        - student_primary_teachers.reassign
     ErrorCode:
       type: string
       enum:
@@ -883,8 +1130,8 @@ components:
               accessProfiles:
                 maxItems: 0
               permissions:
-                minItems: 6
-                maxItems: 6
+                minItems: 10
+                maxItems: 10
                 allOf:
                   - contains: { const: students.create }
                   - contains: { const: student_onboarding.read }
@@ -892,28 +1139,84 @@ components:
                   - contains: { const: student_invitations.reissue }
                   - contains: { const: student_invitations.revoke }
                   - contains: { const: student_onboarding.delegate }
+                  - contains: { const: lessons.read }
+                  - contains: { const: lessons.create }
+                  - contains: { const: lesson_teachers.replace }
+                  - contains: { const: student_primary_teachers.reassign }
           else:
             if:
-              properties:
-                accessProfiles:
-                  contains:
-                    const: StudentOnboardingManager.v1
-              required: [accessProfiles]
-            then:
               properties:
                 roles:
                   contains:
                     const: Administrator
-                permissions:
-                  minItems: 2
-                  maxItems: 2
-                  allOf:
-                    - contains: { const: students.create }
-                    - contains: { const: student_onboarding.read }
+              required: [roles]
+            then:
+              if:
+                properties:
+                  accessProfiles:
+                    contains:
+                      const: StudentOnboardingManager.v1
+                required: [accessProfiles]
+              then:
+                properties:
+                  permissions:
+                    minItems: 6
+                    maxItems: 6
+                    allOf:
+                      - contains: { const: students.create }
+                      - contains: { const: student_onboarding.read }
+                      - contains: { const: lessons.read }
+                      - contains: { const: lessons.create }
+                      - contains: { const: lesson_teachers.replace }
+                      - contains: { const: student_primary_teachers.reassign }
+              else:
+                properties:
+                  accessProfiles:
+                    maxItems: 0
+                  permissions:
+                    minItems: 4
+                    maxItems: 4
+                    allOf:
+                      - contains: { const: lessons.read }
+                      - contains: { const: lessons.create }
+                      - contains: { const: lesson_teachers.replace }
+                      - contains: { const: student_primary_teachers.reassign }
             else:
-              properties:
-                permissions:
-                  maxItems: 0
+              if:
+                properties:
+                  roles:
+                    contains:
+                      const: Teacher
+                required: [roles]
+              then:
+                properties:
+                  accessProfiles:
+                    maxItems: 0
+                  permissions:
+                    minItems: 2
+                    maxItems: 2
+                    allOf:
+                      - contains: { const: lessons.read }
+                      - contains: { const: lessons.create }
+              else:
+                if:
+                  properties:
+                    roles:
+                      contains:
+                        const: Student
+                  required: [roles]
+                then:
+                  properties:
+                    accessProfiles:
+                      maxItems: 0
+                    permissions:
+                      minItems: 1
+                      maxItems: 1
+                      contains: { const: lessons.read }
+                else:
+                  properties:
+                    permissions:
+                      maxItems: 0
       properties:
         accountId:
           type: string
@@ -1152,6 +1455,275 @@ components:
         invitationExpiresAt:
           type: string
           format: date-time
+    TeacherSummary:
+      type: object
+      additionalProperties: false
+      required: [accountId, fullName]
+      properties:
+        accountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 200
+    AssignedTeacherSummary:
+      type: object
+      additionalProperties: false
+      required: [accountId, fullName, status]
+      properties:
+        accountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        status:
+          type: string
+          enum: [active, inactive]
+    StudentDirectoryItem:
+      type: object
+      additionalProperties: false
+      required: [studentId, fullName, primaryTeacher, primaryTeacherAssignmentVersion]
+      properties:
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        primaryTeacher:
+          $ref: "#/components/schemas/AssignedTeacherSummary"
+        primaryTeacherAssignmentVersion:
+          type: integer
+          minimum: 0
+          description: Monotonic concurrency version of the entire assignment timeline.
+    LessonStudent:
+      type: object
+      additionalProperties: false
+      required: [studentId, fullName]
+      properties:
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 200
+    Lesson:
+      type: object
+      additionalProperties: false
+      required: [id, title, startsAt, durationMinutes, teacher, students, status, version]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        startsAt:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        location:
+          type: string
+          minLength: 1
+          maxLength: 200
+        teacher:
+          $ref: "#/components/schemas/TeacherSummary"
+        students:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/LessonStudent"
+        status:
+          const: scheduled
+        version:
+          type: integer
+          minimum: 0
+    ScheduleLessonRequest:
+      type: object
+      additionalProperties: false
+      required: [title, startsAt, durationMinutes, teacherAccountId, studentIds]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        startsAt:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        location:
+          type: string
+          minLength: 1
+          maxLength: 200
+        teacherAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        studentIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    LessonTeacherReplacementTarget:
+      type: object
+      additionalProperties: false
+      required: [lessonId, expectedVersion, expectedPreviousTeacherAccountId]
+      properties:
+        lessonId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        expectedVersion:
+          type: integer
+          minimum: 0
+        expectedPreviousTeacherAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    ReplaceLessonTeachersRequest:
+      type: object
+      additionalProperties: false
+      required: [lessons, newTeacherAccountId]
+      properties:
+        lessons:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/LessonTeacherReplacementTarget"
+        newTeacherAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    LessonTeacherReplacementResult:
+      type: object
+      additionalProperties: false
+      required: [updatedCount, lessons]
+      properties:
+        updatedCount:
+          type: integer
+          minimum: 1
+        lessons:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Lesson"
+    PrimaryTeacherReassignmentTarget:
+      type: object
+      additionalProperties: false
+      required: [studentId, expectedAssignmentVersion]
+      properties:
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        expectedAssignmentVersion:
+          type: integer
+          minimum: 0
+    ReassignPrimaryTeachersRequest:
+      type: object
+      additionalProperties: false
+      required: [students, newTeacherAccountId, effectiveMode]
+      oneOf:
+        - properties:
+            effectiveMode:
+              const: immediate
+          not:
+            required: [effectiveFrom]
+            properties:
+              effectiveFrom: {}
+        - required: [effectiveFrom]
+          properties:
+            effectiveMode:
+              const: scheduled
+      properties:
+        students:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/PrimaryTeacherReassignmentTarget"
+        newTeacherAccountId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        effectiveFrom:
+          type: string
+          format: date-time
+        effectiveMode:
+          type: string
+          enum: [immediate, scheduled]
+    PrimaryTeacherReassignment:
+      type: object
+      additionalProperties: false
+      required:
+        - studentId
+        - previousTeacherAccountId
+        - newTeacherAccountId
+        - effectiveFrom
+        - version
+      properties:
+        studentId:
+          type: string
+        previousTeacherAccountId:
+          type: string
+        newTeacherAccountId:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+    PrimaryTeacherReassignmentResult:
+      type: object
+      additionalProperties: false
+      required: [reassignedCount, assignments]
+      properties:
+        reassignedCount:
+          type: integer
+          minimum: 1
+        assignments:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PrimaryTeacherReassignment"
     PublishFirstMinuteRequest:
       type: object
       additionalProperties: false

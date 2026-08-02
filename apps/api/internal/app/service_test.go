@@ -147,7 +147,7 @@ func TestClosedInvitationJourneyAndEffectiveAccess(t *testing.T) {
 		t.Fatalf("ordinary Administrator bootstrap: %v", err)
 	}
 	assertStrings(t, ordinaryView.AccessProfiles, []string{})
-	assertStrings(t, ordinaryView.Permissions, []string{})
+	assertStrings(t, ordinaryView.Permissions, core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator}))
 	_, err = fixture.service.CreateStudent(ctx, fixture.admin, studentInput("student-before-grant", "+77000000100", "ENR-100", fixture.teacher.AccountID))
 	assertCode(t, err, core.CodeForbidden)
 
@@ -155,7 +155,7 @@ func TestClosedInvitationJourneyAndEffectiveAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Owner bootstrap: %v", err)
 	}
-	assertStrings(t, ownerView.Permissions, core.OwnerStudentOnboardingPermissionSet())
+	assertStrings(t, ownerView.Permissions, append(core.LessonPermissionSetForRoles([]core.Role{core.RoleOwner}), core.OwnerStudentOnboardingPermissionSet()...))
 	assertStrings(t, ownerView.AccessProfiles, []string{})
 
 	delegation, err := fixture.service.GrantDelegation(ctx, fixture.owner, app.GrantDelegationInput{
@@ -181,7 +181,7 @@ func TestClosedInvitationJourneyAndEffectiveAccess(t *testing.T) {
 		t.Fatalf("delegated Administrator bootstrap: %v", err)
 	}
 	assertStrings(t, delegatedView.AccessProfiles, []string{core.StudentOnboardingManagerV1})
-	assertStrings(t, delegatedView.Permissions, core.StudentOnboardingManagerV1PermissionSet())
+	assertStrings(t, delegatedView.Permissions, append(core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator}), core.StudentOnboardingManagerV1PermissionSet()...))
 
 	created, err := fixture.service.CreateStudent(ctx, fixture.admin, studentInput("create-student-1", "+77000000101", "ENR-101", fixture.teacher.AccountID))
 	if err != nil {
@@ -272,7 +272,7 @@ func TestClosedInvitationJourneyAndEffectiveAccess(t *testing.T) {
 		t.Fatalf("Administrator bootstrap after revoke: %v", err)
 	}
 	assertStrings(t, revokedView.AccessProfiles, []string{})
-	assertStrings(t, revokedView.Permissions, []string{})
+	assertStrings(t, revokedView.Permissions, core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator}))
 	_, err = fixture.service.CreateStudent(ctx, fixture.admin, studentInput("student-after-revoke", "+77000000102", "ENR-102", fixture.teacher.AccountID))
 	assertCode(t, err, core.CodeForbidden)
 }
@@ -374,7 +374,7 @@ func TestDelegationExpiryRemovesEffectiveAccess(t *testing.T) {
 	expiresAt := fixture.clock.Now().Add(time.Hour)
 	grantAdministrator(t, fixture, &expiresAt)
 	view, err := fixture.service.BootstrapView(context.Background(), fixture.admin)
-	if err != nil || len(view.Permissions) != 2 {
+	if err != nil || len(view.Permissions) != 6 {
 		t.Fatalf("active delegated view: %#v, %v", view, err)
 	}
 	fixture.clock.Advance(2 * time.Hour)
@@ -383,7 +383,7 @@ func TestDelegationExpiryRemovesEffectiveAccess(t *testing.T) {
 		t.Fatalf("expired delegated view: %v", err)
 	}
 	assertStrings(t, view.AccessProfiles, []string{})
-	assertStrings(t, view.Permissions, []string{})
+	assertStrings(t, view.Permissions, core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator}))
 	_, err = fixture.service.CreateStudent(context.Background(), fixture.admin, studentInput("expired-grant", "+77000000401", "ENR-401", fixture.teacher.AccountID))
 	assertCode(t, err, core.CodeForbidden)
 }
@@ -788,8 +788,10 @@ func TestControlledStaffBootstrapAndDiscoveryAuthorization(t *testing.T) {
 	if err != nil || len(teachers) != 1 || teachers[0].AccountID != fixture.teacher.AccountID {
 		t.Fatalf("Owner Teacher discovery = %#v, %v", teachers, err)
 	}
-	_, err = fixture.service.ListStaff(ctx, fixture.admin, core.RoleTeacher)
-	assertCode(t, err, core.CodeForbidden)
+	teachers, err = fixture.service.ListStaff(ctx, fixture.admin, core.RoleTeacher)
+	if err != nil || len(teachers) != 1 || teachers[0].AccountID != fixture.teacher.AccountID {
+		t.Fatalf("ordinary Administrator Teacher discovery = %#v, %v", teachers, err)
+	}
 	_, err = fixture.service.ListStaff(ctx, fixture.admin, core.RoleAdministrator)
 	assertCode(t, err, core.CodeForbidden)
 

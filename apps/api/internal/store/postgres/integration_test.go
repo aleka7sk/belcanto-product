@@ -151,7 +151,8 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Administrator bootstrap view: %v", err)
 	}
-	if !reflect.DeepEqual(view.AccessProfiles, []string{core.StudentOnboardingManagerV1}) || !reflect.DeepEqual(view.Permissions, core.StudentOnboardingManagerV1PermissionSet()) {
+	expectedAdministratorPermissions := append(core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator}), core.StudentOnboardingManagerV1PermissionSet()...)
+	if !reflect.DeepEqual(view.AccessProfiles, []string{core.StudentOnboardingManagerV1}) || !reflect.DeepEqual(view.Permissions, expectedAdministratorPermissions) {
 		t.Fatalf("effective Administrator access = %#v", view)
 	}
 	staff, err = service.ListStaff(ctx, owner, core.RoleAdministrator)
@@ -572,7 +573,7 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 		t.Fatalf("revoke Administrator: %v", err)
 	}
 	view, err = service.BootstrapView(ctx, administrator)
-	if err != nil || len(view.Permissions) != 0 || len(view.AccessProfiles) != 0 {
+	if err != nil || !reflect.DeepEqual(view.Permissions, core.LessonPermissionSetForRoles([]core.Role{core.RoleAdministrator})) || len(view.AccessProfiles) != 0 {
 		t.Fatalf("revoked Administrator access = %#v, %v", view, err)
 	}
 	if _, err := service.CreateStudent(ctx, administrator, primaryStudentInput); !core.IsCode(err, core.CodeForbidden) {
@@ -601,7 +602,7 @@ func assertConstraintRejected(t *testing.T, ctx context.Context, pool *pgxpool.P
 		t.Fatalf("database accepted invariant-breaking statement: %s", strings.Join(strings.Fields(statement), " "))
 	} else {
 		var postgresError *pgconn.PgError
-		if !errors.As(err, &postgresError) || (postgresError.Code != "23503" && postgresError.Code != "23505" && postgresError.Code != "23514") {
+		if !errors.As(err, &postgresError) || (postgresError.Code != "23503" && postgresError.Code != "23505" && postgresError.Code != "23514" && postgresError.Code != "23P01") {
 			t.Fatalf("invariant-breaking statement failed with unexpected error %v", err)
 		}
 	}

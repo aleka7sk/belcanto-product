@@ -4,8 +4,13 @@ import {
   decodeDelegationResult,
   decodeFirstMinute,
   decodeInvitationResult,
+  decodeLesson,
+  decodeLessons,
+  decodeReassignPrimaryTeachersResult,
+  decodeReplaceLessonTeachersResult,
   decodeSessionTokens,
   decodeStaffMembers,
+  decodeStudentDirectory,
   decodeStudentOnboardingItems,
   decodeStudentResult,
   decodeVoid,
@@ -13,19 +18,28 @@ import {
   type ActivationPreviewRequest,
   type BootstrapView,
   type CompleteActivationRequest,
+  type CreateLessonRequest,
   type CreateStudentRequest,
   type Decoder,
   type DelegationResult,
   type FirstMinute,
   type GrantDelegationRequest,
   type InvitationResult,
+  type Lesson,
+  type LessonListQuery,
   type PublishFirstMinuteRequest,
+  type ReassignPrimaryTeachersRequest,
+  type ReassignPrimaryTeachersResult,
   type RefreshSessionRequest,
+  type ReplaceLessonTeachersRequest,
+  type ReplaceLessonTeachersResult,
   type RevokeDelegationRequest,
   type SessionTokens,
   type SignInRequest,
   type StaffMember,
   type StaffRole,
+  type StudentDirectoryItem,
+  type StudentDirectoryQuery,
   type StudentOnboardingItem,
   type StudentResult,
 } from "./contracts";
@@ -64,6 +78,28 @@ function pathPart(value: string, name: string): string {
     throw new TypeError(`${name} must be a valid backend identifier`);
   }
   return encodeURIComponent(normalized);
+}
+
+function lessonsPath(query: LessonListQuery): string {
+  const parameters = [
+    `from=${encodeURIComponent(query.from)}`,
+    `to=${encodeURIComponent(query.to)}`,
+  ];
+  if (query.studentId !== undefined) {
+    parameters.push(`studentId=${pathPart(query.studentId, "studentId")}`);
+  }
+  if (query.teacherAccountId !== undefined) {
+    parameters.push(
+      `teacherAccountId=${pathPart(query.teacherAccountId, "teacherAccountId")}`,
+    );
+  }
+  return `/v1/lessons?${parameters.join("&")}`;
+}
+
+function studentDirectoryPath(query: StudentDirectoryQuery): string {
+  return query.asOf === undefined
+    ? "/v1/students"
+    : `/v1/students?asOf=${encodeURIComponent(query.asOf)}`;
 }
 
 export const routes = {
@@ -124,6 +160,57 @@ export const routes = {
       [401, 403, 422, 500],
       decodeStaffMembers,
     ),
+  listStudents: (query: StudentDirectoryQuery = {}) =>
+    route<StudentDirectoryItem[]>(
+      "GET",
+      studentDirectoryPath(query),
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeStudentDirectory,
+    ),
+  listLessons: (query: LessonListQuery) =>
+    route<Lesson[]>(
+      "GET",
+      lessonsPath(query),
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeLessons,
+    ),
+  getLesson: (lessonId: string) =>
+    route<Lesson>(
+      "GET",
+      `/v1/lessons/${pathPart(lessonId, "lessonId")}`,
+      "required",
+      200,
+      [401, 403, 404, 500],
+      decodeLesson,
+    ),
+  createLesson: route<Lesson>(
+    "POST",
+    "/v1/lessons",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeLesson,
+  ),
+  reassignPrimaryTeachers: route<ReassignPrimaryTeachersResult>(
+    "POST",
+    "/v1/students/primary-teacher-reassignments",
+    "required",
+    201,
+    [401, 403, 404, 409, 422, 500],
+    decodeReassignPrimaryTeachersResult,
+  ),
+  replaceLessonTeachers: route<ReplaceLessonTeachersResult>(
+    "POST",
+    "/v1/lessons/teacher-replacements",
+    "required",
+    200,
+    [401, 403, 404, 409, 422, 500],
+    decodeReplaceLessonTeachersResult,
+  ),
   listStudentOnboarding: route<StudentOnboardingItem[]>(
     "GET",
     "/v1/student-onboarding",
@@ -204,4 +291,7 @@ export type RouteRequestBodies = {
   revokeDelegation: RevokeDelegationRequest;
   createStudent: CreateStudentRequest;
   publishFirstMinute: PublishFirstMinuteRequest;
+  createLesson: CreateLessonRequest;
+  reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;
+  replaceLessonTeachers: ReplaceLessonTeachersRequest;
 };

@@ -3,8 +3,13 @@ import type { SessionState } from "@/session/machine";
 
 import {
   canCreateStudents,
+  canCreateLessons,
   canDelegateStudentOnboarding,
   canOpenStudentOnboardingQueue,
+  canOpenOperationalWorkspace,
+  canReadLessons,
+  canReassignPrimaryTeachers,
+  canReplaceLessonTeachers,
   type EffectiveAccess,
 } from "./capabilities";
 import { evaluateRouteGuard } from "./routeGuards";
@@ -26,6 +31,37 @@ describe("effective access", () => {
     expect(canCreateStudents(ownerWithoutPermission)).toBe(false);
     expect(canCreateStudents(administratorWithProfileOnly)).toBe(false);
     expect(canDelegateStudentOnboarding(ownerWithoutPermission)).toBe(false);
+  });
+
+  it("keeps ordinary Administrator scheduling independent from onboarding delegation", () => {
+    const administrator: EffectiveAccess = {
+      roles: ["Administrator"],
+      accessProfiles: [],
+      permissions: [
+        "lessons.read",
+        "lessons.create",
+        "lesson_teachers.replace",
+        "student_primary_teachers.reassign",
+      ],
+    };
+    expect(canOpenOperationalWorkspace(administrator)).toBe(true);
+    expect(canReadLessons(administrator)).toBe(true);
+    expect(canCreateLessons(administrator)).toBe(true);
+    expect(canReplaceLessonTeachers(administrator)).toBe(true);
+    expect(canReassignPrimaryTeachers(administrator)).toBe(true);
+    expect(canOpenStudentOnboardingQueue(administrator)).toBe(false);
+  });
+
+  it("never shows replacement or reassignment controls to a Teacher", () => {
+    const teacher: EffectiveAccess = {
+      roles: ["Teacher"],
+      accessProfiles: [],
+      permissions: ["lessons.read", "lessons.create"],
+    };
+    expect(canReadLessons(teacher)).toBe(true);
+    expect(canCreateLessons(teacher)).toBe(true);
+    expect(canReplaceLessonTeachers(teacher)).toBe(false);
+    expect(canReassignPrimaryTeachers(teacher)).toBe(false);
   });
 
   it("opens the onboarding queue for assigned Teachers or explicit readers", () => {
