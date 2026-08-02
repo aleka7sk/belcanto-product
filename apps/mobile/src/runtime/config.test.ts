@@ -51,6 +51,17 @@ describe("production application config", () => {
     });
   });
 
+  it("omits the iOS associated-domains entitlement from development builds", () => {
+    for (const environment of [
+      {},
+      { EXPO_PUBLIC_ACTIVATION_ORIGIN: "https://app.example" },
+    ]) {
+      expect(buildExpoConfig(environment).ios).not.toHaveProperty(
+        "associatedDomains",
+      );
+    }
+  });
+
   it("removes an inherited custom scheme from the merged production config", () => {
     const config = mergeExpoConfig(
       {

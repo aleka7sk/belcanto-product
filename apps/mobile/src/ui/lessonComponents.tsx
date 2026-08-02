@@ -143,6 +143,7 @@ export function SelectableRow({
 }) {
   return (
     <Pressable
+      accessibilityHint={supporting}
       accessibilityLabel={label}
       accessibilityRole={kind}
       accessibilityState={kind === "radio" ? { checked: selected } : { checked: selected }}

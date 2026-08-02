@@ -191,31 +191,35 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 		if !teacher {
 			return core.E(core.CodeInvalidInput, "assigned teacher is not active in this school", nil)
 		}
+		operationAt, err := assignmentOperationTime(ctx, tx, command.TenantID, []string{command.StudentID})
+		if err != nil {
+			return err
+		}
 
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO people (id, tenant_id, full_name, created_at)
 			VALUES ($1, $2, $3, $4)
-		`, command.PersonID, command.TenantID, command.FullName, command.Now); err != nil {
+		`, command.PersonID, command.TenantID, command.FullName, operationAt); err != nil {
 			return mapWriteError(err, "student identity already exists")
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO school_memberships (id, tenant_id, person_id, created_at)
 			VALUES ($1, $2, $3, $4)
-		`, command.MembershipID, command.TenantID, command.PersonID, command.Now); err != nil {
+		`, command.MembershipID, command.TenantID, command.PersonID, operationAt); err != nil {
 			return fmt.Errorf("create student membership: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO accounts (
 				id, tenant_id, person_id, status, created_at, updated_at
 			) VALUES ($1, $2, $3, 'pending_activation', $4, $4)
-		`, command.AccountID, command.TenantID, command.PersonID, command.Now); err != nil {
+		`, command.AccountID, command.TenantID, command.PersonID, operationAt); err != nil {
 			return fmt.Errorf("create pending student account: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO account_login_identifiers (
 				account_id, tenant_id, identifier_type, normalized_value, status, created_at
 			) VALUES ($1, $2, 'phone', $3, 'reserved', $4)
-		`, command.AccountID, command.TenantID, command.Phone, command.Now); err != nil {
+		`, command.AccountID, command.TenantID, command.Phone, operationAt); err != nil {
 			return mapWriteError(err, "login identifier is unavailable")
 		}
 		if _, err := tx.Exec(ctx, `
@@ -226,7 +230,7 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 			) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $8, $9, $10, $10)
 		`, command.StudentID, command.TenantID, command.PersonID, command.MembershipID,
 			command.AccountID, command.EnrollmentReference, command.Locale, command.Timezone,
-			command.AdultConfirmed, command.Now); err != nil {
+			command.AdultConfirmed, operationAt); err != nil {
 			return mapWriteError(err, "enrollment reference already exists")
 		}
 		if _, err := tx.Exec(ctx, `
@@ -235,7 +239,7 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 				status, granted_by, granted_at
 			) VALUES ($1, $2, $3, 'Student', 'student', $4, 'active', $5, $6)
 		`, command.RoleGrantID, command.TenantID, command.AccountID, command.StudentID,
-			command.ActorAccountID, command.Now); err != nil {
+			command.ActorAccountID, operationAt); err != nil {
 			return fmt.Errorf("grant Student role: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
@@ -244,7 +248,7 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 				assigned_by_account_id, assigned_at, effective_from
 			) VALUES ($1, $2, $3, $4, 'active', $5, $6, $6)
 		`, command.TeacherAssignmentID, command.TenantID, command.StudentID,
-			command.TeacherAccountID, command.ActorAccountID, command.Now); err != nil {
+			command.TeacherAccountID, command.ActorAccountID, operationAt); err != nil {
 			return fmt.Errorf("assign student Teacher: %w", err)
 		}
 
@@ -253,14 +257,14 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 			AccountID:       command.AccountID,
 			OnboardingState: "awaiting_first_minute",
 		}
-		if err := completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "create_student", command.IdempotencyKey, result, command.Now); err != nil {
+		if err := completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "create_student", command.IdempotencyKey, result, operationAt); err != nil {
 			return err
 		}
 		if err := appendAudit(ctx, tx, auditInput{
 			tenantID: command.TenantID, actorID: command.ActorAccountID,
 			delegationID: delegationID, action: "StudentCreated", targetType: "student",
 			targetID: command.StudentID, decision: "allow", idempotencyKey: command.IdempotencyKey,
-			metadata: map[string]any{"teacherAccountId": command.TeacherAccountID}, at: command.Now,
+			metadata: map[string]any{"teacherAccountId": command.TeacherAccountID}, at: operationAt,
 		}); err != nil {
 			return err
 		}
@@ -268,7 +272,7 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 			"studentId":        command.StudentID,
 			"accountId":        command.AccountID,
 			"teacherAccountId": command.TeacherAccountID,
-		}, command.Now)
+		}, operationAt)
 	})
 	if core.IsCode(err, core.CodeForbidden) {
 		s.recordDenied(ctx, auditInput{
@@ -283,12 +287,20 @@ func (s *Store) CreateStudent(ctx context.Context, command core.CreateStudentCom
 
 func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirstMinuteCommand) (core.FirstMinute, error) {
 	var result core.FirstMinute
+	denialAt := command.Now
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if err := lockAssignmentSubjects(ctx, tx, command.TenantID, []string{command.StudentID}); err != nil {
 			return err
 		}
+		// A request timestamp can predate an assignment-lock wait. Authorization
+		// and publication must share the database serialization point instead.
+		operationAt, err := assignmentOperationTime(ctx, tx, command.TenantID, []string{command.StudentID})
+		if err != nil {
+			return err
+		}
+		denialAt = operationAt
 		var version int64
-		err := tx.QueryRow(ctx, `
+		err = tx.QueryRow(ctx, `
 			SELECT version
 			FROM students
 			WHERE tenant_id = $1 AND id = $2 AND status = 'active'
@@ -314,13 +326,13 @@ func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirs
 				  AND (ta.effective_until IS NULL OR $4 < ta.effective_until)
 				  AND a.status = 'active' AND rg.role_type = 'Teacher' AND rg.status = 'active'
 			)
-		`, command.TenantID, command.StudentID, command.ActorAccountID, command.Now).Scan(&assigned); err != nil {
+		`, command.TenantID, command.StudentID, command.ActorAccountID, operationAt).Scan(&assigned); err != nil {
 			return fmt.Errorf("check assigned Teacher: %w", err)
 		}
 		if !assigned {
 			return core.E(core.CodeForbidden, "only the assigned Teacher can publish this first minute", nil)
 		}
-		claim, err := claimIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "publish_first_minute", command.IdempotencyKey, command.PayloadFingerprint, command.Now)
+		claim, err := claimIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "publish_first_minute", command.IdempotencyKey, command.PayloadFingerprint, operationAt)
 		if err != nil {
 			return err
 		}
@@ -338,7 +350,7 @@ func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirs
 			WhatWorked:   command.WhatWorked,
 			CurrentFocus: command.CurrentFocus,
 			NextStep:     command.NextStep,
-			PublishedAt:  command.Now,
+			PublishedAt:  operationAt,
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO first_minute_revisions (
@@ -347,38 +359,38 @@ func (s *Store) PublishFirstMinute(ctx context.Context, command core.PublishFirs
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		`, command.RevisionID, command.TenantID, command.StudentID, result.Revision,
 			command.WhatWorked, command.CurrentFocus, command.NextStep,
-			command.ActorAccountID, command.Now); err != nil {
+			command.ActorAccountID, operationAt); err != nil {
 			return fmt.Errorf("insert first-minute revision: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE students
 			SET version = $3, updated_at = $4
 			WHERE tenant_id = $1 AND id = $2
-		`, command.TenantID, command.StudentID, result.Revision, command.Now); err != nil {
+		`, command.TenantID, command.StudentID, result.Revision, operationAt); err != nil {
 			return fmt.Errorf("advance student version: %w", err)
 		}
-		if err := completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "publish_first_minute", command.IdempotencyKey, result, command.Now); err != nil {
+		if err := completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "publish_first_minute", command.IdempotencyKey, result, operationAt); err != nil {
 			return err
 		}
 		if err := appendAudit(ctx, tx, auditInput{
 			tenantID: command.TenantID, actorID: command.ActorAccountID,
 			action: "FirstBelcantoMinutePublished", targetType: "student",
 			targetID: command.StudentID, decision: "allow", idempotencyKey: command.IdempotencyKey,
-			metadata: map[string]any{"revision": result.Revision}, at: command.Now,
+			metadata: map[string]any{"revision": result.Revision}, at: operationAt,
 		}); err != nil {
 			return err
 		}
 		return appendOutbox(ctx, tx, command.TenantID, "FirstBelcantoMinutePublished", "student", command.StudentID, map[string]any{
 			"studentId": command.StudentID,
 			"revision":  result.Revision,
-		}, command.Now)
+		}, operationAt)
 	})
 	if core.IsCode(err, core.CodeForbidden) {
 		s.recordDenied(ctx, auditInput{
 			tenantID: command.TenantID, actorID: command.ActorAccountID,
 			action: "FirstBelcantoMinutePublished", targetType: "student",
 			targetID: command.StudentID, reason: "assigned_teacher_required",
-			idempotencyKey: command.IdempotencyKey, at: command.Now,
+			idempotencyKey: command.IdempotencyKey, at: denialAt,
 		})
 	}
 	return result, err

@@ -74,6 +74,29 @@ APP_ENV=development
 PUBLIC_ACTIVATION_BASE_URL=belcanto://activate
 ```
 
+If the app was installed or opened directly from Xcode, start Metro explicitly
+and open the generated QR link on the device. Opening the app before this link
+is delivered produces React Native's `No script URL provided` screen:
+
+```sh
+pnpm --filter @belcanto/mobile exec expo start --dev-client --lan --clear
+```
+
+Regenerate an existing ignored native project after changing Expo config,
+entitlements, or patched native dependencies. This is required once after
+pulling a commit that changes those inputs because `expo run:ios` otherwise
+reuses the existing `apps/mobile/ios/` directory:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @belcanto/mobile exec expo prebuild --clean --platform ios
+pnpm --filter @belcanto/mobile exec expo run:ios --device
+```
+
+The development config intentionally omits Associated Domains so a local iOS
+build can be signed by an Apple Personal Team. Production keeps the verified
+HTTPS app-link entitlement.
+
 Follow the controlled Owner and staff bootstrap instructions in
 [`../api/README.md`](../api/README.md), then open the one-time link on the
 installed native build.

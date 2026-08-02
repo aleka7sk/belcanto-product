@@ -17,6 +17,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type schedulingOffsetClock struct {
+	offset time.Duration
+}
+
+func (c schedulingOffsetClock) Now() time.Time {
+	return time.Now().UTC().Add(c.offset)
+}
+
 func TestPostgreSQLInternalSchedulingAndTeacherContinuity(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
@@ -68,10 +76,111 @@ func TestPostgreSQLInternalSchedulingAndTeacherContinuity(t *testing.T) {
 		}
 	}
 
+	// Application clocks must not place assignment facts in the database future,
+	// and a default/current projection must remain readable if the API clock is
+	// behind PostgreSQL. Explicit projections retain their literal boundary.
+	var databaseBefore time.Time
+	if err := pool.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&databaseBefore); err != nil {
+		t.Fatalf("read database time before skewed Student creation: %v", err)
+	}
+	aheadService := app.NewService(store, codec, security.NewPasswordHasher(), app.Options{
+		ActivationBaseURL: "https://app.belcanto.test/activate",
+		AccessTTL:         15 * time.Minute, RefreshTTL: 30 * 24 * time.Hour,
+		InvitationTTL: 7 * 24 * time.Hour, Clock: schedulingOffsetClock{offset: 5 * time.Minute},
+	})
+	skewedStudent := createSchedulingStudent(t, ctx, aheadService, owner, "+77003000106", "PG-SCHEDULE-106", firstTeacher.AccountID, "pg-scheduling-clock-skew-student")
+	var databaseAfter, skewedAssignedAt, skewedEffectiveFrom time.Time
+	if err := pool.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&databaseAfter); err != nil {
+		t.Fatalf("read database time after skewed Student creation: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `
+		SELECT assigned_at, effective_from
+		FROM teacher_assignments
+		WHERE tenant_id = $1 AND student_id = $2 AND version = 0
+	`, owner.TenantID, skewedStudent.StudentID).Scan(&skewedAssignedAt, &skewedEffectiveFrom); err != nil {
+		t.Fatalf("read skewed Student assignment time: %v", err)
+	}
+	if skewedAssignedAt.Before(databaseBefore) || skewedAssignedAt.After(databaseAfter) || !skewedAssignedAt.Equal(skewedEffectiveFrom) {
+		t.Fatalf("skewed Student assignment time = assigned %s, effective %s, database window %s..%s", skewedAssignedAt, skewedEffectiveFrom, databaseBefore, databaseAfter)
+	}
+	behindService := app.NewService(store, codec, security.NewPasswordHasher(), app.Options{
+		ActivationBaseURL: "https://app.belcanto.test/activate",
+		AccessTTL:         15 * time.Minute, RefreshTTL: 30 * 24 * time.Hour,
+		InvitationTTL: 7 * 24 * time.Hour, Clock: schedulingOffsetClock{offset: -5 * time.Minute},
+	})
+	currentDirectory, err := behindService.ListStudents(ctx, administrator, app.ListStudentsInput{})
+	if err != nil || pgDirectoryStudent(t, currentDirectory, skewedStudent.StudentID).PrimaryTeacher.AccountID != firstTeacher.AccountID {
+		t.Fatalf("database-backed current projection with lagging API clock = %#v, %v", currentDirectory, err)
+	}
+	explicitBeforeAssignment, err := behindService.ListStudents(ctx, administrator, app.ListStudentsInput{AsOf: skewedEffectiveFrom.Add(-time.Microsecond)})
+	if err != nil {
+		t.Fatalf("explicit pre-assignment projection: %v", err)
+	}
+	for _, item := range explicitBeforeAssignment {
+		if item.StudentID == skewedStudent.StudentID {
+			t.Fatalf("explicit pre-assignment projection was clamped to current: %#v", item)
+		}
+	}
+	currentQueue, err := behindService.ListStudentOnboarding(ctx, owner)
+	if err != nil {
+		t.Fatalf("database-backed onboarding projection with lagging API clock: %v", err)
+	}
+	var skewedQueueTeacher string
+	for _, item := range currentQueue {
+		if item.StudentID == skewedStudent.StudentID {
+			skewedQueueTeacher = item.TeacherAccountID
+			break
+		}
+	}
+	if skewedQueueTeacher != firstTeacher.AccountID {
+		t.Fatalf("database-backed onboarding projection omitted skewed assignment: %#v", currentQueue)
+	}
+
 	now := time.Now().UTC()
 	firstLesson := schedulePostgreSQLLesson(t, ctx, service, administrator, "pg-scheduling-first", now.Add(4*time.Hour), firstTeacher.AccountID, firstStudent.StudentID)
 	secondLesson := schedulePostgreSQLLesson(t, ctx, service, administrator, "pg-scheduling-second", now.Add(5*time.Hour), firstTeacher.AccountID, secondStudent.StudentID)
 	permanentLesson := schedulePostgreSQLLesson(t, ctx, service, administrator, "pg-scheduling-permanent", now.Add(6*time.Hour), firstTeacher.AccountID, firstStudent.StudentID)
+	groupLesson, err := service.ScheduleLesson(ctx, administrator, app.ScheduleLessonInput{
+		Title: "PostgreSQL group privacy", StartsAt: now.Add(7 * time.Hour), DurationMinutes: 60,
+		TeacherAccountID: firstTeacher.AccountID,
+		StudentIDs:       []string{firstStudent.StudentID, secondStudent.StudentID},
+		IdempotencyKey:   "pg-scheduling-group-privacy",
+	})
+	if err != nil {
+		t.Fatalf("schedule PostgreSQL group Lesson: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE accounts
+		SET status = 'active', activated_at = clock_timestamp(), updated_at = clock_timestamp(), version = version + 1
+		WHERE tenant_id = $1 AND id = $2
+	`, owner.TenantID, firstStudent.AccountID); err != nil {
+		t.Fatalf("activate group Lesson Student fixture: %v", err)
+	}
+	studentPrincipal := core.Principal{TenantID: owner.TenantID, AccountID: firstStudent.AccountID}
+	studentLessons, err := service.ListLessons(ctx, studentPrincipal, app.ListLessonsInput{
+		From: now.Add(3 * time.Hour), To: now.Add(8 * time.Hour),
+	})
+	if err != nil {
+		t.Fatalf("list Student Lessons: %v", err)
+	}
+	var studentGroupLesson core.Lesson
+	for _, lesson := range studentLessons {
+		if lesson.ID == groupLesson.ID {
+			studentGroupLesson = lesson
+			break
+		}
+	}
+	if studentGroupLesson.ID == "" || len(studentGroupLesson.Students) != 1 || studentGroupLesson.Students[0].StudentID != firstStudent.StudentID {
+		t.Fatalf("Student group Lesson list leaked peer participants = %#v", studentGroupLesson)
+	}
+	studentGroupLesson, err = service.GetLesson(ctx, studentPrincipal, groupLesson.ID)
+	if err != nil || len(studentGroupLesson.Students) != 1 || studentGroupLesson.Students[0].StudentID != firstStudent.StudentID {
+		t.Fatalf("Student group Lesson detail leaked peer participants = %#v, %v", studentGroupLesson, err)
+	}
+	managerGroupLesson, err := service.GetLesson(ctx, owner, groupLesson.ID)
+	if err != nil || len(managerGroupLesson.Students) != 2 {
+		t.Fatalf("manager group Lesson projection = %#v, %v", managerGroupLesson, err)
+	}
 
 	_, err = service.ReplaceLessonTeachers(ctx, firstTeacher, app.ReplaceLessonTeachersInput{
 		Lessons: []core.ReplaceLessonTeacherTarget{{LessonID: firstLesson.ID, ExpectedVersion: 0,
@@ -260,6 +369,204 @@ func TestPostgreSQLInternalSchedulingAndTeacherContinuity(t *testing.T) {
 	}
 	if publishErr := <-firstMinuteDone; publishErr != nil {
 		t.Fatalf("First Minute after assignment lock release: %v", publishErr)
+	}
+
+	// Deterministically model an older immediate-reassignment request that is
+	// delayed before the assignment subject lock while a newer First Minute
+	// publication acquires that lock and commits first. The later mutation must
+	// not use the request timestamp to cut the former Teacher's interval
+	// retroactively.
+	temporalStudent := createSchedulingStudent(t, ctx, service, owner, "+77003000104", "PG-SCHEDULE-104", firstTeacher.AccountID, "pg-scheduling-temporal-student")
+	temporalAssignmentID, err := security.NewID("assignment")
+	if err != nil {
+		t.Fatalf("generate temporal reassignment id: %v", err)
+	}
+	temporalFingerprint := bytes.Repeat([]byte{0x71}, 32)
+	temporalReassignmentKey := "pg-temporal-first-minute-reassignment"
+	temporalRequestAt := time.Now().UTC()
+	temporalCommand := core.ReassignPrimaryTeachersCommand{
+		TenantID: owner.TenantID, ActorAccountID: administrator.AccountID,
+		Targets: []core.PrimaryTeacherReassignmentTarget{{
+			StudentID: temporalStudent.StudentID, ExpectedAssignmentVersion: 0,
+			AssignmentID: temporalAssignmentID,
+		}},
+		NewTeacherAccountID: secondTeacher.AccountID,
+		EffectiveMode:       core.PrimaryTeacherEffectiveImmediate,
+		IdempotencyKey:      temporalReassignmentKey,
+		PayloadFingerprint:  temporalFingerprint,
+		Now:                 temporalRequestAt,
+	}
+	temporalBlocker, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin temporal idempotency blocker: %v", err)
+	}
+	if _, err := temporalBlocker.Exec(ctx, `
+		INSERT INTO idempotency_records (
+			tenant_id, actor_account_id, operation_scope, idempotency_key,
+			payload_fingerprint, status, created_at
+		) VALUES ($1, $2, 'reassign_primary_teachers', $3, $4, 'processing', $5)
+	`, owner.TenantID, administrator.AccountID, temporalReassignmentKey, temporalFingerprint, temporalRequestAt); err != nil {
+		_ = temporalBlocker.Rollback(ctx)
+		t.Fatalf("block temporal reassignment idempotency claim: %v", err)
+	}
+	type reassignmentOutcome struct {
+		result core.PrimaryTeacherReassignmentResult
+		err    error
+	}
+	temporalReassignmentDone := make(chan reassignmentOutcome, 1)
+	go func() {
+		result, reassignErr := store.ReassignPrimaryTeachers(ctx, temporalCommand)
+		temporalReassignmentDone <- reassignmentOutcome{result: result, err: reassignErr}
+	}()
+	select {
+	case outcome := <-temporalReassignmentDone:
+		_ = temporalBlocker.Rollback(ctx)
+		t.Fatalf("temporal reassignment bypassed held idempotency claim: %#v, %v", outcome.result, outcome.err)
+	case <-time.After(75 * time.Millisecond):
+	}
+	temporalFirstMinuteInput := app.PublishFirstMinuteInput{
+		StudentID: temporalStudent.StudentID, WhatWorked: "Temporal worked",
+		CurrentFocus: "Serialized continuity", NextStep: "Transfer safely",
+		ExpectedVersion: 0, IdempotencyKey: "pg-temporal-first-minute",
+	}
+	temporalFirstMinute, err := service.PublishFirstMinute(ctx, firstTeacher, temporalFirstMinuteInput)
+	if err != nil {
+		_ = temporalBlocker.Rollback(ctx)
+		t.Fatalf("publish temporal First Minute: %v", err)
+	}
+	temporalFirstMinuteReplay, err := service.PublishFirstMinute(ctx, firstTeacher, temporalFirstMinuteInput)
+	if err != nil || !reflect.DeepEqual(temporalFirstMinuteReplay, temporalFirstMinute) {
+		_ = temporalBlocker.Rollback(ctx)
+		t.Fatalf("temporal First Minute replay = %#v, %v", temporalFirstMinuteReplay, err)
+	}
+	if err := temporalBlocker.Rollback(ctx); err != nil {
+		t.Fatalf("release temporal idempotency blocker: %v", err)
+	}
+	temporalReassignment := <-temporalReassignmentDone
+	if temporalReassignment.err != nil || temporalReassignment.result.ReassignedCount != 1 {
+		t.Fatalf("temporal reassignment after First Minute = %#v, %v", temporalReassignment.result, temporalReassignment.err)
+	}
+	temporalCutover := temporalReassignment.result.Assignments[0].EffectiveFrom
+	if !temporalFirstMinute.PublishedAt.Before(temporalCutover) {
+		t.Fatalf("First Minute/cutover order = %s / %s; publication must precede cutover", temporalFirstMinute.PublishedAt, temporalCutover)
+	}
+	var authorWasEffective bool
+	if err := pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM teacher_assignments ta
+			WHERE ta.tenant_id = $1 AND ta.student_id = $2
+			  AND ta.teacher_account_id = $3 AND ta.status = 'active'
+			  AND ta.effective_from <= $4
+			  AND (ta.effective_until IS NULL OR $4 < ta.effective_until)
+		)
+	`, owner.TenantID, temporalStudent.StudentID, firstTeacher.AccountID, temporalFirstMinute.PublishedAt).Scan(&authorWasEffective); err != nil || !authorWasEffective {
+		t.Fatalf("First Minute author effective at publication = %v, %v", authorWasEffective, err)
+	}
+	temporalReplay, err := store.ReassignPrimaryTeachers(ctx, temporalCommand)
+	if err != nil || !reflect.DeepEqual(temporalReplay, temporalReassignment.result) {
+		t.Fatalf("temporal reassignment replay = %#v, %v", temporalReplay, err)
+	}
+	var temporalAssignmentCount, temporalAuditCount, temporalEventCount int
+	var assignedAt, auditedAt, eventAt, completedAt time.Time
+	if err := pool.QueryRow(ctx, `
+		SELECT
+			(SELECT count(*) FROM teacher_assignments WHERE tenant_id = $1 AND student_id = $2 AND version = 1),
+			(SELECT count(*) FROM audit_records WHERE tenant_id = $1 AND action = 'StudentPrimaryTeacherReassigned' AND target_id = $2 AND decision = 'allow'),
+			(SELECT count(*) FROM outbox_events WHERE tenant_id = $1 AND event_type = 'StudentPrimaryTeacherReassigned' AND aggregate_id = $2),
+			(SELECT assigned_at FROM teacher_assignments WHERE tenant_id = $1 AND student_id = $2 AND version = 1),
+			(SELECT recorded_at FROM audit_records WHERE tenant_id = $1 AND action = 'StudentPrimaryTeacherReassigned' AND target_id = $2 AND decision = 'allow'),
+			(SELECT recorded_at FROM outbox_events WHERE tenant_id = $1 AND event_type = 'StudentPrimaryTeacherReassigned' AND aggregate_id = $2),
+			(SELECT completed_at FROM idempotency_records WHERE tenant_id = $1 AND actor_account_id = $3 AND operation_scope = 'reassign_primary_teachers' AND idempotency_key = $4)
+	`, owner.TenantID, temporalStudent.StudentID, administrator.AccountID, temporalReassignmentKey).Scan(
+		&temporalAssignmentCount, &temporalAuditCount, &temporalEventCount, &assignedAt, &auditedAt, &eventAt, &completedAt,
+	); err != nil {
+		t.Fatalf("read temporal reassignment atomic records: %v", err)
+	}
+	if temporalAssignmentCount != 1 || temporalAuditCount != 1 || temporalEventCount != 1 {
+		t.Fatalf("temporal replay duplicated records: assignment/audit/event = %d/%d/%d", temporalAssignmentCount, temporalAuditCount, temporalEventCount)
+	}
+	if !assignedAt.Equal(auditedAt) || !assignedAt.Equal(eventAt) || !assignedAt.Equal(completedAt) || assignedAt.After(temporalCutover) {
+		t.Fatalf("temporal mutation timestamps = assigned %s, audit %s, event %s, completed %s, cutover %s", assignedAt, auditedAt, eventAt, completedAt, temporalCutover)
+	}
+
+	// A scheduled cutover can become stale while waiting for the same subject
+	// lock. It must be revalidated after the wait and roll back atomically.
+	scheduledWaitStudent := createSchedulingStudent(t, ctx, service, owner, "+77003000105", "PG-SCHEDULE-105", firstTeacher.AccountID, "pg-scheduling-wait-student")
+	scheduledLockTx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin scheduled reassignment lock harness: %v", err)
+	}
+	scheduledLockKey := integrationAdvisoryLockKey("primary-teacher-assignment", owner.TenantID, scheduledWaitStudent.StudentID)
+	if _, err := scheduledLockTx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, scheduledLockKey); err != nil {
+		_ = scheduledLockTx.Rollback(ctx)
+		t.Fatalf("hold scheduled reassignment assignment lock: %v", err)
+	}
+	scheduledAssignmentID, err := security.NewID("assignment")
+	if err != nil {
+		_ = scheduledLockTx.Rollback(ctx)
+		t.Fatalf("generate scheduled-wait reassignment id: %v", err)
+	}
+	var scheduledRequestAt time.Time
+	if err := scheduledLockTx.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&scheduledRequestAt); err != nil {
+		_ = scheduledLockTx.Rollback(ctx)
+		t.Fatalf("read scheduled reassignment database time: %v", err)
+	}
+	scheduledEffectiveFrom := scheduledRequestAt.Add(350 * time.Millisecond)
+	scheduledReassignmentKey := "pg-scheduled-cutover-passed-while-waiting"
+	scheduledCommand := core.ReassignPrimaryTeachersCommand{
+		TenantID: owner.TenantID, ActorAccountID: administrator.AccountID,
+		Targets: []core.PrimaryTeacherReassignmentTarget{{
+			StudentID: scheduledWaitStudent.StudentID, ExpectedAssignmentVersion: 0,
+			AssignmentID: scheduledAssignmentID,
+		}},
+		NewTeacherAccountID: secondTeacher.AccountID,
+		EffectiveMode:       core.PrimaryTeacherEffectiveScheduled,
+		EffectiveFrom:       scheduledEffectiveFrom,
+		IdempotencyKey:      scheduledReassignmentKey,
+		PayloadFingerprint:  bytes.Repeat([]byte{0x72}, 32),
+		Now:                 scheduledRequestAt,
+	}
+	scheduledWaitDone := make(chan error, 1)
+	go func() {
+		_, reassignErr := store.ReassignPrimaryTeachers(ctx, scheduledCommand)
+		scheduledWaitDone <- reassignErr
+	}()
+	select {
+	case waitErr := <-scheduledWaitDone:
+		_ = scheduledLockTx.Rollback(ctx)
+		t.Fatalf("scheduled reassignment bypassed held assignment lock: %v", waitErr)
+	case <-time.After(75 * time.Millisecond):
+	}
+	for {
+		var effectiveFromPassed bool
+		if err := scheduledLockTx.QueryRow(ctx, `SELECT clock_timestamp() >= $1`, scheduledEffectiveFrom).Scan(&effectiveFromPassed); err != nil {
+			_ = scheduledLockTx.Rollback(ctx)
+			t.Fatalf("wait for scheduled reassignment database boundary: %v", err)
+		}
+		if effectiveFromPassed {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := scheduledLockTx.Commit(ctx); err != nil {
+		t.Fatalf("release scheduled reassignment assignment lock: %v", err)
+	}
+	if waitErr := <-scheduledWaitDone; !core.IsCode(waitErr, core.CodeInvalidInput) {
+		t.Fatalf("scheduled reassignment after effectiveFrom passed = %v", waitErr)
+	}
+	var scheduledTimelineCount, scheduledIdempotencyCount int
+	if err := pool.QueryRow(ctx, `
+		SELECT
+			(SELECT count(*) FROM teacher_assignments WHERE tenant_id = $1 AND student_id = $2),
+			(SELECT count(*) FROM idempotency_records WHERE tenant_id = $1 AND actor_account_id = $3 AND operation_scope = 'reassign_primary_teachers' AND idempotency_key = $4)
+	`, owner.TenantID, scheduledWaitStudent.StudentID, administrator.AccountID, scheduledReassignmentKey).Scan(
+		&scheduledTimelineCount, &scheduledIdempotencyCount,
+	); err != nil {
+		t.Fatalf("read stale scheduled reassignment state: %v", err)
+	}
+	if scheduledTimelineCount != 1 || scheduledIdempotencyCount != 0 {
+		t.Fatalf("stale scheduled reassignment mutated state: timeline/idempotency = %d/%d", scheduledTimelineCount, scheduledIdempotencyCount)
 	}
 
 	type scheduleOutcome struct {

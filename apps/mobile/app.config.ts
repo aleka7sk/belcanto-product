@@ -131,7 +131,9 @@ export function buildExpoConfig(
     },
     ios: {
       bundleIdentifier,
-      associatedDomains: activation ? [`applinks:${activation.hostname}`] : [],
+      ...(production && activation
+        ? { associatedDomains: [`applinks:${activation.hostname}`] }
+        : {}),
       supportsTablet: false,
     },
     android: {

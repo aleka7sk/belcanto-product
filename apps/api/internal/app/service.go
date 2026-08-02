@@ -766,9 +766,7 @@ type ListStudentsInput struct {
 func (s *Service) ListStudents(ctx context.Context, principal core.Principal, input ListStudentsInput) ([]core.StudentDirectoryItem, error) {
 	now := s.clock.Now()
 	asOf := input.AsOf
-	if asOf.IsZero() {
-		asOf = now
-	} else {
+	if !asOf.IsZero() {
 		asOf = asOf.UTC()
 		if asOf.Before(now.Add(-time.Minute)) {
 			return nil, core.E(core.CodeInvalidInput, "asOf cannot be in the past", nil)

@@ -24,6 +24,10 @@ func (s *Store) ListStudentOnboarding(ctx context.Context, principal core.Princi
 			return core.E(core.CodeForbidden, "student onboarding read permission is required", nil)
 		}
 		teacherOnly := !onboardingAllowed && teacherAllowed
+		projectionAt, err := currentAssignmentProjectionTime(ctx, tx, principal.TenantID, now)
+		if err != nil {
+			return err
+		}
 		rows, err := tx.Query(ctx, `
 			SELECT s.id, p.full_name, s.enrollment_reference,
 			       ta.teacher_account_id, s.version, a.status,
@@ -43,14 +47,14 @@ func (s *Store) ListStudentOnboarding(ctx context.Context, principal core.Princi
 			    SELECT i.id, i.expires_at
 			    FROM activation_invitations i
 			    WHERE i.tenant_id = s.tenant_id AND i.student_id = s.id
-			      AND i.status = 'issued' AND i.expires_at > $3
+			      AND i.status = 'issued' AND i.expires_at > $5
 			    ORDER BY i.issued_at DESC, i.id DESC
 			    LIMIT 1
 			) current_invitation ON true
 			WHERE s.tenant_id = $1 AND s.status = 'active'
 			  AND (NOT $4::boolean OR ta.teacher_account_id = $2)
 			ORDER BY p.full_name, s.id
-		`, principal.TenantID, principal.AccountID, now, teacherOnly)
+		`, principal.TenantID, principal.AccountID, projectionAt, teacherOnly, now)
 		if err != nil {
 			return fmt.Errorf("list student onboarding queue: %w", err)
 		}

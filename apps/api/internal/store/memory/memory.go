@@ -127,6 +127,7 @@ type Store struct {
 	delegations  map[string]*delegation
 	students     map[string]*student
 	assignments  map[string][]*teacherAssignment
+	logicalTimes map[string]time.Time
 	lessons      map[string]*lesson
 	enrollments  map[string]string
 	firstMinutes map[string][]core.FirstMinute
@@ -148,6 +149,7 @@ func New() *Store {
 		delegations:  make(map[string]*delegation),
 		students:     make(map[string]*student),
 		assignments:  make(map[string][]*teacherAssignment),
+		logicalTimes: make(map[string]time.Time),
 		lessons:      make(map[string]*lesson),
 		enrollments:  make(map[string]string),
 		firstMinutes: make(map[string][]core.FirstMinute),
@@ -536,6 +538,7 @@ func (s *Store) CreateStudent(_ context.Context, command core.CreateStudentComma
 	if _, exists := s.accountPhone[command.Phone]; exists {
 		return core.StudentResult{}, core.E(core.CodeConflict, "login identifier is unavailable", nil)
 	}
+	operationAt := s.nextAssignmentOperationTime(command.Now, []string{command.StudentID})
 	acct := &account{
 		ID: command.AccountID, TenantID: command.TenantID, PersonID: command.PersonID,
 		FullName: command.FullName, Phone: command.Phone, Status: "pending_activation",
@@ -550,15 +553,16 @@ func (s *Store) CreateStudent(_ context.Context, command core.CreateStudentComma
 	}
 	s.assignments[command.StudentID] = append(s.assignments[command.StudentID], &teacherAssignment{
 		ID: command.TeacherAssignmentID, TenantID: command.TenantID, StudentID: command.StudentID,
-		TeacherAccountID: command.TeacherAccountID, EffectiveFrom: command.Now, Version: 0, Status: "active",
+		TeacherAccountID: command.TeacherAccountID, EffectiveFrom: operationAt, Version: 0, Status: "active",
 	})
 	s.enrollments[command.TenantID+"\x00"+command.EnrollmentReference] = command.StudentID
 	result := core.StudentResult{StudentID: command.StudentID, AccountID: command.AccountID, OnboardingState: "awaiting_first_minute"}
 	if err := s.completeIdempotency("create_student", command.TenantID, command.ActorAccountID, command.IdempotencyKey, command.PayloadFingerprint, result); err != nil {
 		return core.StudentResult{}, err
 	}
-	s.appendAudit(command.TenantID, command.ActorAccountID, delegationID, "StudentCreated", command.StudentID, "allow", "", command.Now)
-	s.appendOutbox(command.TenantID, "StudentCreated", command.StudentID, command.Now)
+	s.recordAssignmentOperationTime(operationAt, []string{command.StudentID})
+	s.appendAudit(command.TenantID, command.ActorAccountID, delegationID, "StudentCreated", command.StudentID, "allow", "", operationAt)
+	s.appendOutbox(command.TenantID, "StudentCreated", command.StudentID, operationAt)
 	return result, nil
 }
 
@@ -569,7 +573,8 @@ func (s *Store) PublishFirstMinute(_ context.Context, command core.PublishFirstM
 	if studentRecord == nil || studentRecord.TenantID != command.TenantID {
 		return core.FirstMinute{}, core.E(core.CodeNotFound, "student not found", nil)
 	}
-	assignment := s.assignmentAt(command.StudentID, command.Now)
+	operationAt := s.nextAssignmentOperationTime(command.Now, []string{command.StudentID})
+	assignment := s.assignmentAt(command.StudentID, operationAt)
 	if assignment == nil || assignment.TeacherAccountID != command.ActorAccountID || !s.hasRole(command.ActorAccountID, command.TenantID, core.RoleTeacher) {
 		return core.FirstMinute{}, core.E(core.CodeForbidden, "only the assigned Teacher can publish this first minute", nil)
 	}
@@ -590,14 +595,15 @@ func (s *Store) PublishFirstMinute(_ context.Context, command core.PublishFirstM
 	result := core.FirstMinute{
 		StudentID: command.StudentID, Revision: studentRecord.Version,
 		WhatWorked: command.WhatWorked, CurrentFocus: command.CurrentFocus,
-		NextStep: command.NextStep, PublishedAt: command.Now,
+		NextStep: command.NextStep, PublishedAt: operationAt,
 	}
 	s.firstMinutes[command.StudentID] = append(s.firstMinutes[command.StudentID], result)
 	if err := s.completeIdempotency("publish_first_minute", command.TenantID, command.ActorAccountID, command.IdempotencyKey, command.PayloadFingerprint, result); err != nil {
 		return core.FirstMinute{}, err
 	}
-	s.appendAudit(command.TenantID, command.ActorAccountID, "", "FirstBelcantoMinutePublished", command.StudentID, "allow", "", command.Now)
-	s.appendOutbox(command.TenantID, "FirstBelcantoMinutePublished", command.StudentID, command.Now)
+	s.recordAssignmentOperationTime(operationAt, []string{command.StudentID})
+	s.appendAudit(command.TenantID, command.ActorAccountID, "", "FirstBelcantoMinutePublished", command.StudentID, "allow", "", operationAt)
+	s.appendOutbox(command.TenantID, "FirstBelcantoMinutePublished", command.StudentID, operationAt)
 	return result, nil
 }
 
@@ -778,9 +784,10 @@ func (s *Store) ListStudentOnboarding(_ context.Context, principal core.Principa
 		return nil, core.E(core.CodeForbidden, "student onboarding read permission is required", nil)
 	}
 	teacherOnly := !onboardingAllowed && teacherAllowed
+	projectionAt := s.currentAssignmentProjectionTime(principal.TenantID, now)
 	result := make([]core.StudentOnboardingItem, 0)
 	for _, studentRecord := range s.students {
-		assignment := s.assignmentAt(studentRecord.ID, now)
+		assignment := s.assignmentAt(studentRecord.ID, projectionAt)
 		if studentRecord.TenantID != principal.TenantID || assignment == nil || (teacherOnly && assignment.TeacherAccountID != principal.AccountID) {
 			continue
 		}
@@ -836,12 +843,16 @@ func (s *Store) ListStudents(_ context.Context, principal core.Principal, asOf, 
 		s.appendAudit(principal.TenantID, principal.AccountID, "", "StudentDirectoryListed", "students", "deny", "student_directory_not_allowed", now)
 		return nil, core.E(core.CodeForbidden, "student directory permission is required", nil)
 	}
+	projectionAt := asOf
+	if projectionAt.IsZero() {
+		projectionAt = s.currentAssignmentProjectionTime(principal.TenantID, now)
+	}
 	result := make([]core.StudentDirectoryItem, 0)
 	for _, studentRecord := range s.students {
 		if studentRecord.TenantID != principal.TenantID || !s.activeStudent(studentRecord) {
 			continue
 		}
-		assignment := s.assignmentAt(studentRecord.ID, asOf)
+		assignment := s.assignmentAt(studentRecord.ID, projectionAt)
 		if assignment == nil || (teacherOnly && assignment.TeacherAccountID != principal.AccountID) {
 			continue
 		}
@@ -974,7 +985,7 @@ func (s *Store) ListLessons(_ context.Context, principal core.Principal, query c
 		if !s.lessonReadable(actor, stored) {
 			continue
 		}
-		result = append(result, s.lessonView(stored))
+		result = append(result, s.lessonViewForActor(actor, stored))
 	}
 	sort.Slice(result, func(left, right int) bool {
 		if result[left].StartsAt.Equal(result[right].StartsAt) {
@@ -996,7 +1007,7 @@ func (s *Store) GetLesson(_ context.Context, principal core.Principal, lessonID 
 	if stored == nil || stored.TenantID != principal.TenantID || !s.lessonReadable(actor, stored) {
 		return core.Lesson{}, core.E(core.CodeNotFound, "Lesson not found", nil)
 	}
-	return s.lessonView(stored), nil
+	return s.lessonViewForActor(actor, stored), nil
 }
 
 func (s *Store) ReplaceLessonTeachers(_ context.Context, command core.ReplaceLessonTeachersCommand) (core.LessonTeacherReplacementResult, error) {
@@ -1098,20 +1109,28 @@ func (s *Store) ReassignPrimaryTeachers(_ context.Context, command core.Reassign
 		}
 		return result, nil
 	}
-	effectiveFrom := command.EffectiveFrom
 	switch command.EffectiveMode {
-	case core.PrimaryTeacherEffectiveImmediate:
-		effectiveFrom = command.Now
-	case core.PrimaryTeacherEffectiveScheduled:
-		if !effectiveFrom.After(command.Now) {
-			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "scheduled effectiveFrom must be in the future", nil)
-		}
+	case core.PrimaryTeacherEffectiveImmediate, core.PrimaryTeacherEffectiveScheduled:
 	default:
 		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "effectiveMode must be immediate or scheduled", nil)
 	}
 	newTeacher := s.activeAccount(command.NewTeacherAccountID, command.TenantID)
 	if newTeacher == nil || newTeacher.Roles[core.RoleTeacher] == "" {
 		return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "new Teacher is not active in this school", nil)
+	}
+	studentIDs := make([]string, len(command.Targets))
+	for index, target := range command.Targets {
+		studentIDs[index] = target.StudentID
+	}
+	operationAt := s.nextAssignmentOperationTime(command.Now, studentIDs)
+	effectiveFrom := command.EffectiveFrom
+	switch command.EffectiveMode {
+	case core.PrimaryTeacherEffectiveImmediate:
+		effectiveFrom = operationAt
+	case core.PrimaryTeacherEffectiveScheduled:
+		if !effectiveFrom.After(operationAt) {
+			return core.PrimaryTeacherReassignmentResult{}, core.E(core.CodeInvalidInput, "scheduled effectiveFrom must be in the future", nil)
+		}
 	}
 	type reassignmentPlan struct {
 		target   core.PrimaryTeacherReassignmentTarget
@@ -1171,7 +1190,7 @@ func (s *Store) ReassignPrimaryTeachers(_ context.Context, command core.Reassign
 			Version: plan.version, Status: "active",
 		}
 		s.assignments[plan.target.StudentID] = append(s.assignments[plan.target.StudentID], stored)
-		if effectiveFrom.Equal(command.Now) {
+		if command.EffectiveMode == core.PrimaryTeacherEffectiveImmediate {
 			s.students[plan.target.StudentID].TeacherAccountID = command.NewTeacherAccountID
 		}
 		assignmentResult := core.PrimaryTeacherReassignment{
@@ -1180,17 +1199,18 @@ func (s *Store) ReassignPrimaryTeachers(_ context.Context, command core.Reassign
 			Version: stored.Version,
 		}
 		result.Assignments = append(result.Assignments, assignmentResult)
-		s.appendAuditMetadata(command.TenantID, command.ActorAccountID, "StudentPrimaryTeacherReassigned", plan.target.StudentID, "allow", "primary_teacher_continuity", command.Now, map[string]any{
+		s.appendAuditMetadata(command.TenantID, command.ActorAccountID, "StudentPrimaryTeacherReassigned", plan.target.StudentID, "allow", "primary_teacher_continuity", operationAt, map[string]any{
 			"previousTeacherAccountId": plan.previous.TeacherAccountID,
 			"newTeacherAccountId":      command.NewTeacherAccountID,
 			"effectiveFrom":            effectiveFrom,
 			"version":                  stored.Version,
 		})
-		s.appendOutbox(command.TenantID, "StudentPrimaryTeacherReassigned", plan.target.StudentID, command.Now)
+		s.appendOutbox(command.TenantID, "StudentPrimaryTeacherReassigned", plan.target.StudentID, operationAt)
 	}
 	if err := s.completeIdempotency("reassign_primary_teachers", command.TenantID, command.ActorAccountID, command.IdempotencyKey, command.PayloadFingerprint, result); err != nil {
 		return core.PrimaryTeacherReassignmentResult{}, err
 	}
+	s.recordAssignmentOperationTime(operationAt, studentIDs)
 	return result, nil
 }
 
@@ -1238,6 +1258,7 @@ func (s *Store) SeedActiveStudentForTest(tenantID, accountID, studentID, personI
 		ID: "assignment_" + studentID, TenantID: tenantID, StudentID: studentID,
 		TeacherAccountID: teacherAccountID, EffectiveFrom: assignedAt, Status: "active",
 	})
+	s.recordAssignmentOperationTime(assignedAt, []string{studentID})
 	return nil
 }
 
@@ -1345,6 +1366,37 @@ func (s *Store) assignmentAt(studentID string, at time.Time) *teacherAssignment 
 	return selected
 }
 
+func (s *Store) nextAssignmentOperationTime(requestAt time.Time, studentIDs []string) time.Time {
+	operationAt := requestAt.UTC()
+	for _, studentID := range studentIDs {
+		previous := s.logicalTimes[studentID]
+		if candidate := previous.Add(time.Microsecond); candidate.After(operationAt) {
+			operationAt = candidate
+		}
+	}
+	return operationAt
+}
+
+func (s *Store) recordAssignmentOperationTime(operationAt time.Time, studentIDs []string) {
+	operationAt = operationAt.UTC()
+	for _, studentID := range studentIDs {
+		if operationAt.After(s.logicalTimes[studentID]) {
+			s.logicalTimes[studentID] = operationAt
+		}
+	}
+}
+
+func (s *Store) currentAssignmentProjectionTime(tenantID string, appNow time.Time) time.Time {
+	projectionAt := appNow.UTC()
+	for studentID, operationAt := range s.logicalTimes {
+		studentRecord := s.students[studentID]
+		if studentRecord != nil && studentRecord.TenantID == tenantID && operationAt.After(projectionAt) {
+			projectionAt = operationAt
+		}
+	}
+	return projectionAt
+}
+
 func (s *Store) lessonScheduleConflict(tenantID string, startsAt time.Time, durationMinutes int, teacherAccountID string, studentIDs []string, excludedLessonIDs map[string]struct{}) bool {
 	for _, stored := range s.lessons {
 		if stored.TenantID != tenantID || stored.Status != core.LessonScheduled {
@@ -1413,6 +1465,25 @@ func (s *Store) lessonView(stored *lesson) core.Lesson {
 		Teacher:  core.TeacherSummary{AccountID: stored.TeacherAccountID, FullName: teacherName},
 		Students: students, Status: stored.Status, Version: stored.Version,
 	}
+}
+
+func (s *Store) lessonViewForActor(actor *account, stored *lesson) core.Lesson {
+	result := s.lessonView(stored)
+	if actor == nil ||
+		actor.Roles[core.RoleOwner] != "" ||
+		actor.Roles[core.RoleAdministrator] != "" ||
+		(actor.Roles[core.RoleTeacher] != "" && stored.TeacherAccountID == actor.ID) {
+		return result
+	}
+	studentID := actor.Roles[core.RoleStudent]
+	for _, student := range result.Students {
+		if student.StudentID == studentID {
+			result.Students = []core.LessonStudent{student}
+			return result
+		}
+	}
+	result.Students = []core.LessonStudent{}
+	return result
 }
 
 func containsString(values []string, wanted string) bool {

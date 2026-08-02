@@ -1,4 +1,6 @@
 packages:
   - apps/mobile
+patchedDependencies:
+  expo-modules-jsi@57.0.4: patches/expo-modules-jsi@57.0.4.patch
 allowBuilds:
   'unrs-resolver@1.12.2': true

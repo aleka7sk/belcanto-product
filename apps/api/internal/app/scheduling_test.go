@@ -59,6 +59,60 @@ func TestInternalSchedulingIsIndependentFromOnboardingDelegationAndIncludesPendi
 	}
 }
 
+func TestAssignmentMutationsUseMonotonicLogicalTimeAndCurrentProjection(t *testing.T) {
+	fixture := newFixture(t)
+	ctx := context.Background()
+	secondTeacher := seedTeacher(t, fixture, "acct_logical_teacher_2", "+77000001104")
+	studentResult, err := fixture.service.CreateStudent(ctx, fixture.owner, studentInput(
+		"logical-clock-student", "+77000001105", "LOGICAL-1105", fixture.teacher.AccountID,
+	))
+	if err != nil {
+		t.Fatalf("create logical-clock Student: %v", err)
+	}
+
+	fixture.clock.Advance(2 * time.Minute)
+	firstMinute, err := fixture.service.PublishFirstMinute(ctx, fixture.teacher, app.PublishFirstMinuteInput{
+		StudentID: studentResult.StudentID, WhatWorked: "Monotonic publication",
+		CurrentFocus: "Serialized time", NextStep: "Transfer safely",
+		ExpectedVersion: 0, IdempotencyKey: "logical-clock-first-minute",
+	})
+	if err != nil {
+		t.Fatalf("publish logical-clock First Minute: %v", err)
+	}
+
+	// Model a request issued before the publication but handled afterward. The
+	// in-memory store must preserve the same serialized ordering as PostgreSQL.
+	fixture.clock.Advance(-time.Minute)
+	reassigned, err := fixture.service.ReassignPrimaryTeachers(ctx, fixture.admin, app.ReassignPrimaryTeachersInput{
+		Students: []core.PrimaryTeacherReassignmentTarget{{
+			StudentID: studentResult.StudentID, ExpectedAssignmentVersion: 0,
+		}},
+		NewTeacherAccountID: secondTeacher.AccountID,
+		EffectiveMode:       core.PrimaryTeacherEffectiveImmediate,
+		IdempotencyKey:      "logical-clock-reassignment",
+	})
+	if err != nil || reassigned.ReassignedCount != 1 {
+		t.Fatalf("logical-clock reassignment = %#v, %v", reassigned, err)
+	}
+	cutover := reassigned.Assignments[0].EffectiveFrom
+	if !firstMinute.PublishedAt.Before(cutover) {
+		t.Fatalf("logical First Minute/cutover order = %s / %s", firstMinute.PublishedAt, cutover)
+	}
+
+	current, err := fixture.service.ListStudents(ctx, fixture.admin, app.ListStudentsInput{})
+	if err != nil || directoryStudent(t, current, studentResult.StudentID).PrimaryTeacher.AccountID != secondTeacher.AccountID {
+		t.Fatalf("default current projection after clock rollback = %#v, %v", current, err)
+	}
+	historical, err := fixture.service.ListStudents(ctx, fixture.admin, app.ListStudentsInput{AsOf: firstMinute.PublishedAt})
+	if err != nil || directoryStudent(t, historical, studentResult.StudentID).PrimaryTeacher.AccountID != fixture.teacher.AccountID {
+		t.Fatalf("explicit pre-cutover projection = %#v, %v", historical, err)
+	}
+	queue, err := fixture.service.ListStudentOnboarding(ctx, fixture.owner)
+	if err != nil || len(queue) != 1 || queue[0].TeacherAccountID != secondTeacher.AccountID {
+		t.Fatalf("current onboarding projection after clock rollback = %#v, %v", queue, err)
+	}
+}
+
 func TestTeacherContinuityCommandsAreAtomicVersionedTemporalAndAudited(t *testing.T) {
 	fixture := newFixture(t)
 	ctx := context.Background()
@@ -383,12 +437,29 @@ func TestLessonReadsAndMutationsRemainRoleScoped(t *testing.T) {
 			t.Fatalf("seed role-scope Student: %v", err)
 		}
 	}
-	firstLesson := scheduleForTest(t, fixture, fixture.owner, "scope-first", fixture.clock.Now().Add(time.Hour), fixture.teacher.AccountID, "student_scope_1")
+	firstLesson := scheduleForTest(
+		t,
+		fixture,
+		fixture.owner,
+		"scope-first",
+		fixture.clock.Now().Add(time.Hour),
+		fixture.teacher.AccountID,
+		"student_scope_1",
+		"student_scope_2",
+	)
 	secondLesson := scheduleForTest(t, fixture, fixture.owner, "scope-second", fixture.clock.Now().Add(2*time.Hour), fixture.teacher.AccountID, "student_scope_2")
 	student := core.Principal{AccountID: "acct_scope_student_1", TenantID: fixture.owner.TenantID, Roles: []core.Role{core.RoleStudent}}
 	lessons, err := fixture.service.ListLessons(ctx, student, app.ListLessonsInput{From: fixture.clock.Now(), To: fixture.clock.Now().Add(3 * time.Hour)})
-	if err != nil || len(lessons) != 1 || lessons[0].ID != firstLesson.ID {
+	if err != nil || len(lessons) != 1 || lessons[0].ID != firstLesson.ID || len(lessons[0].Students) != 1 || lessons[0].Students[0].StudentID != "student_scope_1" {
 		t.Fatalf("Student role-scoped Lesson list = %#v, %v", lessons, err)
+	}
+	studentLesson, err := fixture.service.GetLesson(ctx, student, firstLesson.ID)
+	if err != nil || len(studentLesson.Students) != 1 || studentLesson.Students[0].StudentID != "student_scope_1" {
+		t.Fatalf("Student Lesson detail leaked peer participants = %#v, %v", studentLesson, err)
+	}
+	managerLesson, err := fixture.service.GetLesson(ctx, fixture.owner, firstLesson.ID)
+	if err != nil || len(managerLesson.Students) != 2 {
+		t.Fatalf("manager group Lesson projection = %#v, %v", managerLesson, err)
 	}
 	if _, err := fixture.service.GetLesson(ctx, student, secondLesson.ID); !core.IsCode(err, core.CodeNotFound) {
 		t.Fatalf("Student reads another Student Lesson = %v", err)

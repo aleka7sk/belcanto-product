@@ -34,6 +34,14 @@ import {
 } from "../components";
 import { SelectableRow } from "../lessonComponents";
 import { createLatestRequestGuard } from "../latestRequest";
+import {
+  createTeacherLessonState,
+  finishTeacherLessonLoad,
+  resolveTeacherLessonLoad,
+  selectTeacherLessonSource,
+  sourceTeachers,
+  startTeacherLessonLoad,
+} from "../teacherChangeState";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
 
@@ -54,17 +62,23 @@ export function TeacherChangeScreen() {
   const bootstrap = state.bootstrap;
   const [students, setStudents] = useState<StudentDirectoryItem[]>([]);
   const [teachers, setTeachers] = useState<StaffMember[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingLessons, setLoadingLessons] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [directoryError, setDirectoryError] = useState<string | null>(null);
+  const [lessonLoadError, setLessonLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("permanent");
-  const [currentTeacherAccountId, setCurrentTeacherAccountId] = useState("");
+  const [teacherLessonState, setTeacherLessonState] = useState(
+    createTeacherLessonState,
+  );
+  const {
+    sourceTeacherAccountId: currentTeacherAccountId,
+    lessons,
+    selectedLessonIds,
+    loading: loadingLessons,
+  } = teacherLessonState;
   const [selectedSourceTeacher, setSelectedSourceTeacher] =
     useState<AssignedTeacherSummary | null>(null);
   const [newTeacherAccountId, setNewTeacherAccountId] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
   const [guidedStudentIds, setGuidedStudentIds] = useState<string[]>([]);
   const [effectiveImmediately, setEffectiveImmediately] = useState(true);
   const [effectiveOn, setEffectiveOn] = useState("");
@@ -87,7 +101,7 @@ export function TeacherChangeScreen() {
   const loadDirectory = useCallback(async () => {
     if (!allowed) return;
     setLoading(true);
-    setLoadError(null);
+    setDirectoryError(null);
     try {
       const [studentDirectory, teacherDirectory] = await Promise.all([
         runAuthenticated((accessToken) => api.listStudents(accessToken)),
@@ -96,22 +110,30 @@ export function TeacherChangeScreen() {
       setStudents(studentDirectory);
       setTeachers(teacherDirectory);
     } catch (error) {
-      setLoadError(apiErrorMessage(error));
+      setDirectoryError(apiErrorMessage(error));
     } finally {
       setLoading(false);
     }
   }, [allowed, api, runAuthenticated]);
 
   const loadTeacherLessons = useCallback(async () => {
-    if (!allowed || currentTeacherAccountId === "") {
+    if (!allowed || currentTeacherAccountId === "" || mode !== "temporary") {
       lessonLoadGuard.current.cancel();
-      setLessons([]);
-      setLoadingLessons(false);
+      setTeacherLessonState((current) => ({
+        ...current,
+        lessons: [],
+        selectedLessonIds: [],
+        loading: false,
+      }));
+      setLessonLoadError(null);
       return;
     }
+    const sourceTeacherAccountId = currentTeacherAccountId;
     const request = lessonLoadGuard.current.begin();
-    setLoadingLessons(true);
-    setLoadError(null);
+    setTeacherLessonState((current) =>
+      startTeacherLessonLoad(current, sourceTeacherAccountId),
+    );
+    setLessonLoadError(null);
     const from = new Date();
     const to = new Date(from.getTime() + 365 * 24 * 60 * 60 * 1000);
     try {
@@ -121,18 +143,26 @@ export function TeacherChangeScreen() {
           {
             from: from.toISOString() as IsoDateTime,
             to: to.toISOString() as IsoDateTime,
-            teacherAccountId: currentTeacherAccountId,
+            teacherAccountId: sourceTeacherAccountId,
           },
           request.signal,
         ),
       );
-      if (request.isCurrent()) setLessons(result);
+      if (request.isCurrent()) {
+        setTeacherLessonState((current) =>
+          resolveTeacherLessonLoad(current, sourceTeacherAccountId, result),
+        );
+      }
     } catch (error) {
-      if (request.isCurrent()) setLoadError(apiErrorMessage(error));
+      if (request.isCurrent()) setLessonLoadError(apiErrorMessage(error));
     } finally {
-      if (request.isCurrent()) setLoadingLessons(false);
+      if (request.isCurrent()) {
+        setTeacherLessonState((current) =>
+          finishTeacherLessonLoad(current, sourceTeacherAccountId),
+        );
+      }
     }
-  }, [allowed, api, currentTeacherAccountId, runAuthenticated]);
+  }, [allowed, api, currentTeacherAccountId, mode, runAuthenticated]);
 
   useEffect(() => {
     let active = true;
@@ -162,22 +192,7 @@ export function TeacherChangeScreen() {
     );
   }
 
-  const currentTeachers = Array.from(
-    new Map(
-      students.map((student) => [
-        student.primaryTeacher.accountId,
-        student.primaryTeacher,
-      ]),
-    ).values(),
-  );
-  if (
-    selectedSourceTeacher !== null &&
-    !currentTeachers.some(
-      (teacher) => teacher.accountId === selectedSourceTeacher.accountId,
-    )
-  ) {
-    currentTeachers.push(selectedSourceTeacher);
-  }
+  const currentTeachers = sourceTeachers(students, selectedSourceTeacher);
   const eligibleStudents = students.filter(
     (student) => student.primaryTeacher.accountId === currentTeacherAccountId,
   );
@@ -192,12 +207,19 @@ export function TeacherChangeScreen() {
       );
 
   const selectCurrentTeacher = (teacher: AssignedTeacherSummary) => {
-    setCurrentTeacherAccountId(teacher.accountId);
+    if (teacher.accountId === currentTeacherAccountId) return;
+    lessonLoadGuard.current.cancel();
+    setTeacherLessonState((current) =>
+      selectTeacherLessonSource(current, teacher.accountId),
+    );
     setSelectedSourceTeacher(teacher);
     setNewTeacherAccountId("");
     setSelectedStudentIds([]);
-    setSelectedLessonIds([]);
     setGuidedStudentIds([]);
+    setLessonLoadError(null);
+    setErrors({});
+    setRequestError(null);
+    setSuccess(null);
     setReview(null);
     idempotency.abandon();
   };
@@ -224,11 +246,12 @@ export function TeacherChangeScreen() {
       }));
       return;
     }
-    setSelectedLessonIds((current) =>
-      current.includes(lessonId)
-        ? current.filter((candidate) => candidate !== lessonId)
-        : [...current, lessonId],
-    );
+    setTeacherLessonState((current) => ({
+      ...current,
+      selectedLessonIds: current.selectedLessonIds.includes(lessonId)
+        ? current.selectedLessonIds.filter((candidate) => candidate !== lessonId)
+        : [...current.selectedLessonIds, lessonId],
+    }));
     setErrors((current) => ({ ...current, lessons: undefined }));
   };
 
@@ -326,8 +349,15 @@ export function TeacherChangeScreen() {
       idempotency.complete();
       setReview(null);
       setSelectedStudentIds([]);
-      setSelectedLessonIds([]);
-      await Promise.all([loadDirectory(), loadTeacherLessons()]);
+      setTeacherLessonState((current) => ({
+        ...current,
+        selectedLessonIds: [],
+      }));
+      if (review.mode === "permanent") {
+        await loadDirectory();
+      } else {
+        await Promise.all([loadDirectory(), loadTeacherLessons()]);
+      }
       AccessibilityInfo.announceForAccessibility("Изменение сохранено");
     } catch (error) {
       const message = apiErrorMessage(error);
@@ -363,7 +393,7 @@ export function TeacherChangeScreen() {
               <Text style={styles.warning}>Существующие занятия не изменятся. При необходимости замените их отдельно.</Text>
             </>
           ) : (
-            <Text style={styles.summaryLine}>Будут изменены только явно выбранные занятия и их текущие версии.</Text>
+            <Text style={styles.summaryLine}>Будут изменены только явно выбранные занятия. Если данные успели измениться, приложение попросит обновить список.</Text>
           )}
         </PremiumCard>
         {requestError ? <InlineNotice title="Изменение не сохранено" body={requestError} tone="error" /> : null}
@@ -398,18 +428,28 @@ export function TeacherChangeScreen() {
           label="Постоянно переназначить учеников"
           supporting="Изменяет закреплённого педагога с выбранного момента"
           selected={mode === "permanent"}
-          onPress={() => { setMode("permanent"); setGuidedStudentIds([]); setReview(null); }}
+          onPress={() => {
+            if (mode === "permanent") return;
+            setMode("permanent");
+            setGuidedStudentIds([]);
+            setReview(null);
+          }}
         />
         <SelectableRow
           kind="radio"
           label="Временно заменить на занятиях"
           supporting="Изменяет только явно выбранные будущие занятия"
           selected={mode === "temporary"}
-          onPress={() => { setMode("temporary"); setGuidedStudentIds([]); setReview(null); }}
+          onPress={() => {
+            if (mode === "temporary") return;
+            setMode("temporary");
+            setGuidedStudentIds([]);
+            setReview(null);
+          }}
         />
       </View>
 
-      {loadError ? <InlineNotice title="Данные не загрузились" body={loadError} tone="error" /> : null}
+      {directoryError ? <InlineNotice title="Справочник не загрузился" body={directoryError} tone="error" /> : null}
       {loading ? <Text style={uiStyles.body}>Загружаем справочник…</Text> : null}
       <View style={styles.sectionHeader}>
         <Text style={uiStyles.sectionTitle}>Текущий педагог</Text>
@@ -445,7 +485,6 @@ export function TeacherChangeScreen() {
                   <SelectableRow
                     key={student.studentId}
                     label={student.fullName}
-                    supporting={`Версия закрепления: ${student.primaryTeacherAssignmentVersion}`}
                     selected={selectedStudentIds.includes(student.studentId)}
                     onPress={() => toggleStudent(student.studentId)}
                   />
@@ -496,12 +535,26 @@ export function TeacherChangeScreen() {
                 <Text style={uiStyles.supporting}>выбрано {selectedLessonIds.length} из {visibleLessons.length}</Text>
               </View>
               {loadingLessons ? <Text style={uiStyles.body}>Загружаем занятия…</Text> : null}
+              {lessonLoadError ? (
+                <>
+                  <InlineNotice
+                    title="Занятия не загрузились"
+                    body={lessonLoadError}
+                    tone="error"
+                  />
+                  <SecondaryButton
+                    disabled={loadingLessons}
+                    label="Повторить загрузку занятий"
+                    onPress={() => void loadTeacherLessons()}
+                  />
+                </>
+              ) : null}
               <View style={styles.stack}>
                 {visibleLessons.map((lesson) => (
                   <SelectableRow
                     key={lesson.id}
                     label={`${formatLessonDay(lesson.startsAt)}, ${formatLessonTime(lesson.startsAt)} · ${lesson.title}`}
-                    supporting={`${lesson.students.map((student) => student.fullName).join(", ")} · версия ${lesson.version}`}
+                    supporting={lesson.students.map((student) => student.fullName).join(", ")}
                     selected={selectedLessonIds.includes(lesson.id)}
                     onPress={() => toggleLesson(lesson.id)}
                   />

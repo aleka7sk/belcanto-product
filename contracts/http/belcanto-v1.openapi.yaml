@@ -1551,6 +1551,10 @@ components:
           type: array
           minItems: 1
           uniqueItems: true
+          description: >-
+            Owner, Administrator, and the assigned Teacher receive the Lesson
+            participants. A Student receives only their own participant entry;
+            peer names and identifiers are never exposed cross-student.
           items:
             $ref: "#/components/schemas/LessonStudent"
         status:

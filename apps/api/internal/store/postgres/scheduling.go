@@ -31,6 +31,13 @@ func (s *Store) ListStudents(ctx context.Context, principal core.Principal, asOf
 		if !manager && !teacher {
 			return core.E(core.CodeForbidden, "student directory permission is required", nil)
 		}
+		projectionAt := asOf
+		if projectionAt.IsZero() {
+			projectionAt, err = currentAssignmentProjectionTime(ctx, tx, principal.TenantID, now)
+			if err != nil {
+				return err
+			}
+		}
 		rows, err := tx.Query(ctx, `
 			SELECT s.id, student_person.full_name, teacher_account.id, teacher_person.full_name,
 			       CASE
@@ -71,7 +78,7 @@ func (s *Store) ListStudents(ctx context.Context, principal core.Principal, asOf
 			WHERE s.tenant_id = $1 AND s.status = 'active'
 			  AND ($4::boolean OR ta.teacher_account_id = $2)
 			ORDER BY student_person.full_name, s.id
-		`, principal.TenantID, principal.AccountID, asOf, manager)
+		`, principal.TenantID, principal.AccountID, projectionAt, manager)
 		if err != nil {
 			return fmt.Errorf("list Student directory: %w", err)
 		}
@@ -315,7 +322,7 @@ func (s *Store) ListLessons(ctx context.Context, principal core.Principal, query
 			return nil, err
 		}
 		if lessonVisible(scope, item) {
-			result = append(result, item)
+			result = append(result, lessonViewForScope(scope, item))
 		}
 	}
 	return result, nil
@@ -333,7 +340,7 @@ func (s *Store) GetLesson(ctx context.Context, principal core.Principal, lessonI
 	if !lessonVisible(scope, result) {
 		return core.Lesson{}, core.E(core.CodeNotFound, "Lesson not found", nil)
 	}
-	return result, nil
+	return lessonViewForScope(scope, result), nil
 }
 
 func (s *Store) ReplaceLessonTeachers(ctx context.Context, command core.ReplaceLessonTeachersCommand) (core.LessonTeacherReplacementResult, error) {
@@ -483,14 +490,8 @@ func (s *Store) ReassignPrimaryTeachers(ctx context.Context, command core.Reassi
 			result, err = decodeReplay[core.PrimaryTeacherReassignmentResult](claim)
 			return err
 		}
-		effectiveFrom := command.EffectiveFrom
 		switch command.EffectiveMode {
-		case core.PrimaryTeacherEffectiveImmediate:
-			effectiveFrom = command.Now
-		case core.PrimaryTeacherEffectiveScheduled:
-			if !effectiveFrom.After(command.Now) {
-				return core.E(core.CodeInvalidInput, "scheduled effectiveFrom must be in the future", nil)
-			}
+		case core.PrimaryTeacherEffectiveImmediate, core.PrimaryTeacherEffectiveScheduled:
 		default:
 			return core.E(core.CodeInvalidInput, "effectiveMode must be immediate or scheduled", nil)
 		}
@@ -515,6 +516,21 @@ func (s *Store) ReassignPrimaryTeachers(ctx context.Context, command core.Reassi
 		}
 		if err := lockAssignmentSubjects(ctx, tx, command.TenantID, studentIDs); err != nil {
 			return err
+		}
+		// Resolve time only after every Student subject is locked so an immediate
+		// transfer cannot retroactively invalidate a mutation that won the lock.
+		operationAt, err := assignmentOperationTime(ctx, tx, command.TenantID, studentIDs)
+		if err != nil {
+			return err
+		}
+		effectiveFrom := command.EffectiveFrom
+		switch command.EffectiveMode {
+		case core.PrimaryTeacherEffectiveImmediate:
+			effectiveFrom = operationAt
+		case core.PrimaryTeacherEffectiveScheduled:
+			if !effectiveFrom.After(operationAt) {
+				return core.E(core.CodeInvalidInput, "scheduled effectiveFrom must be in the future", nil)
+			}
 		}
 		plans := make([]primaryTeacherPlan, 0, len(targets))
 		for _, target := range targets {
@@ -583,7 +599,7 @@ func (s *Store) ReassignPrimaryTeachers(ctx context.Context, command core.Reassi
 				SET status = 'ended', ended_at = $4, effective_until = effective_from
 				WHERE tenant_id = $1 AND student_id = $2 AND status = 'active'
 				  AND effective_from >= $3
-			`, command.TenantID, plan.target.StudentID, effectiveFrom, command.Now); err != nil {
+			`, command.TenantID, plan.target.StudentID, effectiveFrom, operationAt); err != nil {
 				return fmt.Errorf("supersede future primary Teacher assignments: %w", err)
 			}
 			if plan.previousEffectiveFrom.Before(effectiveFrom) {
@@ -601,7 +617,7 @@ func (s *Store) ReassignPrimaryTeachers(ctx context.Context, command core.Reassi
 					assigned_by_account_id, assigned_at, effective_from, version
 				) VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8)
 			`, plan.target.AssignmentID, command.TenantID, plan.target.StudentID,
-				command.NewTeacherAccountID, command.ActorAccountID, command.Now,
+				command.NewTeacherAccountID, command.ActorAccountID, operationAt,
 				effectiveFrom, plan.newVersion); err != nil {
 				return mapSchedulingWriteError(err, "primary Teacher assignment conflicts with another change")
 			}
@@ -621,15 +637,15 @@ func (s *Store) ReassignPrimaryTeachers(ctx context.Context, command core.Reassi
 				tenantID: command.TenantID, actorID: command.ActorAccountID,
 				action: "StudentPrimaryTeacherReassigned", targetType: "student", targetID: plan.target.StudentID,
 				decision: "allow", reason: "primary_teacher_continuity", idempotencyKey: command.IdempotencyKey,
-				metadata: metadata, at: command.Now,
+				metadata: metadata, at: operationAt,
 			}); err != nil {
 				return err
 			}
-			if err := appendOutbox(ctx, tx, command.TenantID, "StudentPrimaryTeacherReassigned", "student", plan.target.StudentID, metadata, command.Now); err != nil {
+			if err := appendOutbox(ctx, tx, command.TenantID, "StudentPrimaryTeacherReassigned", "student", plan.target.StudentID, metadata, operationAt); err != nil {
 				return err
 			}
 		}
-		return completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "reassign_primary_teachers", command.IdempotencyKey, result, command.Now)
+		return completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "reassign_primary_teachers", command.IdempotencyKey, result, operationAt)
 	})
 	if core.IsCode(err, core.CodeForbidden) {
 		s.recordDenied(ctx, auditInput{
@@ -695,6 +711,10 @@ func readLesson(ctx context.Context, reader lessonReader, tenantID, lessonID str
 	if err != nil {
 		return core.Lesson{}, fmt.Errorf("read Lesson: %w", err)
 	}
+	// Keep PostgreSQL reads identical to request-normalized and idempotency
+	// replay values. pgx otherwise returns timestamptz in time.Local even when
+	// the runner's local offset is UTC.
+	result.StartsAt = result.StartsAt.UTC()
 	if location != nil {
 		result.Location = *location
 	}
@@ -773,6 +793,20 @@ func lessonVisible(scope lessonScope, lesson core.Lesson) bool {
 	return false
 }
 
+func lessonViewForScope(scope lessonScope, lesson core.Lesson) core.Lesson {
+	if scope.manager || (scope.teacherID != "" && lesson.Teacher.AccountID == scope.teacherID) {
+		return lesson
+	}
+	for _, student := range lesson.Students {
+		if student.StudentID == scope.studentID {
+			lesson.Students = []core.LessonStudent{student}
+			return lesson
+		}
+	}
+	lesson.Students = []core.LessonStudent{}
+	return lesson
+}
+
 func lessonCreateAuthority(ctx context.Context, tx pgx.Tx, tenantID, actorID string) (bool, bool, error) {
 	manager, err := lessonManagementAuthority(ctx, tx, tenantID, actorID)
 	if err != nil {
@@ -797,6 +831,48 @@ func lockAssignmentSubjects(ctx context.Context, tx pgx.Tx, tenantID string, stu
 		}
 	}
 	return nil
+}
+
+func assignmentOperationTime(ctx context.Context, tx pgx.Tx, tenantID string, studentIDs []string) (time.Time, error) {
+	var operationAt time.Time
+	if err := tx.QueryRow(ctx, `
+		WITH wall AS (
+			SELECT clock_timestamp() AS at
+		)
+		SELECT GREATEST(
+			wall.at,
+			COALESCE((
+				SELECT max(assigned_at) + interval '1 microsecond'
+				FROM teacher_assignments
+				WHERE tenant_id = $1 AND student_id = ANY($2::text[])
+			), wall.at),
+			COALESCE((
+				SELECT max(published_at) + interval '1 microsecond'
+				FROM first_minute_revisions
+				WHERE tenant_id = $1 AND student_id = ANY($2::text[])
+			), wall.at)
+		)
+		FROM wall
+	`, tenantID, studentIDs).Scan(&operationAt); err != nil {
+		return time.Time{}, fmt.Errorf("read serialized assignment operation time: %w", err)
+	}
+	return operationAt.UTC(), nil
+}
+
+func currentAssignmentProjectionTime(ctx context.Context, tx pgx.Tx, tenantID string, appNow time.Time) (time.Time, error) {
+	var projectionAt time.Time
+	if err := tx.QueryRow(ctx, `
+		SELECT GREATEST(
+			$2::timestamptz,
+			clock_timestamp(),
+			COALESCE(max(assigned_at), $2::timestamptz)
+		)
+		FROM teacher_assignments
+		WHERE tenant_id = $1
+	`, tenantID, appNow).Scan(&projectionAt); err != nil {
+		return time.Time{}, fmt.Errorf("resolve current primary Teacher projection time: %w", err)
+	}
+	return projectionAt.UTC(), nil
 }
 
 func lockLessonScheduleSubjects(ctx context.Context, tx pgx.Tx, tenantID, teacherAccountID string, studentIDs []string) error {
