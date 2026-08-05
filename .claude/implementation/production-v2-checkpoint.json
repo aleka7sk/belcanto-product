@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-05T23:59:00Z",
+  "updatedAt": "2026-08-06T01:30:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -113,7 +113,7 @@
       "phase": 1,
       "status": "in_progress",
       "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32",
-      "evidence": "sub-slice p1-security (commit 318822a) green: migration 000003, session inventory/revocation, security events feed, password recovery, server_config; OpenAPI 0.3.0; mobile decoders/client; Go race+PG integration green; mobile 21 suites/129 tests. Next: AUTH-01..11 + ACC-01..20 screens, contact verification + TOTP 2FA (migration 000004), activation progress, role switch UI, privacy/consents/export/deletion"
+      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f760444a0ea42308f6e68752b061ea360d): migrations 000003+000004, session inventory/revocation/security feed/password recovery, verified contacts + codes, TOTP 2FA with recovery codes and sign-in challenges, multi-step resumable activation; OpenAPI 0.3.0; mobile union sign-in + provider twofa + SignInScreen step; Go 7 pkgs + race, mobile 21/134. Remaining in phase 1: AUTH-01..11 + ACC-01..20 screens, role switch UI, privacy/consents/export/deletion (migration 000005), ACT deep-link guard base"
     },
     {
       "id": "p2-core-lessons",
@@ -171,6 +171,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "318822aa63ecd2f168d2e4fd07acdf1dea47bd39",
-  "nextSafeAction": "continue p1-identity-account: migration 000004_contact_twofa (verified_contacts, contact_verifications, twofa TOTP + recovery codes + challenges, activation_progress), then AUTH/ACC screens with i18n"
+  "lastGreenCodeSha": "006ae2f760444a0ea42308f6e68752b061ea360d",
+  "nextSafeAction": "continue p1-identity-account: migration 000005_policies_privacy (policy versions/acceptances, privacy settings, export/deletion requests DEC-104-safe) + AUTH/ACC screen set with i18n"
 }
