@@ -13,12 +13,15 @@ import {
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { DateStrip, LessonCard, StudentBottomNavigation } from "../lessonComponents";
+import { useMessage } from "@/i18n";
+import { DateStrip, LessonCard } from "../lessonComponents";
+import { RoleBottomNav } from "../roleNavigation";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, dateKey, nextScheduleDates } from "../viewModels";
 
 export function ScheduleScreen() {
   const api = useApiClient();
+  const message = useMessage();
   const { state, runAuthenticated } = useSession();
   const bootstrap = state.bootstrap;
   const dates = useMemo(() => nextScheduleDates(new Date(), 7), []);
@@ -106,10 +109,16 @@ export function ScheduleScreen() {
           />
         ))}
       </View>
-      <StudentBottomNavigation
+      <RoleBottomNav
         active="schedule"
-        onOpenHome={() => router.replace("/(protected)")}
-        onOpenSchedule={() => undefined}
+        isTabEnabled={(tab) => tab.key === "today" || tab.key === "schedule"}
+        label={(key) => message(`nav.${key}`)}
+        onSelectTab={(tab) => {
+          if (tab.key === "today") {
+            router.replace("/(protected)");
+          }
+        }}
+        role="Student"
       />
     </PremiumScrollScreen>
   );

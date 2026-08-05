@@ -1,16 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import {
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  type ImageSourcePropType,
 } from "react-native";
 
-import navHome from "../../assets/images/nav-home.png";
-import navSchedule from "../../assets/images/nav-schedule.png";
 import type { Lesson } from "@/api";
 
 import { colors, fonts, gradients, metrics, radii, spacing, typeScale } from "./tokens";
@@ -165,49 +161,6 @@ export function SelectableRow({
   );
 }
 
-const tabLabels = ["Сегодня", "Расписание", "Практика", "Сообщество", "Награды"];
-
-export function StudentBottomNavigation({
-  active,
-  onOpenHome,
-  onOpenSchedule,
-}: {
-  active: "home" | "schedule";
-  onOpenHome(): void;
-  onOpenSchedule(): void;
-}) {
-  const source: ImageSourcePropType = active === "home" ? navHome : navSchedule;
-  return (
-    <View style={styles.navShell}>
-      <Image
-        accessibilityIgnoresInvertColors
-        resizeMode="contain"
-        source={source}
-        style={styles.navImage}
-      />
-      <View style={styles.navActions}>
-        {tabLabels.map((label, index) => {
-          const enabled = index < 2;
-          const selected =
-            (active === "home" && index === 0) ||
-            (active === "schedule" && index === 1);
-          return (
-            <Pressable
-              accessibilityLabel={label}
-              accessibilityRole="tab"
-              accessibilityState={{ disabled: !enabled, selected }}
-              disabled={!enabled}
-              key={label}
-              onPress={index === 0 ? onOpenHome : onOpenSchedule}
-              style={styles.navAction}
-            />
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
@@ -308,21 +261,4 @@ const styles = StyleSheet.create({
   selectionCopy: { flex: 1, marginLeft: spacing.md },
   selectionLabel: { color: colors.textPrimary, fontFamily: fonts.semibold, ...typeScale.body },
   selectionSupporting: { color: colors.textMuted, fontFamily: fonts.regular, marginTop: spacing.xs, ...typeScale.supporting },
-  navShell: {
-    alignSelf: "center",
-    aspectRatio: 354 / 76,
-    maxWidth: 354,
-    position: "relative",
-    width: "100%",
-  },
-  navImage: { height: "100%", width: "100%" },
-  navActions: {
-    bottom: 0,
-    flexDirection: "row",
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
-  navAction: { flex: 1, minHeight: metrics.minimumTarget },
 });

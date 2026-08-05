@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ApiClient, ApiClientProvider } from "@/api";
 import { ActivationLinkProvider } from "@/activation/useActivationLinkState";
+import { LocaleProvider } from "@/i18n";
 import { readRuntimeConfig } from "@/runtime/config";
 import { SessionProvider } from "@/session";
 
@@ -47,13 +48,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <ApiClientProvider client={api}>
-        <ActivationLinkProvider policy={config.activationLinkPolicy}>
-          <SessionProvider api={api}>
-            <Slot />
-          </SessionProvider>
-        </ActivationLinkProvider>
-      </ApiClientProvider>
+      <LocaleProvider>
+        <ApiClientProvider client={api}>
+          <ActivationLinkProvider policy={config.activationLinkPolicy}>
+            <SessionProvider api={api}>
+              <Slot />
+            </SessionProvider>
+          </ActivationLinkProvider>
+        </ApiClientProvider>
+      </LocaleProvider>
     </SafeAreaProvider>
   );
 }

@@ -14,7 +14,9 @@ import {
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { InitialsAvatar, StudentBottomNavigation } from "../lessonComponents";
+import { useMessage } from "@/i18n";
+import { InitialsAvatar } from "../lessonComponents";
+import { RoleBottomNav } from "../roleNavigation";
 import { colors, fonts, gradients, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
 
@@ -26,6 +28,7 @@ export function LessonDetailScreen({
   firstMinute: FirstMinute;
 }) {
   const api = useApiClient();
+  const message = useMessage();
   const { state, runAuthenticated } = useSession();
   const bootstrap = state.bootstrap;
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -103,10 +106,18 @@ export function LessonDetailScreen({
           </PremiumCard>
         </>
       ) : null}
-      <StudentBottomNavigation
+      <RoleBottomNav
         active="schedule"
-        onOpenHome={() => router.replace("/(protected)")}
-        onOpenSchedule={() => router.replace("/(protected)/schedule")}
+        isTabEnabled={(tab) => tab.key === "today" || tab.key === "schedule"}
+        label={(key) => message(`nav.${key}`)}
+        onSelectTab={(tab) => {
+          if (tab.key === "today") {
+            router.replace("/(protected)");
+          } else if (tab.key === "schedule") {
+            router.replace("/(protected)/schedule");
+          }
+        }}
+        role="Student"
       />
     </PremiumScrollScreen>
   );

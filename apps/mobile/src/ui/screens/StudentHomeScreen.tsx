@@ -22,7 +22,9 @@ import {
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { LessonCard, StudentBottomNavigation } from "../lessonComponents";
+import { useMessage } from "@/i18n";
+import { LessonCard } from "../lessonComponents";
+import { RoleBottomNav } from "../roleNavigation";
 import {
   colors,
   fonts,
@@ -46,6 +48,7 @@ export function StudentHomeScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const message = useMessage();
   const api = useApiClient();
   const { signOut, runAuthenticated } = useSession();
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -194,10 +197,16 @@ export function StudentHomeScreen({
               />
             ) : null}
             <SecondaryButton label="Выйти" onPress={() => void leave()} />
-            <StudentBottomNavigation
-              active="home"
-              onOpenHome={() => undefined}
-              onOpenSchedule={() => router.push("/(protected)/schedule")}
+            <RoleBottomNav
+              active="today"
+              isTabEnabled={(tab) => tab.key === "today" || tab.key === "schedule"}
+              label={(key) => message(`nav.${key}`)}
+              onSelectTab={(tab) => {
+                if (tab.key === "schedule") {
+                  router.push("/(protected)/schedule");
+                }
+              }}
+              role="Student"
             />
           </View>
         </View>
