@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T03:10:00Z",
+  "updatedAt": "2026-08-06T05:40:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -113,7 +113,7 @@
       "phase": 1,
       "status": "in_progress",
       "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32",
-      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f) + p1-privacy-data-rights (f6af36b): migrations 000003-000005, session inventory/revocation/security feed/password recovery, verified contacts + codes, TOTP 2FA, multi-step activation, policy catalog/acceptance, versioned privacy settings, DEC-104-safe export/deletion requests behind re-auth; OpenAPI 0.4.0 (9 new privacy ops, 18 security-feed actions); memory+PG parity incl. privacy integration test with scheduled_for schema guard; Go full suite + race on disposable PG, mobile 22 suites/144 tests. Remaining in phase 1: AUTH-01..11 + ACC-01..20 screens with i18n, role switch UI, ACT deep-link guard base"
+      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f) + p1-privacy-data-rights (f6af36b) + p1-account-area (24f16d7): migrations 000003-000005; profile API GET/PUT /v1/me/profile (ProfileUpdated -> 19 feed actions, OpenAPI 0.4.0); account pattern kit + settings/chevron icons from exact Figma vectors; typed ru/kk catalog ACC-01..20 + AUTH-07..11 (KK flagged for human review); 16 live screens: hub, personal+rename, contact change, role switch + ACC-20 fallback, security center, 2FA enroll/disable with recovery codes, devices + revoke-others, security activity review, privacy center/visibility/community toggles (version CAS), export + DEC-104 banner, deletion request/cancel date-free, policies accept, roles overview, public recovery AUTH-07/08/09; ActiveRoleProvider (HOF-03) + profile tab on student screens; Go full suite + race on disposable PG, mobile 24 suites/151 tests, contract lint OK, validator 0 errors. Remaining in phase 1: AUTH-01..06/10/11 screen refresh (sign-in restyle, resume checklist, no-roles state), ACC-07/13 device capability screens, ACT-01..09 deep-link guard chain"
     },
     {
       "id": "p2-core-lessons",
@@ -171,6 +171,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "f6af36b",
-  "nextSafeAction": "continue p1-identity-account: build AUTH-01..11 + ACC-01..20 screens with i18n on the finished API surface (sessions, contacts, 2FA, privacy, data rights), role switch UI (ACC-04/19/20), activation deep-link guard base"
+  "lastGreenCodeSha": "24f16d7",
+  "nextSafeAction": "finish p1-identity-account: AUTH-06 sign-in restyle + AUTH-10 resume-activation checklist + AUTH-11 no-roles state, ACC-07/13 device capability screens, activation deep-link guard chain; then phase 2 core lessons"
 }
