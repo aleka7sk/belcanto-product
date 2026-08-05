@@ -207,8 +207,8 @@ export function SignInScreen() {
       <View style={styles.forgotAction}>
         <TextAction
           align="right"
-          label="Забыли пароль?"
-          onPress={() => setSupportVisible(true)}
+          label="Забыли пароль"
+          onPress={() => router.push("/recover")}
         />
       </View>
 
@@ -220,9 +220,9 @@ export function SignInScreen() {
       ) : null}
 
       <PremiumCard style={styles.securityCard}>
-        <Text style={styles.securityTitle}>Защищённый доступ</Text>
+        <Text style={styles.securityTitle}>Не получается войти?</Text>
         <Text style={styles.securityBody}>
-          Роль и доступ определяются аккаунтом школы.
+          Восстановите доступ без создания нового аккаунта.
         </Text>
       </PremiumCard>
       <TextAction
