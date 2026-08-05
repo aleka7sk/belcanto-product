@@ -1148,6 +1148,7 @@ export const SECURITY_EVENT_ACTIONS = [
   "TwofaEnrolled",
   "TwofaDisabled",
   "TwofaChallengeFailed",
+  "ProfileUpdated",
   "PolicyAccepted",
   "PrivacySettingsUpdated",
   "DataExportRequested",
@@ -1578,6 +1579,41 @@ export const decodeRecoveryCodes: Decoder<string[]> = (value) => {
   });
   unique(codes, contract, "$.recoveryCodes");
   return codes;
+};
+
+// ---- P.1 account profile (ACC-01/02) ----
+
+export interface ProfileView {
+  accountId: string;
+  fullName: string;
+  tenantName: string;
+  roles: Role[];
+  phone: string;
+}
+
+export interface UpdateProfileRequest {
+  fullName: string;
+}
+
+export const decodeProfileView: Decoder<ProfileView> = (value) => {
+  const contract = "ProfileView";
+  const source = record(value, contract);
+  exactKeys(source, ["accountId", "fullName", "tenantName", "roles", "phone"], contract);
+  if (!Array.isArray(source.roles)) {
+    throw new ContractDecodeError(contract, "$.roles");
+  }
+  const roles = source.roles.map((entry, index) =>
+    oneOf(entry, ROLES, contract, `$.roles[${index}]`),
+  );
+  unique(roles, contract, "$.roles");
+  const phone = stringField(source, "phone", contract, true) ?? "";
+  return {
+    accountId: identifierField(source, "accountId", contract)!,
+    fullName: stringField(source, "fullName", contract)!,
+    tenantName: stringField(source, "tenantName", contract)!,
+    roles,
+    phone,
+  };
 };
 
 // ---- P.1 policies, privacy and data rights (ACC-10..12, ACC-14..18) ----

@@ -799,3 +799,19 @@ type CancelDeletionRequestCommand struct {
 	Principal Principal
 	Now       time.Time
 }
+
+// P.1 account profile (Figma Page 32: ACC-01/02).
+
+type ProfileView struct {
+	AccountID  string `json:"accountId"`
+	FullName   string `json:"fullName"`
+	TenantName string `json:"tenantName"`
+	Roles      []Role `json:"roles"`
+	Phone      string `json:"phone"`
+}
+
+type UpdateProfileCommand struct {
+	Principal Principal
+	FullName  string
+	Now       time.Time
+}

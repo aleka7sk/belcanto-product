@@ -108,13 +108,17 @@ export function LessonDetailScreen({
       ) : null}
       <RoleBottomNav
         active="schedule"
-        isTabEnabled={(tab) => tab.key === "today" || tab.key === "schedule"}
+        isTabEnabled={(tab) =>
+          tab.key === "today" || tab.key === "schedule" || tab.key === "profile"
+        }
         label={(key) => message(`nav.${key}`)}
         onSelectTab={(tab) => {
           if (tab.key === "today") {
             router.replace("/(protected)");
           } else if (tab.key === "schedule") {
             router.replace("/(protected)/schedule");
+          } else if (tab.key === "profile") {
+            router.push("/(protected)/account");
           }
         }}
         role="Student"

@@ -1,4 +1,9 @@
 import type { NavLabelKey } from "../navigation/tabs";
+import {
+  kkKZAccount,
+  ruKZAccount,
+  type AccountMessageKey,
+} from "./accountMessages";
 
 /**
  * Locale contract per HOF-15: ru-KZ and kk-KZ, ICU-style plural rules,
@@ -18,12 +23,12 @@ export const SUPPORTED_LOCALES: readonly Locale[] = ["ru-KZ", "kk-KZ"];
 
 export const DEFAULT_LOCALE: Locale = "ru-KZ";
 
-export type MessageKey = NavLabelKey;
+export type MessageKey = NavLabelKey | AccountMessageKey;
 
 export type Catalog = Readonly<Record<MessageKey, string>>;
 
 /** Bottom Navigation labels, verbatim from Figma 310:20542 variants. */
-export const ruKZ: Catalog = {
+const ruKZNav: Readonly<Record<NavLabelKey, string>> = {
   "nav.today": "Сегодня",
   "nav.schedule": "Расписание",
   "nav.practice": "Практика",
@@ -39,7 +44,7 @@ export const ruKZ: Catalog = {
   "nav.team": "Команда",
 };
 
-export const kkKZ: Catalog = {
+const kkKZNav: Readonly<Record<NavLabelKey, string>> = {
   "nav.today": "Бүгін",
   "nav.schedule": "Кесте", // figma 370:107 (shell override I370:139;310:289)
   "nav.practice": "Тәжірибе",
@@ -54,3 +59,7 @@ export const kkKZ: Catalog = {
   "nav.analytics": "Аналитика",
   "nav.team": "Команда",
 };
+
+export const ruKZ: Catalog = { ...ruKZNav, ...ruKZAccount };
+
+export const kkKZ: Catalog = { ...kkKZNav, ...kkKZAccount };

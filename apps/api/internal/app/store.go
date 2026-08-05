@@ -44,6 +44,9 @@ type Store interface {
 	FailTwofaChallenge(context.Context, []byte, time.Time) error
 	TryConsumeRecoveryCode(context.Context, string, string, []byte, time.Time) (bool, error)
 
+	ProfileView(context.Context, core.Principal) (core.ProfileView, error)
+	UpdateProfile(context.Context, core.UpdateProfileCommand) (core.ProfileView, error)
+
 	ListPolicies(context.Context, core.Principal) ([]core.PolicyVersion, error)
 	AcceptPolicy(context.Context, core.AcceptPolicyCommand) error
 	PrivacySettings(context.Context, core.Principal) (core.PrivacySettings, error)

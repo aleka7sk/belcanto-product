@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ActiveRoleProvider } from "@/access/activeRole";
 import { ApiClient, ApiClientProvider } from "@/api";
 import { ActivationLinkProvider } from "@/activation/useActivationLinkState";
 import { LocaleProvider } from "@/i18n";
@@ -52,7 +53,9 @@ export default function RootLayout() {
         <ApiClientProvider client={api}>
           <ActivationLinkProvider policy={config.activationLinkPolicy}>
             <SessionProvider api={api}>
-              <Slot />
+              <ActiveRoleProvider>
+                <Slot />
+              </ActiveRoleProvider>
             </SessionProvider>
           </ActivationLinkProvider>
         </ApiClientProvider>

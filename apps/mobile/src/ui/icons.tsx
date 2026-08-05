@@ -17,7 +17,9 @@ export type IconName =
   | "users"
   | "trophy"
   | "check"
-  | "more";
+  | "more"
+  | "settings"
+  | "chevron";
 
 export type IconProps = {
   size?: number;
@@ -69,6 +71,15 @@ const TROPHY_PATHS = [
 
 const CHECK_PATHS = ["M5 12L9 16L19 6"] as const;
 
+/** __Icon/Settings 131:106 — gear translated into the 24-viewBox. */
+const SETTINGS_PATHS = [
+  "M 17.77 11.205 L 17.77 8.715 L 16.11 8.134 L 15.446 6.557 L 16.193 4.98 L 14.45 3.237 L 12.873 3.984 L 11.296 3.32 L 10.715 1.66 L 8.225 1.66 L 7.644 3.32 L 6.067 3.984 L 4.49 3.237 L 2.747 4.98 L 3.494 6.557 L 2.83 8.134 L 2.83 10.624 L 4.49 11.205 L 5.154 12.782 L 4.407 14.359 L 6.15 16.102 L 7.727 15.355 L 9.304 16.019 L 9.885 17.679 L 12.375 17.679 L 12.956 16.019 L 14.533 15.355 L 16.11 16.102 L 17.853 14.359 L 17.106 12.782 L 17.77 11.205 Z",
+  "M 15 12 C 15 13.657 13.657 15 12 15 C 10.343 15 9 13.657 9 12 C 9 10.343 10.343 9 12 9 C 13.657 9 15 10.343 15 12 Z",
+] as const;
+
+/** __Icon/Chevron 12:32 — forward chevron in the 24-viewBox. */
+const CHEVRON_PATHS = ["M 9 5 L 16 12 L 9 19"] as const;
+
 const MORE_PATHS = [
   "M5 13.5C5.82843 13.5 6.5 12.8284 6.5 12C6.5 11.1716 5.82843 10.5 5 10.5C4.17157 10.5 3.5 11.1716 3.5 12C3.5 12.8284 4.17157 13.5 5 13.5Z",
   "M12 13.5C12.8284 13.5 13.5 12.8284 13.5 12C13.5 11.1716 12.8284 10.5 12 10.5C11.1716 10.5 10.5 11.1716 10.5 12C10.5 12.8284 11.1716 13.5 12 13.5Z",
@@ -99,6 +110,14 @@ export function CheckIcon(props: IconProps) {
   return <StrokeIcon {...props} paths={CHECK_PATHS} />;
 }
 
+export function SettingsIcon(props: IconProps) {
+  return <StrokeIcon {...props} paths={SETTINGS_PATHS} />;
+}
+
+export function ChevronIcon(props: IconProps) {
+  return <StrokeIcon {...props} paths={CHEVRON_PATHS} />;
+}
+
 export function MoreIcon({ size = sizes.iconMd, color = semantic.iconDefault }: IconProps) {
   return (
     <Svg fill="none" height={size} viewBox="0 0 24 24" width={size}>
@@ -125,5 +144,9 @@ export function Icon({ name, ...rest }: IconProps & { name: IconName }) {
       return <CheckIcon {...rest} />;
     case "more":
       return <MoreIcon {...rest} />;
+    case "settings":
+      return <SettingsIcon {...rest} />;
+    case "chevron":
+      return <ChevronIcon {...rest} />;
   }
 }

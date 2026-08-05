@@ -199,11 +199,15 @@ export function StudentHomeScreen({
             <SecondaryButton label="Выйти" onPress={() => void leave()} />
             <RoleBottomNav
               active="today"
-              isTabEnabled={(tab) => tab.key === "today" || tab.key === "schedule"}
+              isTabEnabled={(tab) =>
+                tab.key === "today" || tab.key === "schedule" || tab.key === "profile"
+              }
               label={(key) => message(`nav.${key}`)}
               onSelectTab={(tab) => {
                 if (tab.key === "schedule") {
                   router.push("/(protected)/schedule");
+                } else if (tab.key === "profile") {
+                  router.push("/(protected)/account");
                 }
               }}
               role="Student"

@@ -15,6 +15,7 @@ import {
   decodeDeletionRequest,
   decodePolicyVersions,
   decodePrivacySettings,
+  decodeProfileView,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -60,6 +61,8 @@ import {
   type DeletionRequest,
   type PolicyVersion,
   type PrivacySettings,
+  type ProfileView,
+  type UpdateProfileRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -375,6 +378,22 @@ export const routes = {
       [401, 422, 500],
       decodeSecurityEventsPage,
     ),
+  myProfile: route<ProfileView>(
+    "GET",
+    "/v1/me/profile",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeProfileView,
+  ),
+  updateMyProfile: route<ProfileView>(
+    "PUT",
+    "/v1/me/profile",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeProfileView,
+  ),
   listPolicies: route<PolicyVersion[]>(
     "GET",
     "/v1/policies",
@@ -605,6 +624,7 @@ export type RouteRequestBodies = {
   startTwofaEnrollment: CurrentPasswordRequest;
   confirmTwofaEnrollment: TwofaCodeRequest;
   disableTwofa: DisableTwofaRequest;
+  updateMyProfile: UpdateProfileRequest;
   acceptPolicy: AcceptPolicyRequest;
   updatePrivacySettings: PrivacySettings;
   createDataExport: CurrentPasswordRequest;

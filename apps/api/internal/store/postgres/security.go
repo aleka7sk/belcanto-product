@@ -29,6 +29,7 @@ var securityAuditActions = []string{
 	"TwofaEnrolled",
 	"TwofaDisabled",
 	"TwofaChallengeFailed",
+	"ProfileUpdated",
 	"PolicyAccepted",
 	"PrivacySettingsUpdated",
 	"DataExportRequested",

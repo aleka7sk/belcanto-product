@@ -35,6 +35,8 @@ import {
   type DeletionRequest,
   type PolicyVersion,
   type PrivacySettings,
+  type ProfileView,
+  type UpdateProfileRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -369,6 +371,18 @@ export class ApiClient {
       accessToken,
       signal,
     });
+  }
+
+  myProfile(accessToken: string, signal?: AbortSignal): Promise<ProfileView> {
+    return this.request(routes.myProfile, { accessToken, signal });
+  }
+
+  updateMyProfile(
+    accessToken: string,
+    body: UpdateProfileRequest,
+    signal?: AbortSignal,
+  ): Promise<ProfileView> {
+    return this.request(routes.updateMyProfile, { accessToken, body, signal });
   }
 
   listPolicies(

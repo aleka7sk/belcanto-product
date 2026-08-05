@@ -37,6 +37,7 @@ var securityAuditActions = map[string]bool{
 	"TwofaEnrolled":             true,
 	"TwofaDisabled":             true,
 	"TwofaChallengeFailed":      true,
+	"ProfileUpdated":            true,
 	"PolicyAccepted":            true,
 	"PrivacySettingsUpdated":    true,
 	"DataExportRequested":       true,

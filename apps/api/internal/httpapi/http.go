@@ -59,6 +59,8 @@ func New(service *app.Service) http.Handler {
 	mux.Handle("POST /v1/me/twofa/enroll", api.authenticated(http.HandlerFunc(api.startTwofaEnrollment)))
 	mux.Handle("POST /v1/me/twofa/confirm", api.authenticated(http.HandlerFunc(api.confirmTwofaEnrollment)))
 	mux.Handle("POST /v1/me/twofa/disable", api.authenticated(http.HandlerFunc(api.disableTwofa)))
+	mux.Handle("GET /v1/me/profile", api.authenticated(http.HandlerFunc(api.myProfile)))
+	mux.Handle("PUT /v1/me/profile", api.authenticated(http.HandlerFunc(api.updateMyProfile)))
 	mux.Handle("GET /v1/policies", api.authenticated(http.HandlerFunc(api.listPolicies)))
 	mux.Handle("POST /v1/me/policy-acceptances", api.authenticated(http.HandlerFunc(api.acceptPolicy)))
 	mux.Handle("GET /v1/me/privacy", api.authenticated(http.HandlerFunc(api.privacySettings)))
