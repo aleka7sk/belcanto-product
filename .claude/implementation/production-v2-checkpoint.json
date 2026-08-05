@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "artifact": "non-normative implementation checkpoint ledger (production prompt §12); no product/domain decisions live here",
+  "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
+  "baselineRef": "origin/agent/l1-internal-scheduling",
+  "branch": "agent/production-v2",
+  "updatedAt": "2026-08-05T22:20:00Z",
+  "phase": "phase0-complete",
+  "figma": {
+    "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
+    "rootNodeName": "Document",
+    "expectedDisplayName": "Belcanto Mobile — Premium Product Design v1.0",
+    "fileNameNote": "figma.root.name returns 'Document' (38 pages); identity established by file key + full structural match (Pages 19-37, HOF-01..22, FLW-A..P, canonical nodes 340:2/355:2/316:2). Display-name string is not readable via available MCP tools; recorded as preflight deviation, non-blocking.",
+    "handoffPage": "293:20",
+    "hofBoards": {
+      "HOF-01": "380:2", "HOF-02": "380:43", "HOF-03": "380:74", "HOF-04": "380:112",
+      "HOF-05": "380:156", "HOF-06": "380:228", "HOF-07": "380:262", "HOF-08": "380:296",
+      "HOF-09": "381:2", "HOF-10": "381:45", "HOF-11": "381:86", "HOF-12": "381:134",
+      "HOF-13": "381:186", "HOF-14": "381:239", "HOF-15": "381:294", "HOF-16": "381:327",
+      "HOF-17": "382:2", "HOF-18": "382:43", "HOF-19": "382:111", "HOF-20": "382:184",
+      "HOF-21": "382:271", "HOF-22": "382:325"
+    }
+  },
+  "corpusValidatorBaseline": {
+    "command": "python3 .claude/scripts/validate.py",
+    "errors": 0,
+    "warnings": 99,
+    "knownAccepted": 78,
+    "skippedPartial": 2,
+    "exitCode": 0,
+    "note": "Prompt expected 77 known/accepted; actual baseline on d447c2c is 78. Final comparison must be against this actual baseline."
+  },
+  "worktreeCarryOver": {
+    "description": "Uncommitted local-dev hardening inherited from prior sessions, preserved verbatim: godotenv.Load() in cmd/api+cmd/migrate, go.mod/go.sum joho/godotenv v1.5.1, compose POSTGRES_PORT parameterization, .env.example note, migrations foreign-ledger shape guard + TestMigrationLedgerForeignShape",
+    "files": [".env.example", "apps/api/cmd/api/main.go", "apps/api/cmd/migrate/main.go", "apps/api/go.mod", "apps/api/go.sum", "apps/api/migrations/embed.go", "apps/api/migrations/integration_test.go", "compose.yaml"],
+    "plan": "commit as first checkpoint after green api test run; .DS_Store and .idea/ are never committed"
+  },
+  "openP0Decisions": [
+    "DEC-102 · late-cancellation policy and consequences (P0 Business; default: no auto penalty)",
+    "DEC-103 · guardian consent for minors and community media (P0 Legal; B.0 activation stays adult-only per PR-09)",
+    "DEC-104 · legal retention / export / deletion SLA (P0 Legal/Ops; no SLA promised in UI)"
+  ],
+  "slices": [
+    { "id": "p0-authority-reading", "phase": 0, "status": "completed", "summary": "authority docs read + divergence register", "evidence": "constitution, DES-006/008/009, meta/001/002/006/007/011 read directly; product/domain/governance extracted verbatim; register in traceability §5" },
+    { "id": "p0-hof-contract", "phase": 0, "status": "completed", "summary": "HOF-01..22 + FLW-A..P read via get_design_context/metadata", "evidence": "see production-v2-traceability.md" },
+    { "id": "p0-reuse-gap-audit", "phase": 0, "status": "completed", "summary": "map existing B.0/L.1 code vs 242 states", "evidence": "mobile+api survey in traceability §3; per-page state enumeration happens at each slice start" },
+    { "id": "p0-migration-plan", "phase": 0, "status": "completed", "summary": "additive migration + shared API boundary plan", "evidence": "traceability §7" },
+    { "id": "p0-toolchain-baseline", "phase": 0, "status": "completed", "summary": "green baseline of §14 commands + first checkpoint commit", "evidence": "pnpm 11.7.0; validate.py errors 0/warnings 99/known 78; contract:lint OK; mobile:check 16 suites/101 tests; expo-doctor 20/20 after SDK57 patch bump; api-format/tidy/vet/build OK; migrate+api-test+api-race OK on disposable PG 18.4 127.0.0.1:5544/belcanto_test (fresh container belcanto-prodv2-test-pg, 0 mounts); commit f9e994b71d29601698d3bb6f75402b2197679bed" },
+    { "id": "p1-identity-account", "phase": 1, "status": "not_started", "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32" },
+    { "id": "p2-core-lessons", "phase": 2, "status": "not_started", "summary": "CoreLessonSeries/Occurrence individual=1 group<=3, rooms, assignment, attendance base, migration from generic Lesson" },
+    { "id": "p2-events-rsvp", "phase": 2, "status": "not_started", "summary": "EventSeries/Occurrence, recurrence+exceptions, RSVP/waitlist/spot offers atomic, categories data-driven" },
+    { "id": "p2-reschedule", "phase": 2, "status": "not_started", "summary": "reschedule/cancellation requests + admin decision + notify" },
+    { "id": "p3-student-loop", "phase": 3, "status": "not_started", "summary": "Today/Home, progress/evidence/goals/achievements, homework/practice/recorder, repertoire, teachers" },
+    { "id": "p4-teacher-ops", "phase": 4, "status": "not_started", "summary": "teacher today, attendance, journal draft/publish cascade/correction, review, roster" },
+    { "id": "p5-community-notifications", "phase": 5, "status": "not_started", "summary": "feed/threads/chat boundaries, report/block/moderation, notifications/activity/deep links, outbox worker" },
+    { "id": "p6-admin-owner", "phase": 6, "status": "not_started", "summary": "admin operations, conflicts, people/rooms, owner analytics aggregate-first, roles/policies/export" },
+    { "id": "p7-reliability-a11y-l10n", "phase": 7, "status": "not_started", "summary": "offline/cache/sync/upload recovery, RU/KK + pseudolocale, Dynamic Type/fontScale, motion, analytics/observability" },
+    { "id": "p8-e2e-release", "phase": 8, "status": "not_started", "summary": "flows A-P E2E, visual QA, CI-equivalent gates, final traceability" }
+  ],
+  "blockers": [],
+  "lastGreenCodeSha": "f9e994b71d29601698d3bb6f75402b2197679bed",
+  "nextSafeAction": "Phase 1 slice p1-security-foundation: enumerate Page 32 states (get_metadata 293:15), then vertical slice for verified contacts + 2FA + session inventory/revoke + security events (migration 000003_identity_security)"
+}
