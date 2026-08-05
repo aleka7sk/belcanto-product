@@ -65,6 +65,23 @@ func TestMigrationLedgerRepeatConcurrencyAndDrift(t *testing.T) {
 	}
 }
 
+func TestMigrationLedgerForeignShape(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	pool := isolatedMigrationPool(t, ctx, databaseURL)
+
+	if _, err := pool.Exec(ctx, `CREATE TABLE schema_migrations (filename text PRIMARY KEY, applied_at timestamptz NOT NULL)`); err != nil {
+		t.Fatalf("create foreign migration ledger: %v", err)
+	}
+	if err := Up(ctx, pool); err == nil || !strings.Contains(err.Error(), "incompatible shape") {
+		t.Fatalf("foreign ledger error = %v", err)
+	}
+}
+
 func isolatedMigrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {
 	t.Helper()
 	adminPool, err := pgxpool.New(ctx, databaseURL)

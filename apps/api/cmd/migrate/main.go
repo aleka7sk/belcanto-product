@@ -10,9 +10,11 @@ import (
 
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/store/postgres"
 	"github.com/aleka7sk/belcanto-product/apps/api/migrations"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	if err := run(os.Args[1:]); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "migrate:", err)
 		os.Exit(1)

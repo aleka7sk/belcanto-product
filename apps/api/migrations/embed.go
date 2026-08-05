@@ -61,6 +61,9 @@ func Up(ctx context.Context, pool *pgxpool.Pool) error {
 	if _, err := tx.Exec(ctx, ledgerDDL); err != nil {
 		return fmt.Errorf("create migration ledger: %w", err)
 	}
+	if _, err := tx.Exec(ctx, `SELECT version, checksum, description, applied_at FROM schema_migrations LIMIT 0`); err != nil {
+		return fmt.Errorf("migration ledger schema_migrations has an incompatible shape (does DATABASE_URL point at a database owned by another application?): %w", err)
+	}
 	for _, candidate := range registeredMigrations() {
 		digest := sha256.Sum256([]byte(candidate.up))
 		wantChecksum := hex.EncodeToString(digest[:])

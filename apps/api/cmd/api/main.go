@@ -16,9 +16,11 @@ import (
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/security"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/store/postgres"
 	"github.com/aleka7sk/belcanto-product/apps/api/migrations"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	if err := run(logger); err != nil {
 		logger.Error("api stopped", "error", err)
