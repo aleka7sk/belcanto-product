@@ -45,3 +45,21 @@ func Fingerprint(value any) ([]byte, error) {
 	digest := sha256.Sum256(encoded)
 	return digest[:], nil
 }
+
+// MaskContact renders a privacy-safe preview of a verified contact for
+// activation progress and Security Center screens.
+func MaskContact(kind, value string) string {
+	if kind == "phone" {
+		return MaskPhone(value)
+	}
+	at := strings.IndexByte(value, '@')
+	if at <= 0 {
+		return "***"
+	}
+	local, domain := value[:at], value[at+1:]
+	visible := 1
+	if len(local) > 3 {
+		visible = 2
+	}
+	return local[:visible] + strings.Repeat("*", max(len(local)-visible, 1)) + "@" + domain
+}

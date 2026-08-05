@@ -23,10 +23,14 @@ func TestHTTPSchedulingAndContinuityContract(t *testing.T) {
 		t.Fatalf("bootstrap replacement Teacher: %v", err)
 	}
 	activateDirect(t, fixture.service, secondTeacherLink, "+77001001001", httpTeacherPassword, "http-replacement-teacher")
-	secondTeacherTokens, err := fixture.service.SignIn(ctx, "+77001001001", httpTeacherPassword, core.SessionClientInfo{})
+	secondTeacherOutcome, err := fixture.service.SignIn(ctx, "+77001001001", httpTeacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in replacement Teacher: %v", err)
 	}
+	if secondTeacherOutcome.Tokens == nil {
+		t.Fatal("replacement Teacher sign-in returned a second-factor challenge; tokens expected")
+	}
+	secondTeacherTokens := *secondTeacherOutcome.Tokens
 	secondTeacher, err := fixture.service.Authenticate(ctx, secondTeacherTokens.AccessToken)
 	if err != nil {
 		t.Fatalf("authenticate replacement Teacher: %v", err)

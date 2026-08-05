@@ -1,7 +1,13 @@
 import { ApiClient } from "./client";
 import {
+  decodeActivationProgress,
+  decodeRecoveryCodes,
   decodeSecurityEventsPage,
   decodeSessionDevices,
+  decodeSignInOutcome,
+  decodeTwofaEnrollment,
+  decodeTwofaStatus,
+  decodeVerifiedContacts,
 } from "./contracts";
 
 function mockResponse(status: number, body?: unknown): Response {
@@ -151,5 +157,98 @@ describe("session security contracts (Page 32)", () => {
     });
     const [completeUrl] = fetch.mock.calls[1]!;
     expect(completeUrl).toBe("https://api.example/v1/password-resets/complete");
+  });
+});
+
+describe("two-factor and activation contracts (AUTH-01..10, ACC-03/06)", () => {
+  it("decodes the sign-in union and rejects mixed or empty shapes", () => {
+    const tokens = {
+      accessToken: "A".repeat(43),
+      refreshToken: "R".repeat(43),
+      accessExpiresAt: "2026-08-01T10:00:00Z",
+      refreshExpiresAt: "2026-09-01T10:00:00Z",
+    };
+    expect(decodeSignInOutcome({ tokens }).tokens?.accessToken).toBe(tokens.accessToken);
+    const challenge = decodeSignInOutcome({
+      twofaChallenge: "C".repeat(43),
+      twofaExpiresAt: "2026-08-01T10:05:00Z",
+    });
+    expect(challenge.twofaChallenge).toBe("C".repeat(43));
+    expect(() => decodeSignInOutcome({})).toThrow("SignInOutcome");
+    expect(() =>
+      decodeSignInOutcome({ tokens, twofaChallenge: "C".repeat(43) }),
+    ).toThrow("SignInOutcome");
+  });
+
+  it("decodes activation progress and requires a kind for verified contacts", () => {
+    const progress = decodeActivationProgress({
+      invitationId: "inv_1",
+      kind: "staff_activation",
+      displayName: "Шугыла Замещающая",
+      expiresAt: "2026-08-08T10:00:00Z",
+      passwordSet: true,
+      contactKind: "email",
+      contactMasked: "s******@example.kz",
+      contactVerified: true,
+      twofaEnrolled: false,
+      completed: false,
+    });
+    expect(progress.contactKind).toBe("email");
+    expect(() =>
+      decodeActivationProgress({
+        invitationId: "inv_1",
+        kind: "staff_activation",
+        displayName: "X",
+        expiresAt: "2026-08-08T10:00:00Z",
+        passwordSet: true,
+        contactVerified: true,
+        twofaEnrolled: false,
+        completed: false,
+      }),
+    ).toThrow("ActivationProgressView");
+  });
+
+  it("decodes verified contacts and rejects duplicate kinds", () => {
+    const email = {
+      id: "contact_1",
+      kind: "email",
+      value: "owner@belcanto.kz",
+      verifiedAt: "2026-08-01T10:00:00Z",
+    };
+    expect(decodeVerifiedContacts([email])).toHaveLength(1);
+    expect(() =>
+      decodeVerifiedContacts([email, { ...email, id: "contact_2" }]),
+    ).toThrow("VerifiedContactList");
+  });
+
+  it("keeps enabled twofa status coupled to its confirmation timestamp", () => {
+    expect(
+      decodeTwofaStatus({
+        enabled: true,
+        confirmedAt: "2026-08-01T10:00:00Z",
+        recoveryCodesRemaining: 10,
+      }).enabled,
+    ).toBe(true);
+    expect(() =>
+      decodeTwofaStatus({ enabled: true, recoveryCodesRemaining: 10 }),
+    ).toThrow("TwofaStatus");
+  });
+
+  it("requires an otpauth provisioning URI and exactly ten unique recovery codes", () => {
+    expect(() =>
+      decodeTwofaEnrollment({ secret: "S".repeat(32), provisioningUri: "https://x" }),
+    ).toThrow("TwofaEnrollment");
+    const normalized = Array.from({ length: 10 }, (_, index) =>
+      `ABCD-EFGH-${["JK", "MN", "PQ", "RS", "TU", "VW", "XY", "Z2", "34", "56"][index]}`,
+    );
+    expect(decodeRecoveryCodes({ recoveryCodes: normalized })).toHaveLength(10);
+    expect(() =>
+      decodeRecoveryCodes({ recoveryCodes: normalized.slice(0, 9) }),
+    ).toThrow("RecoveryCodesResponse");
+    expect(() =>
+      decodeRecoveryCodes({
+        recoveryCodes: [...normalized.slice(0, 9), normalized[0]!],
+      }),
+    ).toThrow("RecoveryCodesResponse");
   });
 });

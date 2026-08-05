@@ -21,7 +21,23 @@ import {
   type ReplaceLessonTeachersRequest,
   type ReplaceLessonTeachersResult,
   type RevokeDelegationRequest,
+  type ActivationCodeRequest,
+  type ActivationContactRequest,
+  type ActivationFinishRequest,
+  type ActivationPasswordRequest,
+  type ActivationProgressView,
+  type ActivationTokenRequest,
   type CompletePasswordResetRequest,
+  type ConfirmContactChangeRequest,
+  type CurrentPasswordRequest,
+  type DisableTwofaRequest,
+  type SignInOutcome,
+  type StartContactChangeRequest,
+  type TwofaCodeRequest,
+  type TwofaEnrollment,
+  type TwofaSignInRequest,
+  type TwofaStatus,
+  type VerifiedContact,
   type RequestPasswordResetRequest,
   type RevokeOtherSessionsResult,
   type RevokeSessionRequest,
@@ -174,8 +190,116 @@ export class ApiClient {
     return this.request(routes.completeActivation, { body, idempotencyKey, signal });
   }
 
-  signIn(body: SignInRequest, signal?: AbortSignal): Promise<SessionTokens> {
+  signIn(body: SignInRequest, signal?: AbortSignal): Promise<SignInOutcome> {
     return this.request(routes.signIn, { body, signal });
+  }
+
+  signInWithTwofa(
+    body: TwofaSignInRequest,
+    signal?: AbortSignal,
+  ): Promise<SessionTokens> {
+    return this.request(routes.signInWithTwofa, { body, signal });
+  }
+
+  activationProgress(
+    body: ActivationTokenRequest,
+    signal?: AbortSignal,
+  ): Promise<ActivationProgressView> {
+    return this.request(routes.activationProgress, { body, signal });
+  }
+
+  setActivationPassword(
+    body: ActivationPasswordRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.setActivationPassword, { body, signal });
+  }
+
+  startActivationContact(
+    body: ActivationContactRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.startActivationContact, { body, signal });
+  }
+
+  verifyActivationContact(
+    body: ActivationCodeRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.verifyActivationContact, { body, signal });
+  }
+
+  startActivationTwofa(
+    body: ActivationTokenRequest,
+    signal?: AbortSignal,
+  ): Promise<TwofaEnrollment> {
+    return this.request(routes.startActivationTwofa, { body, signal });
+  }
+
+  confirmActivationTwofa(
+    body: ActivationCodeRequest,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    return this.request(routes.confirmActivationTwofa, { body, signal });
+  }
+
+  finishActivation(
+    body: ActivationFinishRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.finishActivation, { body, idempotencyKey, signal });
+  }
+
+  listMyContacts(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<VerifiedContact[]> {
+    return this.request(routes.listMyContacts, { accessToken, signal });
+  }
+
+  startContactChange(
+    accessToken: string,
+    body: StartContactChangeRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.startContactChange, { accessToken, body, signal });
+  }
+
+  confirmContactChange(
+    accessToken: string,
+    body: ConfirmContactChangeRequest,
+    signal?: AbortSignal,
+  ): Promise<VerifiedContact> {
+    return this.request(routes.confirmContactChange, { accessToken, body, signal });
+  }
+
+  twofaStatus(accessToken: string, signal?: AbortSignal): Promise<TwofaStatus> {
+    return this.request(routes.twofaStatus, { accessToken, signal });
+  }
+
+  startTwofaEnrollment(
+    accessToken: string,
+    body: CurrentPasswordRequest,
+    signal?: AbortSignal,
+  ): Promise<TwofaEnrollment> {
+    return this.request(routes.startTwofaEnrollment, { accessToken, body, signal });
+  }
+
+  confirmTwofaEnrollment(
+    accessToken: string,
+    body: TwofaCodeRequest,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    return this.request(routes.confirmTwofaEnrollment, { accessToken, body, signal });
+  }
+
+  disableTwofa(
+    accessToken: string,
+    body: DisableTwofaRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.disableTwofa, { accessToken, body, signal });
   }
 
   refreshSession(

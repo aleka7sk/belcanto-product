@@ -140,6 +140,209 @@ paths:
         "500":
           $ref: "#/components/responses/Internal"
 
+  /v1/activations/progress:
+    post:
+      summary: Read multi-step activation progress
+      operationId: activationProgress
+      tags: [Activation]
+      security: []
+      description: >-
+        Server-saved activation steps for an issued invitation (AUTH-10):
+        the person resumes instead of repeating confirmed steps. The token
+        travels in the body so it never reaches URLs or logs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationTokenRequest"
+      responses:
+        "200":
+          description: Current activation progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivationProgressView"
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/password:
+    post:
+      summary: Set the activation password (step 1)
+      operationId: setActivationPassword
+      tags: [Activation]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationPasswordRequest"
+      responses:
+        "204":
+          description: Password stored; the account stays pending until finish.
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/contact:
+    post:
+      summary: Start contact confirmation (step 2)
+      operationId: startActivationContact
+      tags: [Activation]
+      security: []
+      description: >-
+        Requires the password step first; supersedes any previous open
+        confirmation and delivers a six-digit code out-of-band.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationContactRequest"
+      responses:
+        "204":
+          description: Confirmation code issued.
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/contact/verify:
+    post:
+      summary: Verify the activation contact code
+      operationId: verifyActivationContact
+      tags: [Activation]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationCodeRequest"
+      responses:
+        "204":
+          description: Contact confirmed.
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/twofa:
+    post:
+      summary: Start optional 2FA enrollment (step 3)
+      operationId: startActivationTwofa
+      tags: [Activation]
+      security: []
+      description: Requires the confirmed contact step first.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationTokenRequest"
+      responses:
+        "200":
+          description: Shared secret and otpauth provisioning URI.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwofaEnrollment"
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/twofa/confirm:
+    post:
+      summary: Confirm activation 2FA enrollment
+      operationId: confirmActivationTwofa
+      tags: [Activation]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationCodeRequest"
+      responses:
+        "200":
+          description: One-time recovery codes, shown exactly once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/activations/finish:
+    post:
+      summary: Finish activation
+      operationId: finishActivation
+      tags: [Activation]
+      security: []
+      description: >-
+        Requires the password and confirmed-contact steps; consumes the
+        invitation, activates the account and records the verified contact.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationFinishRequest"
+      responses:
+        "204":
+          description: Account activated.
+        "400":
+          $ref: "#/components/responses/ActivationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
   /v1/sessions:
     post:
       summary: Sign in
@@ -152,6 +355,40 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: >-
+            Either a new token pair, or a short-lived second-factor
+            challenge when TOTP is enrolled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInOutcome"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/sessions/twofa:
+    post:
+      summary: Complete second-factor sign-in
+      operationId: signInWithTwofa
+      tags: [Sessions]
+      security: []
+      description: >-
+        Exchanges an open second-factor challenge plus an authenticator or
+        one-time recovery code for a session token pair. Five failed
+        attempts burn the challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwofaSignInRequest"
       responses:
         "200":
           description: New access and refresh token pair.
@@ -416,6 +653,204 @@ paths:
                 $ref: "#/components/schemas/BootstrapView"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/contacts:
+    get:
+      summary: List verified contacts
+      operationId: listMyContacts
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verified contacts of the calling account.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VerifiedContact"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/contacts/change:
+    post:
+      summary: Start a contact change
+      operationId: startContactChange
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        Requires fresh password re-authentication (ACC-03); supersedes any
+        open confirmation and delivers a six-digit code out-of-band.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartContactChangeRequest"
+      responses:
+        "204":
+          description: Confirmation code issued.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/contacts/confirm:
+    post:
+      summary: Confirm a contact change
+      operationId: confirmContactChange
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmContactChangeRequest"
+      responses:
+        "200":
+          description: The verified contact after confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifiedContact"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/twofa:
+    get:
+      summary: Read two-factor status
+      operationId: twofaStatus
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Enrollment state and remaining recovery codes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwofaStatus"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/twofa/enroll:
+    post:
+      summary: Start two-factor enrollment
+      operationId: startTwofaEnrollment
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: Requires fresh password re-authentication (ACC-06 step 1).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentPasswordRequest"
+      responses:
+        "200":
+          description: Shared secret and otpauth provisioning URI.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwofaEnrollment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/twofa/confirm:
+    post:
+      summary: Confirm two-factor enrollment
+      operationId: confirmTwofaEnrollment
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwofaCodeRequest"
+      responses:
+        "200":
+          description: One-time recovery codes, shown exactly once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/twofa/disable:
+    post:
+      summary: Disable two-factor authentication
+      operationId: disableTwofa
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        Requires fresh password re-authentication plus a valid
+        authenticator or recovery code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisableTwofaRequest"
+      responses:
+        "204":
+          description: Two-factor authentication disabled.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/Internal"
 
@@ -1298,6 +1733,258 @@ components:
         newPassword:
           type: string
           format: password
+    SignInOutcome:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [tokens]
+          properties:
+            tokens:
+              $ref: "#/components/schemas/SessionTokens"
+        - type: object
+          additionalProperties: false
+          required: [twofaChallenge, twofaExpiresAt]
+          properties:
+            twofaChallenge:
+              type: string
+              minLength: 43
+              maxLength: 43
+              pattern: '^[A-Za-z0-9_-]{43}$'
+            twofaExpiresAt:
+              type: string
+              format: date-time
+    TwofaSignInRequest:
+      type: object
+      additionalProperties: false
+      required: [challenge, code]
+      properties:
+        challenge:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        code:
+          type: string
+          minLength: 6
+          maxLength: 16
+    ActivationTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+    ActivationPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [token, phone, password]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        phone:
+          type: string
+        password:
+          type: string
+          format: password
+    ActivationContactRequest:
+      type: object
+      additionalProperties: false
+      required: [token, kind, value]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        kind:
+          type: string
+          enum: [email, phone]
+        value:
+          type: string
+          minLength: 3
+          maxLength: 254
+    ActivationCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [token, code]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        code:
+          type: string
+          minLength: 6
+          maxLength: 16
+    ActivationFinishRequest:
+      type: object
+      additionalProperties: false
+      required: [token, phone]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        phone:
+          type: string
+    ActivationProgressView:
+      type: object
+      additionalProperties: false
+      required: [invitationId, kind, displayName, expiresAt, passwordSet, contactVerified, twofaEnrolled, completed]
+      properties:
+        invitationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        kind:
+          type: string
+          enum: [owner_bootstrap, staff_activation, student_activation]
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expiresAt:
+          type: string
+          format: date-time
+        passwordSet:
+          type: boolean
+        contactKind:
+          type: string
+          enum: [email, phone]
+        contactMasked:
+          type: string
+          minLength: 1
+          maxLength: 254
+        contactVerified:
+          type: boolean
+        twofaEnrolled:
+          type: boolean
+        completed:
+          type: boolean
+    VerifiedContact:
+      type: object
+      additionalProperties: false
+      required: [id, kind, value, verifiedAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        kind:
+          type: string
+          enum: [email, phone]
+        value:
+          type: string
+          minLength: 3
+          maxLength: 254
+        verifiedAt:
+          type: string
+          format: date-time
+    StartContactChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, value, currentPassword]
+      properties:
+        kind:
+          type: string
+          enum: [email, phone]
+        value:
+          type: string
+          minLength: 3
+          maxLength: 254
+        currentPassword:
+          type: string
+          format: password
+    ConfirmContactChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^[0-9]{6}$'
+    TwofaStatus:
+      type: object
+      additionalProperties: false
+      required: [enabled, recoveryCodesRemaining]
+      properties:
+        enabled:
+          type: boolean
+        confirmedAt:
+          type: string
+          format: date-time
+        recoveryCodesRemaining:
+          type: integer
+          minimum: 0
+    TwofaEnrollment:
+      type: object
+      additionalProperties: false
+      required: [secret, provisioningUri]
+      properties:
+        secret:
+          type: string
+          minLength: 16
+          maxLength: 64
+        provisioningUri:
+          type: string
+          minLength: 16
+          maxLength: 512
+    TwofaCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^[0-9]{6}$'
+    CurrentPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+    DisableTwofaRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, code]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+        code:
+          type: string
+          minLength: 6
+          maxLength: 16
+    RecoveryCodesResponse:
+      type: object
+      additionalProperties: false
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            type: string
+            minLength: 12
+            maxLength: 12
+            pattern: '^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{2}$'
     SessionDevice:
       type: object
       additionalProperties: false
@@ -1358,6 +2045,11 @@ components:
             - PasswordResetRequested
             - PasswordResetCompleted
             - OtherSessionsRevoked
+            - ContactChangeStarted
+            - ContactVerified
+            - TwofaEnrolled
+            - TwofaDisabled
+            - TwofaChallengeFailed
         decision:
           type: string
           enum: [allow, deny]

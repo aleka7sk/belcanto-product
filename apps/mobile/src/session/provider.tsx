@@ -14,6 +14,7 @@ import {
   ApiClient,
   ApiError,
   type SessionTokens,
+  type SignInOutcome,
   type SignInRequest,
 } from "@/api";
 import { interpretBootstrap } from "@/controllers/bootstrap";
@@ -32,9 +33,15 @@ import {
   type SessionStore,
 } from "./store";
 
+export type SignInStart =
+  | { status: "complete" }
+  | { status: "superseded" }
+  | { status: "twofa"; challenge: string; expiresAt: string };
+
 export interface SessionContextValue {
   state: SessionState;
-  signIn(request: SignInRequest): Promise<void>;
+  signIn(request: SignInRequest): Promise<SignInStart>;
+  completeTwofaSignIn(challenge: string, code: string): Promise<void>;
   refresh(): Promise<void>;
   retryBootstrap(): Promise<void>;
   runAuthenticated<Value>(
@@ -252,15 +259,9 @@ export function SessionProvider({
     };
   }, [clearStoredSession, loadBootstrap, now, refreshTokens, store]);
 
-  const signIn = useCallback(
-    async (request: SignInRequest) => {
-      const epoch = operationEpochRef.current.begin();
-      tokensRef.current = null;
-      dispatch({ type: "SIGN_IN_STARTED" });
-
-      let tokens: SessionTokens;
+  const establishSession = useCallback(
+    async (tokens: SessionTokens, epoch: number) => {
       try {
-        tokens = await api.signIn(request);
         const persisted = await persistTokens(tokens, epoch);
         if (!persisted) return;
       } catch (error) {
@@ -271,7 +272,6 @@ export function SessionProvider({
         await clearStoredSession();
         throw error;
       }
-
       try {
         await loadBootstrap(tokens.accessToken, undefined, epoch);
       } catch (error) {
@@ -280,7 +280,66 @@ export function SessionProvider({
         throw error;
       }
     },
-    [api, clearStoredSession, loadBootstrap, persistTokens],
+    [clearStoredSession, loadBootstrap, persistTokens],
+  );
+
+  const signIn = useCallback(
+    async (request: SignInRequest): Promise<SignInStart> => {
+      const epoch = operationEpochRef.current.begin();
+      tokensRef.current = null;
+      dispatch({ type: "SIGN_IN_STARTED" });
+
+      let outcome: SignInOutcome;
+      try {
+        outcome = await api.signIn(request);
+      } catch (error) {
+        if (!operationEpochRef.current.isCurrent(epoch)) {
+          return { status: "superseded" };
+        }
+        tokensRef.current = null;
+        dispatch({ type: "ANONYMOUS" });
+        dispatch({ type: "FAILED", operation: "sign_in", error });
+        await clearStoredSession();
+        throw error;
+      }
+      if (outcome.tokens === undefined) {
+        // The password is verified but a second factor is pending: stay
+        // anonymous without recording a failure (AUTH-06 with 2FA).
+        if (operationEpochRef.current.isCurrent(epoch)) {
+          dispatch({ type: "ANONYMOUS" });
+        }
+        return {
+          status: "twofa",
+          challenge: outcome.twofaChallenge,
+          expiresAt: outcome.twofaExpiresAt,
+        };
+      }
+      await establishSession(outcome.tokens, epoch);
+      return { status: "complete" };
+    },
+    [api, clearStoredSession, establishSession],
+  );
+
+  const completeTwofaSignIn = useCallback(
+    async (challenge: string, code: string) => {
+      const epoch = operationEpochRef.current.begin();
+      tokensRef.current = null;
+      dispatch({ type: "SIGN_IN_STARTED" });
+
+      let tokens: SessionTokens;
+      try {
+        tokens = await api.signInWithTwofa({ challenge, code });
+      } catch (error) {
+        if (!operationEpochRef.current.isCurrent(epoch)) return;
+        tokensRef.current = null;
+        dispatch({ type: "ANONYMOUS" });
+        dispatch({ type: "FAILED", operation: "sign_in", error });
+        await clearStoredSession();
+        throw error;
+      }
+      await establishSession(tokens, epoch);
+    },
+    [api, clearStoredSession, establishSession],
   );
 
   const ensureAccessToken = useCallback(async (): Promise<string> => {
@@ -392,12 +451,13 @@ export function SessionProvider({
     () => ({
       state,
       signIn,
+      completeTwofaSignIn,
       refresh,
       retryBootstrap,
       runAuthenticated,
       signOut,
     }),
-    [refresh, retryBootstrap, runAuthenticated, signIn, signOut, state],
+    [completeTwofaSignIn, refresh, retryBootstrap, runAuthenticated, signIn, signOut, state],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

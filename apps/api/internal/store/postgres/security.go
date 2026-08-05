@@ -24,6 +24,11 @@ var securityAuditActions = []string{
 	"PasswordResetRequested",
 	"PasswordResetCompleted",
 	"OtherSessionsRevoked",
+	"ContactChangeStarted",
+	"ContactVerified",
+	"TwofaEnrolled",
+	"TwofaDisabled",
+	"TwofaChallengeFailed",
 }
 
 func (s *Store) ListSessions(ctx context.Context, principal core.Principal, now time.Time) ([]core.SessionDevice, error) {

@@ -32,6 +32,11 @@ var securityAuditActions = map[string]bool{
 	"PasswordResetRequested":    true,
 	"PasswordResetCompleted":    true,
 	"OtherSessionsRevoked":      true,
+	"ContactChangeStarted":      true,
+	"ContactVerified":           true,
+	"TwofaEnrolled":             true,
+	"TwofaDisabled":             true,
+	"TwofaChallengeFailed":      true,
 }
 
 func (s *Store) ListSessions(_ context.Context, principal core.Principal, now time.Time) ([]core.SessionDevice, error) {

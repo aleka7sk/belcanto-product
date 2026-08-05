@@ -41,6 +41,12 @@ var sessionSecurityUp string
 //go:embed 000003_session_security.down.sql
 var sessionSecurityDown string
 
+//go:embed 000004_contact_twofa.up.sql
+var contactTwofaUp string
+
+//go:embed 000004_contact_twofa.down.sql
+var contactTwofaDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -53,6 +59,7 @@ func registeredMigrations() []migration {
 		{version: initialVersion, description: "Belcanto B.0 initial schema", up: initialUp, down: initialDown},
 		{version: 2, description: "Belcanto L.1 internal scheduling", up: internalSchedulingUp, down: internalSchedulingDown},
 		{version: 3, description: "Belcanto P.1 session security", up: sessionSecurityUp, down: sessionSecurityDown},
+		{version: 4, description: "Belcanto P.1 contacts and two-factor authentication", up: contactTwofaUp, down: contactTwofaDown},
 	}
 }
 

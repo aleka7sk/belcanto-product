@@ -513,10 +513,14 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 
 	// Refresh rotation and logout serialize on the original session row. No
 	// interleaving may leave an active descendant in that session family.
-	raceSession, err := service.SignIn(ctx, "+77002000001", "Owner-password-123!", core.SessionClientInfo{})
+	raceOutcome, err := service.SignIn(ctx, "+77002000001", "Owner-password-123!", core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in refresh/logout race: %v", err)
 	}
+	if raceOutcome.Tokens == nil {
+		t.Fatal("race sign-in returned a second-factor challenge; tokens expected")
+	}
+	raceSession := *raceOutcome.Tokens
 	var raceFamilyID string
 	if err := pool.QueryRow(ctx, `SELECT family_id FROM sessions WHERE access_digest = $1`, codec.Digest(raceSession.AccessToken)).Scan(&raceFamilyID); err != nil {
 		t.Fatalf("read refresh/logout race family: %v", err)
@@ -709,11 +713,14 @@ func activateIntegration(t *testing.T, ctx context.Context, service *app.Service
 
 func integrationPrincipal(t *testing.T, ctx context.Context, service *app.Service, phone, password string) core.Principal {
 	t.Helper()
-	tokens, err := service.SignIn(ctx, phone, password, core.SessionClientInfo{})
+	outcome, err := service.SignIn(ctx, phone, password, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("integration sign in: %v", err)
 	}
-	principal, err := service.Authenticate(ctx, tokens.AccessToken)
+	if outcome.Tokens == nil {
+		t.Fatal("integration sign-in returned a second-factor challenge; tokens expected")
+	}
+	principal, err := service.Authenticate(ctx, outcome.Tokens.AccessToken)
 	if err != nil {
 		t.Fatalf("integration authenticate: %v", err)
 	}

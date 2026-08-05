@@ -586,3 +586,149 @@ type CompletePasswordResetCommand struct {
 	PasswordHash string
 	Now          time.Time
 }
+
+// ---- P.1 contacts and two-factor authentication (AUTH-03/04/10, ACC-03/06) ----
+
+type ContactKind string
+
+const (
+	ContactEmail ContactKind = "email"
+	ContactPhone ContactKind = "phone"
+)
+
+type VerifiedContact struct {
+	ID         string      `json:"id"`
+	Kind       ContactKind `json:"kind"`
+	Value      string      `json:"value"`
+	VerifiedAt time.Time   `json:"verifiedAt"`
+}
+
+type StartContactChangeCommand struct {
+	Principal      Principal
+	VerificationID string
+	Kind           ContactKind
+	Value          string
+	CodeDigest     []byte
+	ExpiresAt      time.Time
+	Now            time.Time
+}
+
+type ConfirmContactChangeCommand struct {
+	Principal  Principal
+	CodeDigest []byte
+	Now        time.Time
+}
+
+type TwofaStatus struct {
+	Enabled                bool       `json:"enabled"`
+	ConfirmedAt            *time.Time `json:"confirmedAt,omitempty"`
+	RecoveryCodesRemaining int        `json:"recoveryCodesRemaining"`
+}
+
+type StartTwofaEnrollmentCommand struct {
+	Principal        Principal
+	SecretCiphertext []byte
+	Now              time.Time
+}
+
+type ConfirmTwofaEnrollmentCommand struct {
+	Principal       Principal
+	RecoveryDigests [][]byte
+	Now             time.Time
+}
+
+type DisableTwofaCommand struct {
+	Principal Principal
+	Now       time.Time
+}
+
+// TwofaSecretRecord is the encrypted enrollment state read back for
+// RFC 6238 verification.
+type TwofaSecretRecord struct {
+	Ciphertext []byte
+	Confirmed  bool
+}
+
+type CreateTwofaChallengeCommand struct {
+	ChallengeID string
+	TenantID    string
+	AccountID   string
+	TokenDigest []byte
+	DeviceLabel string
+	Platform    string
+	ExpiresAt   time.Time
+	Now         time.Time
+}
+
+type TwofaChallengeRecord struct {
+	ID                string
+	TenantID          string
+	AccountID         string
+	DeviceLabel       string
+	Platform          string
+	AttemptsRemaining int
+}
+
+// SignInOutcome is the union result of sign-in: either a token pair, or a
+// short-lived second-factor challenge (AUTH-06 with enrolled 2FA).
+type SignInOutcome struct {
+	Tokens         *SessionTokens `json:"tokens,omitempty"`
+	TwofaChallenge string         `json:"twofaChallenge,omitempty"`
+	TwofaExpiresAt *time.Time     `json:"twofaExpiresAt,omitempty"`
+}
+
+type ActivationProgressView struct {
+	InvitationID    string      `json:"invitationId"`
+	Kind            string      `json:"kind"`
+	DisplayName     string      `json:"displayName"`
+	ExpiresAt       time.Time   `json:"expiresAt"`
+	PasswordSet     bool        `json:"passwordSet"`
+	ContactKind     ContactKind `json:"contactKind,omitempty"`
+	ContactMasked   string      `json:"contactMasked,omitempty"`
+	ContactVerified bool        `json:"contactVerified"`
+	TwofaEnrolled   bool        `json:"twofaEnrolled"`
+	Completed       bool        `json:"completed"`
+}
+
+type SetActivationPasswordCommand struct {
+	TokenDigest  []byte
+	Phone        string
+	PasswordHash string
+	Now          time.Time
+}
+
+type StartActivationContactCommand struct {
+	TokenDigest    []byte
+	VerificationID string
+	Kind           ContactKind
+	Value          string
+	CodeDigest     []byte
+	ExpiresAt      time.Time
+	Now            time.Time
+}
+
+type VerifyActivationContactCommand struct {
+	TokenDigest []byte
+	CodeDigest  []byte
+	Now         time.Time
+}
+
+type SetActivationTwofaCommand struct {
+	TokenDigest      []byte
+	SecretCiphertext []byte
+	Now              time.Time
+}
+
+type ConfirmActivationTwofaCommand struct {
+	TokenDigest     []byte
+	RecoveryDigests [][]byte
+	Now             time.Time
+}
+
+type FinishActivationCommand struct {
+	TokenDigest        []byte
+	Phone              string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}

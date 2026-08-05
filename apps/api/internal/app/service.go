@@ -32,6 +32,9 @@ type Service struct {
 	refreshTTL        time.Duration
 	invitationTTL     time.Duration
 	passwordResetTTL  time.Duration
+	contactCodeTTL    time.Duration
+	twofaChallengeTTL time.Duration
+	twofaBox          *security.SecretBox
 }
 
 type PasswordService interface {
@@ -47,6 +50,8 @@ type Options struct {
 	RefreshTTL        time.Duration
 	InvitationTTL     time.Duration
 	PasswordResetTTL  time.Duration
+	ContactCodeTTL    time.Duration
+	TwofaChallengeTTL time.Duration
 	Clock             Clock
 }
 
@@ -59,6 +64,15 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 	if passwordResetTTL <= 0 {
 		passwordResetTTL = 30 * time.Minute
 	}
+	contactCodeTTL := options.ContactCodeTTL
+	if contactCodeTTL <= 0 {
+		contactCodeTTL = 10 * time.Minute
+	}
+	twofaChallengeTTL := options.TwofaChallengeTTL
+	if twofaChallengeTTL <= 0 {
+		twofaChallengeTTL = 5 * time.Minute
+	}
+	twofaBox, _ := tokens.SecretBox("belcanto-totp-secret-v1")
 	return &Service{
 		store:             store,
 		tokens:            tokens,
@@ -69,6 +83,9 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 		refreshTTL:        options.RefreshTTL,
 		invitationTTL:     options.InvitationTTL,
 		passwordResetTTL:  passwordResetTTL,
+		contactCodeTTL:    contactCodeTTL,
+		twofaChallengeTTL: twofaChallengeTTL,
+		twofaBox:          twofaBox,
 	}
 }
 
@@ -337,16 +354,16 @@ func (s *Service) CompleteActivation(ctx context.Context, input CompleteActivati
 	return nil
 }
 
-func (s *Service) SignIn(ctx context.Context, phone, password string, client core.SessionClientInfo) (core.SessionTokens, error) {
+func (s *Service) SignIn(ctx context.Context, phone, password string, client core.SessionClientInfo) (core.SignInOutcome, error) {
 	normalizedClient, clientErr := validateSessionClientInfo(client)
 	if clientErr != nil {
-		return core.SessionTokens{}, clientErr
+		return core.SignInOutcome{}, clientErr
 	}
 	normalizedPhone, normalizeErr := security.NormalizePhone(phone)
 	encoded := s.passwords.DummyHash()
 	if normalizeErr != nil {
 		_, _ = s.passwords.VerifyCredential(password, encoded)
-		return core.SessionTokens{}, core.E(core.CodeUnauthenticated, "phone or password is incorrect", nil)
+		return core.SignInOutcome{}, core.E(core.CodeUnauthenticated, "phone or password is incorrect", nil)
 	}
 	record, lookupErr := s.store.CredentialByPhone(ctx, normalizedPhone)
 	if lookupErr == nil {
@@ -354,15 +371,26 @@ func (s *Service) SignIn(ctx context.Context, phone, password string, client cor
 	}
 	verified, verifyErr := s.passwords.VerifyCredential(password, encoded)
 	if verifyErr != nil {
-		return core.SessionTokens{}, core.E(core.CodeInternal, "stored sign-in credential is invalid", verifyErr)
+		return core.SignInOutcome{}, core.E(core.CodeInternal, "stored sign-in credential is invalid", verifyErr)
 	}
 	if lookupErr != nil && !core.IsCode(lookupErr, core.CodeNotFound) {
-		return core.SessionTokens{}, internalStoreError("read sign-in credential", lookupErr)
+		return core.SignInOutcome{}, internalStoreError("read sign-in credential", lookupErr)
 	}
 	if lookupErr != nil || !verified || record.Status != "active" {
-		return core.SessionTokens{}, core.E(core.CodeUnauthenticated, "phone or password is incorrect", nil)
+		return core.SignInOutcome{}, core.E(core.CodeUnauthenticated, "phone or password is incorrect", nil)
 	}
-	return s.newSession(ctx, record.AccountID, record.TenantID, normalizedClient)
+	secret, secretErr := s.store.TwofaSecret(ctx, record.TenantID, record.AccountID)
+	if secretErr != nil && !core.IsCode(secretErr, core.CodeNotFound) {
+		return core.SignInOutcome{}, internalStoreError("read second factor", secretErr)
+	}
+	if secretErr == nil && secret.Confirmed {
+		return s.issueTwofaChallenge(ctx, record.TenantID, record.AccountID, normalizedClient)
+	}
+	tokens, err := s.newSession(ctx, record.AccountID, record.TenantID, normalizedClient)
+	if err != nil {
+		return core.SignInOutcome{}, err
+	}
+	return core.SignInOutcome{Tokens: &tokens}, nil
 }
 
 func (s *Service) Refresh(ctx context.Context, rawRefreshToken string) (core.SessionTokens, error) {

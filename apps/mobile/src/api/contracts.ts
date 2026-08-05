@@ -1143,6 +1143,11 @@ export const SECURITY_EVENT_ACTIONS = [
   "PasswordResetRequested",
   "PasswordResetCompleted",
   "OtherSessionsRevoked",
+  "ContactChangeStarted",
+  "ContactVerified",
+  "TwofaEnrolled",
+  "TwofaDisabled",
+  "TwofaChallengeFailed",
 ] as const;
 
 export type SecurityEventAction = (typeof SECURITY_EVENT_ACTIONS)[number];
@@ -1307,4 +1312,265 @@ export const decodeSecurityEventsPage: Decoder<SecurityEventsPage> = (
     page.nextCursor = nextCursor;
   }
   return page;
+};
+
+
+// ---- P.1 contacts, 2FA and multi-step activation (AUTH-01..10, ACC-03/06) ----
+
+export type SignInOutcome =
+  | { tokens: SessionTokens; twofaChallenge?: never; twofaExpiresAt?: never }
+  | { tokens?: never; twofaChallenge: string; twofaExpiresAt: IsoDateTime };
+
+export interface TwofaSignInRequest {
+  challenge: string;
+  code: string;
+}
+
+export type ContactKind = "email" | "phone";
+
+export const CONTACT_KINDS = ["email", "phone"] as const;
+
+export interface ActivationTokenRequest {
+  token: string;
+}
+
+export interface ActivationPasswordRequest {
+  token: string;
+  phone: string;
+  password: string;
+}
+
+export interface ActivationContactRequest {
+  token: string;
+  kind: ContactKind;
+  value: string;
+}
+
+export interface ActivationCodeRequest {
+  token: string;
+  code: string;
+}
+
+export interface ActivationFinishRequest {
+  token: string;
+  phone: string;
+}
+
+export interface ActivationProgressView {
+  invitationId: string;
+  kind: ActivationPreview["kind"];
+  displayName: string;
+  expiresAt: IsoDateTime;
+  passwordSet: boolean;
+  contactKind?: ContactKind;
+  contactMasked?: string;
+  contactVerified: boolean;
+  twofaEnrolled: boolean;
+  completed: boolean;
+}
+
+export interface VerifiedContact {
+  id: string;
+  kind: ContactKind;
+  value: string;
+  verifiedAt: IsoDateTime;
+}
+
+export interface StartContactChangeRequest {
+  kind: ContactKind;
+  value: string;
+  currentPassword: string;
+}
+
+export interface ConfirmContactChangeRequest {
+  code: string;
+}
+
+export interface TwofaStatus {
+  enabled: boolean;
+  confirmedAt?: IsoDateTime;
+  recoveryCodesRemaining: number;
+}
+
+export interface TwofaEnrollment {
+  secret: string;
+  provisioningUri: string;
+}
+
+export interface TwofaCodeRequest {
+  code: string;
+}
+
+export interface CurrentPasswordRequest {
+  currentPassword: string;
+}
+
+export interface DisableTwofaRequest {
+  currentPassword: string;
+  code: string;
+}
+
+export interface RecoveryCodesResponse {
+  recoveryCodes: string[];
+}
+
+export const decodeSignInOutcome: Decoder<SignInOutcome> = (value) => {
+  const contract = "SignInOutcome";
+  const source = record(value, contract);
+  const hasTokens = source.tokens !== undefined;
+  const hasChallenge = source.twofaChallenge !== undefined;
+  if (hasTokens === hasChallenge) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  if (hasTokens) {
+    exactKeys(source, ["tokens"], contract);
+    return { tokens: decodeSessionTokens(source.tokens) };
+  }
+  exactKeys(source, ["twofaChallenge", "twofaExpiresAt"], contract);
+  return {
+    twofaChallenge: opaqueTokenField(source, "twofaChallenge", contract),
+    twofaExpiresAt: isoDateField(source, "twofaExpiresAt", contract)!,
+  };
+};
+
+function contactKindField(
+  value: unknown,
+  contract: string,
+  path: string,
+): ContactKind {
+  return oneOf(value, CONTACT_KINDS, contract, path);
+}
+
+export const decodeActivationProgress: Decoder<ActivationProgressView> = (
+  value,
+) => {
+  const contract = "ActivationProgressView";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "invitationId",
+      "kind",
+      "displayName",
+      "expiresAt",
+      "passwordSet",
+      "contactKind",
+      "contactMasked",
+      "contactVerified",
+      "twofaEnrolled",
+      "completed",
+    ],
+    contract,
+  );
+  const view: ActivationProgressView = {
+    invitationId: identifierField(source, "invitationId", contract)!,
+    kind: oneOf(
+      source.kind,
+      ["owner_bootstrap", "staff_activation", "student_activation"] as const,
+      contract,
+      "$.kind",
+    ),
+    displayName: stringField(source, "displayName", contract)!,
+    expiresAt: isoDateField(source, "expiresAt", contract)!,
+    passwordSet: booleanField(source, "passwordSet", contract),
+    contactVerified: booleanField(source, "contactVerified", contract),
+    twofaEnrolled: booleanField(source, "twofaEnrolled", contract),
+    completed: booleanField(source, "completed", contract),
+  };
+  if (source.contactKind !== undefined) {
+    view.contactKind = contactKindField(source.contactKind, contract, "$.contactKind");
+  }
+  const contactMasked = stringField(source, "contactMasked", contract, true);
+  if (contactMasked !== undefined) {
+    view.contactMasked = contactMasked;
+  }
+  if (view.contactVerified && view.contactKind === undefined) {
+    throw new ContractDecodeError(contract, "$.contactKind");
+  }
+  return view;
+};
+
+function decodeVerifiedContactEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): VerifiedContact {
+  const source = record(value, contract, path);
+  exactKeys(source, ["id", "kind", "value", "verifiedAt"], contract, path);
+  return {
+    id: identifierField(source, "id", contract)!,
+    kind: contactKindField(source.kind, contract, `${path}.kind`),
+    value: stringField(source, "value", contract)!,
+    verifiedAt: isoDateField(source, "verifiedAt", contract)!,
+  };
+}
+
+export const decodeVerifiedContact: Decoder<VerifiedContact> = (value) =>
+  decodeVerifiedContactEntry(value, "VerifiedContact", "$");
+
+export const decodeVerifiedContacts: Decoder<VerifiedContact[]> = (value) => {
+  const contract = "VerifiedContactList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const contacts = value.map((entry, index) =>
+    decodeVerifiedContactEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    contacts.map((contact) => contact.kind),
+    contract,
+    "$[].kind",
+  );
+  return contacts;
+};
+
+export const decodeTwofaStatus: Decoder<TwofaStatus> = (value) => {
+  const contract = "TwofaStatus";
+  const source = record(value, contract);
+  exactKeys(source, ["enabled", "confirmedAt", "recoveryCodesRemaining"], contract);
+  const status: TwofaStatus = {
+    enabled: booleanField(source, "enabled", contract),
+    recoveryCodesRemaining: numberField(source, "recoveryCodesRemaining", contract),
+  };
+  const confirmedAt = isoDateField(source, "confirmedAt", contract, true);
+  if (confirmedAt !== undefined) {
+    status.confirmedAt = confirmedAt;
+  }
+  if (status.enabled && status.confirmedAt === undefined) {
+    throw new ContractDecodeError(contract, "$.confirmedAt");
+  }
+  return status;
+};
+
+export const decodeTwofaEnrollment: Decoder<TwofaEnrollment> = (value) => {
+  const contract = "TwofaEnrollment";
+  const source = record(value, contract);
+  exactKeys(source, ["secret", "provisioningUri"], contract);
+  const enrollment = {
+    secret: stringField(source, "secret", contract)!,
+    provisioningUri: stringField(source, "provisioningUri", contract)!,
+  };
+  if (!enrollment.provisioningUri.startsWith("otpauth://totp/")) {
+    throw new ContractDecodeError(contract, "$.provisioningUri");
+  }
+  return enrollment;
+};
+
+const RECOVERY_CODE_PATTERN = /^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{2}$/;
+
+export const decodeRecoveryCodes: Decoder<string[]> = (value) => {
+  const contract = "RecoveryCodesResponse";
+  const source = record(value, contract);
+  exactKeys(source, ["recoveryCodes"], contract);
+  if (!Array.isArray(source.recoveryCodes) || source.recoveryCodes.length !== 10) {
+    throw new ContractDecodeError(contract, "$.recoveryCodes");
+  }
+  const codes = source.recoveryCodes.map((entry, index) => {
+    if (typeof entry !== "string" || !RECOVERY_CODE_PATTERN.test(entry)) {
+      throw new ContractDecodeError(contract, `$.recoveryCodes[${index}]`);
+    }
+    return entry;
+  });
+  unique(codes, contract, "$.recoveryCodes");
+  return codes;
 };

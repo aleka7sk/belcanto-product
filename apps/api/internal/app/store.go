@@ -30,6 +30,29 @@ type Store interface {
 	CreatePasswordReset(context.Context, core.CreatePasswordResetCommand) error
 	CompletePasswordReset(context.Context, core.CompletePasswordResetCommand) error
 
+	ListVerifiedContacts(context.Context, core.Principal) ([]core.VerifiedContact, error)
+	StartContactChange(context.Context, core.StartContactChangeCommand) error
+	ConfirmContactChange(context.Context, core.ConfirmContactChangeCommand) (core.VerifiedContact, error)
+	TwofaStatus(context.Context, core.Principal) (core.TwofaStatus, error)
+	TwofaSecret(context.Context, string, string) (core.TwofaSecretRecord, error)
+	StartTwofaEnrollment(context.Context, core.StartTwofaEnrollmentCommand) error
+	ConfirmTwofaEnrollment(context.Context, core.ConfirmTwofaEnrollmentCommand) error
+	DisableTwofa(context.Context, core.DisableTwofaCommand) error
+	CreateTwofaChallenge(context.Context, core.CreateTwofaChallengeCommand) error
+	TwofaChallengeByDigest(context.Context, []byte, time.Time) (core.TwofaChallengeRecord, error)
+	ConsumeTwofaChallenge(context.Context, []byte, time.Time) error
+	FailTwofaChallenge(context.Context, []byte, time.Time) error
+	TryConsumeRecoveryCode(context.Context, string, string, []byte, time.Time) (bool, error)
+
+	ActivationProgress(context.Context, []byte, time.Time) (core.ActivationProgressView, error)
+	SetActivationPassword(context.Context, core.SetActivationPasswordCommand) error
+	StartActivationContact(context.Context, core.StartActivationContactCommand) error
+	VerifyActivationContact(context.Context, core.VerifyActivationContactCommand) error
+	SetActivationTwofa(context.Context, core.SetActivationTwofaCommand) error
+	ActivationTwofaSecret(context.Context, []byte, time.Time) ([]byte, error)
+	ConfirmActivationTwofa(context.Context, core.ConfirmActivationTwofaCommand) error
+	FinishActivation(context.Context, core.FinishActivationCommand) error
+
 	GrantDelegation(context.Context, core.GrantDelegationCommand) (core.DelegationResult, error)
 	RevokeDelegation(context.Context, core.RevokeDelegationCommand) error
 	CreateStudent(context.Context, core.CreateStudentCommand) (core.StudentResult, error)

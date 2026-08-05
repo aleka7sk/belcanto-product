@@ -56,16 +56,18 @@ func TestPostgreSQLSessionSecurityLifecycle(t *testing.T) {
 		t.Fatalf("activate Owner: %v", err)
 	}
 
-	phoneTokens, err := service.SignIn(ctx, "+77003000001", ownerPassword,
+	phoneOutcome, err := service.SignIn(ctx, "+77003000001", ownerPassword,
 		core.SessionClientInfo{DeviceLabel: "iPhone 17", Platform: "ios"})
-	if err != nil {
-		t.Fatalf("sign in phone: %v", err)
+	if err != nil || phoneOutcome.Tokens == nil {
+		t.Fatalf("sign in phone: %v (tokens=%v)", err, phoneOutcome.Tokens != nil)
 	}
-	laptopTokens, err := service.SignIn(ctx, "+77003000001", ownerPassword,
+	phoneTokens := *phoneOutcome.Tokens
+	laptopOutcome, err := service.SignIn(ctx, "+77003000001", ownerPassword,
 		core.SessionClientInfo{DeviceLabel: "MacBook Pro", Platform: "web"})
-	if err != nil {
-		t.Fatalf("sign in laptop: %v", err)
+	if err != nil || laptopOutcome.Tokens == nil {
+		t.Fatalf("sign in laptop: %v (tokens=%v)", err, laptopOutcome.Tokens != nil)
 	}
+	laptopTokens := *laptopOutcome.Tokens
 	phonePrincipal, err := service.Authenticate(ctx, phoneTokens.AccessToken)
 	if err != nil {
 		t.Fatalf("authenticate phone: %v", err)
@@ -111,10 +113,11 @@ func TestPostgreSQLSessionSecurityLifecycle(t *testing.T) {
 		t.Fatalf("revoked laptop token = %v", err)
 	}
 
-	extraTokens, err := service.SignIn(ctx, "+77003000001", ownerPassword, core.SessionClientInfo{})
-	if err != nil {
+	extraOutcome, err := service.SignIn(ctx, "+77003000001", ownerPassword, core.SessionClientInfo{})
+	if err != nil || extraOutcome.Tokens == nil {
 		t.Fatalf("sign in extra session: %v", err)
 	}
+	extraTokens := *extraOutcome.Tokens
 	revoked, err := service.RevokeOtherSessions(ctx, phonePrincipal, ownerPassword)
 	if err != nil {
 		t.Fatalf("revoke other sessions: %v", err)

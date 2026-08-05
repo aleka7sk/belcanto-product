@@ -124,48 +124,61 @@ type OutboxRecord struct {
 type Store struct {
 	mu sync.Mutex
 
-	tenants      map[string]string
-	accounts     map[string]*account
-	accountPhone map[string]string
-	delegations  map[string]*delegation
-	students     map[string]*student
-	assignments  map[string][]*teacherAssignment
-	logicalTimes map[string]time.Time
-	lessons      map[string]*lesson
-	enrollments  map[string]string
-	firstMinutes map[string][]core.FirstMinute
-	invitations  map[string]*invitation
-	inviteDigest map[string]string
-	sessions     map[string]*session
-	accessIndex  map[string]string
-	refreshIndex map[string]string
-	resets       map[string]*passwordReset
-	resetDigest  map[string]string
-	idempotency  map[string]*idempotencyRecord
-	audit        []AuditRecord
-	outbox       []OutboxRecord
+	tenants         map[string]string
+	accounts        map[string]*account
+	accountPhone    map[string]string
+	delegations     map[string]*delegation
+	students        map[string]*student
+	assignments     map[string][]*teacherAssignment
+	logicalTimes    map[string]time.Time
+	lessons         map[string]*lesson
+	enrollments     map[string]string
+	firstMinutes    map[string][]core.FirstMinute
+	invitations     map[string]*invitation
+	inviteDigest    map[string]string
+	sessions        map[string]*session
+	accessIndex     map[string]string
+	refreshIndex    map[string]string
+	resets          map[string]*passwordReset
+	resetDigest     map[string]string
+	contacts        map[string]*verifiedContact
+	contactVerifs   map[string]*contactVerification
+	twofaSecrets    map[string]*twofaSecret
+	recoveryCodes   []*recoveryCode
+	twofaChallenges map[string]*twofaChallenge
+	challengeDigest map[string]string
+	activationProg  map[string]*activationProgress
+	idempotency     map[string]*idempotencyRecord
+	audit           []AuditRecord
+	outbox          []OutboxRecord
 }
 
 func New() *Store {
 	return &Store{
-		tenants:      make(map[string]string),
-		accounts:     make(map[string]*account),
-		accountPhone: make(map[string]string),
-		delegations:  make(map[string]*delegation),
-		students:     make(map[string]*student),
-		assignments:  make(map[string][]*teacherAssignment),
-		logicalTimes: make(map[string]time.Time),
-		lessons:      make(map[string]*lesson),
-		enrollments:  make(map[string]string),
-		firstMinutes: make(map[string][]core.FirstMinute),
-		invitations:  make(map[string]*invitation),
-		inviteDigest: make(map[string]string),
-		sessions:     make(map[string]*session),
-		accessIndex:  make(map[string]string),
-		refreshIndex: make(map[string]string),
-		resets:       make(map[string]*passwordReset),
-		resetDigest:  make(map[string]string),
-		idempotency:  make(map[string]*idempotencyRecord),
+		tenants:         make(map[string]string),
+		accounts:        make(map[string]*account),
+		accountPhone:    make(map[string]string),
+		delegations:     make(map[string]*delegation),
+		students:        make(map[string]*student),
+		assignments:     make(map[string][]*teacherAssignment),
+		logicalTimes:    make(map[string]time.Time),
+		lessons:         make(map[string]*lesson),
+		enrollments:     make(map[string]string),
+		firstMinutes:    make(map[string][]core.FirstMinute),
+		invitations:     make(map[string]*invitation),
+		inviteDigest:    make(map[string]string),
+		sessions:        make(map[string]*session),
+		accessIndex:     make(map[string]string),
+		refreshIndex:    make(map[string]string),
+		resets:          make(map[string]*passwordReset),
+		resetDigest:     make(map[string]string),
+		contacts:        make(map[string]*verifiedContact),
+		contactVerifs:   make(map[string]*contactVerification),
+		twofaSecrets:    make(map[string]*twofaSecret),
+		twofaChallenges: make(map[string]*twofaChallenge),
+		challengeDigest: make(map[string]string),
+		activationProg:  make(map[string]*activationProgress),
+		idempotency:     make(map[string]*idempotencyRecord),
 	}
 }
 

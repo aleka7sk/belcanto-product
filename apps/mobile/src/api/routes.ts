@@ -1,8 +1,15 @@
 import {
   decodeActivationPreview,
+  decodeActivationProgress,
+  decodeRecoveryCodes,
   decodeRevokeOtherSessionsResult,
   decodeSecurityEventsPage,
   decodeSessionDevices,
+  decodeSignInOutcome,
+  decodeTwofaEnrollment,
+  decodeTwofaStatus,
+  decodeVerifiedContact,
+  decodeVerifiedContacts,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -35,7 +42,23 @@ import {
   type ReassignPrimaryTeachersResult,
   type RefreshSessionRequest,
   type ReplaceLessonTeachersRequest,
+  type ActivationCodeRequest,
+  type ActivationContactRequest,
+  type ActivationFinishRequest,
+  type ActivationPasswordRequest,
+  type ActivationProgressView,
+  type ActivationTokenRequest,
+  type ConfirmContactChangeRequest,
+  type CurrentPasswordRequest,
+  type DisableTwofaRequest,
   type RequestPasswordResetRequest,
+  type SignInOutcome,
+  type StartContactChangeRequest,
+  type TwofaCodeRequest,
+  type TwofaEnrollment,
+  type TwofaSignInRequest,
+  type TwofaStatus,
+  type VerifiedContact,
   type RevokeOtherSessionsResult,
   type RevokeSessionRequest,
   type CompletePasswordResetRequest,
@@ -148,9 +171,17 @@ export const routes = {
     [400, 409, 422, 429, 500],
     decodeVoid,
   ),
-  signIn: route<SessionTokens>(
+  signIn: route<SignInOutcome>(
     "POST",
     "/v1/sessions",
+    "public",
+    200,
+    [401, 422, 429, 500],
+    decodeSignInOutcome,
+  ),
+  signInWithTwofa: route<SessionTokens>(
+    "POST",
+    "/v1/sessions/twofa",
     "public",
     200,
     [401, 422, 429, 500],
@@ -170,6 +201,118 @@ export const routes = {
     "required",
     204,
     [401, 500],
+    decodeVoid,
+  ),
+  activationProgress: route<ActivationProgressView>(
+    "POST",
+    "/v1/activations/progress",
+    "public",
+    200,
+    [400, 422, 429, 500],
+    decodeActivationProgress,
+  ),
+  setActivationPassword: route<void>(
+    "POST",
+    "/v1/activations/password",
+    "public",
+    204,
+    [400, 422, 429, 500],
+    decodeVoid,
+  ),
+  startActivationContact: route<void>(
+    "POST",
+    "/v1/activations/contact",
+    "public",
+    204,
+    [400, 409, 422, 429, 500],
+    decodeVoid,
+  ),
+  verifyActivationContact: route<void>(
+    "POST",
+    "/v1/activations/contact/verify",
+    "public",
+    204,
+    [400, 409, 422, 429, 500],
+    decodeVoid,
+  ),
+  startActivationTwofa: route<TwofaEnrollment>(
+    "POST",
+    "/v1/activations/twofa",
+    "public",
+    200,
+    [400, 409, 422, 429, 500],
+    decodeTwofaEnrollment,
+  ),
+  confirmActivationTwofa: route<string[]>(
+    "POST",
+    "/v1/activations/twofa/confirm",
+    "public",
+    200,
+    [400, 409, 422, 429, 500],
+    decodeRecoveryCodes,
+  ),
+  finishActivation: route<void>(
+    "POST",
+    "/v1/activations/finish",
+    "public",
+    204,
+    [400, 409, 422, 429, 500],
+    decodeVoid,
+  ),
+  listMyContacts: route<VerifiedContact[]>(
+    "GET",
+    "/v1/me/contacts",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeVerifiedContacts,
+  ),
+  startContactChange: route<void>(
+    "POST",
+    "/v1/me/contacts/change",
+    "required",
+    204,
+    [401, 409, 422, 429, 500],
+    decodeVoid,
+  ),
+  confirmContactChange: route<VerifiedContact>(
+    "POST",
+    "/v1/me/contacts/confirm",
+    "required",
+    200,
+    [401, 409, 422, 429, 500],
+    decodeVerifiedContact,
+  ),
+  twofaStatus: route<TwofaStatus>(
+    "GET",
+    "/v1/me/twofa",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeTwofaStatus,
+  ),
+  startTwofaEnrollment: route<TwofaEnrollment>(
+    "POST",
+    "/v1/me/twofa/enroll",
+    "required",
+    200,
+    [401, 409, 422, 429, 500],
+    decodeTwofaEnrollment,
+  ),
+  confirmTwofaEnrollment: route<string[]>(
+    "POST",
+    "/v1/me/twofa/confirm",
+    "required",
+    200,
+    [401, 409, 422, 429, 500],
+    decodeRecoveryCodes,
+  ),
+  disableTwofa: route<void>(
+    "POST",
+    "/v1/me/twofa/disable",
+    "required",
+    204,
+    [401, 409, 422, 429, 500],
     decodeVoid,
   ),
   requestPasswordReset: route<void>(
@@ -367,6 +510,19 @@ export type RouteRequestBodies = {
   signIn: SignInRequest;
   refreshSession: RefreshSessionRequest;
   requestPasswordReset: RequestPasswordResetRequest;
+  signInWithTwofa: TwofaSignInRequest;
+  activationProgress: ActivationTokenRequest;
+  setActivationPassword: ActivationPasswordRequest;
+  startActivationContact: ActivationContactRequest;
+  verifyActivationContact: ActivationCodeRequest;
+  startActivationTwofa: ActivationTokenRequest;
+  confirmActivationTwofa: ActivationCodeRequest;
+  finishActivation: ActivationFinishRequest;
+  startContactChange: StartContactChangeRequest;
+  confirmContactChange: ConfirmContactChangeRequest;
+  startTwofaEnrollment: CurrentPasswordRequest;
+  confirmTwofaEnrollment: TwofaCodeRequest;
+  disableTwofa: DisableTwofaRequest;
   completePasswordReset: CompletePasswordResetRequest;
   revokeOtherSessions: RevokeSessionRequest;
   revokeMySession: RevokeSessionRequest;

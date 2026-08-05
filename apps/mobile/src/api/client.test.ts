@@ -19,10 +19,12 @@ describe("ApiClient", () => {
   it("uses the stable sign-in route without authorization", async () => {
     const fetch = fetchMock(
       mockResponse(200, {
-        accessToken: "A".repeat(43),
-        refreshToken: "R".repeat(43),
-        accessExpiresAt: "2026-08-01T10:00:00Z",
-        refreshExpiresAt: "2026-09-01T10:00:00Z",
+        tokens: {
+          accessToken: "A".repeat(43),
+          refreshToken: "R".repeat(43),
+          accessExpiresAt: "2026-08-01T10:00:00Z",
+          refreshExpiresAt: "2026-09-01T10:00:00Z",
+        },
       }),
     );
     const api = new ApiClient({ baseUrl: "https://api.example/", fetch });

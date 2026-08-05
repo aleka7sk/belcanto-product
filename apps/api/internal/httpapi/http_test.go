@@ -61,10 +61,14 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Owner: %v", err)
 	}
 	activateDirect(t, service, ownerLink, "+77001000001", httpOwnerPassword, "http-owner")
-	ownerTokens, err := service.SignIn(ctx, "+77001000001", httpOwnerPassword, core.SessionClientInfo{})
+	ownerTokensOutcome, err := service.SignIn(ctx, "+77001000001", httpOwnerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Owner: %v", err)
 	}
+	if ownerTokensOutcome.Tokens == nil {
+		t.Fatal("sign-in returned a second-factor challenge; tokens expected")
+	}
+	ownerTokens := *ownerTokensOutcome.Tokens
 	owner, err := service.Authenticate(ctx, ownerTokens.AccessToken)
 	if err != nil {
 		t.Fatalf("authenticate HTTP Owner: %v", err)
@@ -79,10 +83,14 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Administrator: %v", err)
 	}
 	activateDirect(t, service, adminLink, "+77001000002", httpAdminPassword, "http-admin")
-	adminTokens, err := service.SignIn(ctx, "+77001000002", httpAdminPassword, core.SessionClientInfo{})
+	adminTokensOutcome, err := service.SignIn(ctx, "+77001000002", httpAdminPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Administrator: %v", err)
 	}
+	if adminTokensOutcome.Tokens == nil {
+		t.Fatal("sign-in returned a second-factor challenge; tokens expected")
+	}
+	adminTokens := *adminTokensOutcome.Tokens
 	admin, err := service.Authenticate(ctx, adminTokens.AccessToken)
 	if err != nil {
 		t.Fatalf("authenticate HTTP Administrator: %v", err)
@@ -97,10 +105,14 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Teacher: %v", err)
 	}
 	activateDirect(t, service, teacherLink, "+77001000003", httpTeacherPassword, "http-teacher")
-	teacherTokens, err := service.SignIn(ctx, "+77001000003", httpTeacherPassword, core.SessionClientInfo{})
+	teacherTokensOutcome, err := service.SignIn(ctx, "+77001000003", httpTeacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Teacher: %v", err)
 	}
+	if teacherTokensOutcome.Tokens == nil {
+		t.Fatal("sign-in returned a second-factor challenge; tokens expected")
+	}
+	teacherTokens := *teacherTokensOutcome.Tokens
 	teacher, err := service.Authenticate(ctx, teacherTokens.AccessToken)
 	if err != nil {
 		t.Fatalf("authenticate HTTP Teacher: %v", err)
@@ -321,11 +333,12 @@ func TestHTTPClosedAccessJourney(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("Student sign-in status = %d, body=%s", response.StatusCode, readBody(t, response))
 	}
-	var studentTokens core.SessionTokens
-	decodeResponse(t, response, &studentTokens)
-	if studentTokens.AccessToken == "" || studentTokens.RefreshToken == "" {
-		t.Fatalf("Student tokens = %#v", studentTokens)
+	var studentOutcome core.SignInOutcome
+	decodeResponse(t, response, &studentOutcome)
+	if studentOutcome.Tokens == nil || studentOutcome.Tokens.AccessToken == "" || studentOutcome.Tokens.RefreshToken == "" {
+		t.Fatalf("Student sign-in outcome = %#v", studentOutcome)
 	}
+	studentTokens := *studentOutcome.Tokens
 
 	response = fixture.do(t, http.MethodGet, "/v1/me/bootstrap", nil, studentTokens.AccessToken, "")
 	if response.StatusCode != http.StatusOK {

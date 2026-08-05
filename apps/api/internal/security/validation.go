@@ -76,3 +76,19 @@ func ValidateTimezone(value string) (string, error) {
 	}
 	return value, nil
 }
+
+// NormalizeEmail lowercases and validates an email address for contact
+// verification. The shape check is deliberately conservative: one @, a
+// non-empty local part, a dot-separated domain, 254 bytes maximum.
+func NormalizeEmail(value string) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if len(normalized) < 3 || len(normalized) > 254 {
+		return "", fmt.Errorf("email must contain 3 to 254 characters")
+	}
+	if !emailPattern.MatchString(normalized) {
+		return "", fmt.Errorf("email format is invalid")
+	}
+	return normalized, nil
+}
+
+var emailPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._%+-]*@[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$`)

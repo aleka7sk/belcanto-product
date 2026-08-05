@@ -77,7 +77,7 @@ func (api *API) signIn(response http.ResponseWriter, request *http.Request) {
 		api.writeError(response, core.E(core.CodeRateLimited, "too many sign-in attempts", nil))
 		return
 	}
-	tokens, err := api.service.SignIn(request.Context(), input.Phone, input.Password, core.SessionClientInfo{
+	outcome, err := api.service.SignIn(request.Context(), input.Phone, input.Password, core.SessionClientInfo{
 		DeviceLabel: input.DeviceLabel,
 		Platform:    input.Platform,
 	})
@@ -85,7 +85,7 @@ func (api *API) signIn(response http.ResponseWriter, request *http.Request) {
 		api.writeError(response, err)
 		return
 	}
-	api.writeJSON(response, http.StatusOK, tokens)
+	api.writeJSON(response, http.StatusOK, outcome)
 }
 
 type refreshRequest struct {

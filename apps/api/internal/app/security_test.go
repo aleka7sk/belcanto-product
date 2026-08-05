@@ -11,11 +11,14 @@ import (
 
 func ownerSessionTokens(t *testing.T, fixture *fixture, client core.SessionClientInfo) core.SessionTokens {
 	t.Helper()
-	tokens, err := fixture.service.SignIn(context.Background(), "+77000000001", ownerPassword, client)
+	outcome, err := fixture.service.SignIn(context.Background(), "+77000000001", ownerPassword, client)
 	if err != nil {
 		t.Fatalf("sign in Owner session: %v", err)
 	}
-	return tokens
+	if outcome.Tokens == nil {
+		t.Fatal("Owner sign-in returned a second-factor challenge; tokens expected")
+	}
+	return *outcome.Tokens
 }
 
 func TestSessionInventoryAndTargetedRevocation(t *testing.T) {
