@@ -4,8 +4,8 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-05T22:20:00Z",
-  "phase": "phase0-complete",
+  "updatedAt": "2026-08-05T22:55:00Z",
+  "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
     "rootNodeName": "Document",
@@ -46,7 +46,8 @@
     { "id": "p0-reuse-gap-audit", "phase": 0, "status": "completed", "summary": "map existing B.0/L.1 code vs 242 states", "evidence": "mobile+api survey in traceability §3; per-page state enumeration happens at each slice start" },
     { "id": "p0-migration-plan", "phase": 0, "status": "completed", "summary": "additive migration + shared API boundary plan", "evidence": "traceability §7" },
     { "id": "p0-toolchain-baseline", "phase": 0, "status": "completed", "summary": "green baseline of §14 commands + first checkpoint commit", "evidence": "pnpm 11.7.0; validate.py errors 0/warnings 99/known 78; contract:lint OK; mobile:check 16 suites/101 tests; expo-doctor 20/20 after SDK57 patch bump; api-format/tidy/vet/build OK; migrate+api-test+api-race OK on disposable PG 18.4 127.0.0.1:5544/belcanto_test (fresh container belcanto-prodv2-test-pg, 0 mounts); commit f9e994b71d29601698d3bb6f75402b2197679bed" },
-    { "id": "p1-identity-account", "phase": 1, "status": "not_started", "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32" },
+    { "id": "p1-ui-foundation", "phase": 1, "status": "completed", "summary": "tokens projection (113 vars, dark+light), RoleBottomNav (20 variants, vector icons), PremiumContextHero + AgendaEntry, i18n ru-KZ/kk-KZ foundation", "evidence": "commit f48527e8342eb93c67aca1edb3ff9e075d9aab5b; mobile:check 20 suites/121 tests; expo-doctor 20/20; KK beyond Figma 370:107/372:200 is implementation-translated pending human review; Page-31/32 state map captured (ACC-01..20, AUTH-01..11, ACT-01..09)" },
+    { "id": "p1-identity-account", "phase": 1, "status": "in_progress", "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32", "evidence": "next: migration 000003_identity_security backend slice (contact verification, TOTP 2FA + recovery codes, session inventory/revoke, security events, password recovery, activation progress)" },
     { "id": "p2-core-lessons", "phase": 2, "status": "not_started", "summary": "CoreLessonSeries/Occurrence individual=1 group<=3, rooms, assignment, attendance base, migration from generic Lesson" },
     { "id": "p2-events-rsvp", "phase": 2, "status": "not_started", "summary": "EventSeries/Occurrence, recurrence+exceptions, RSVP/waitlist/spot offers atomic, categories data-driven" },
     { "id": "p2-reschedule", "phase": 2, "status": "not_started", "summary": "reschedule/cancellation requests + admin decision + notify" },
@@ -58,6 +59,6 @@
     { "id": "p8-e2e-release", "phase": 8, "status": "not_started", "summary": "flows A-P E2E, visual QA, CI-equivalent gates, final traceability" }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "f9e994b71d29601698d3bb6f75402b2197679bed",
+  "lastGreenCodeSha": "f48527e8342eb93c67aca1edb3ff9e075d9aab5b",
   "nextSafeAction": "Phase 1 slice p1-security-foundation: enumerate Page 32 states (get_metadata 293:15), then vertical slice for verified contacts + 2FA + session inventory/revoke + security events (migration 000003_identity_security)"
 }
