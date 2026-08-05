@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T01:30:00Z",
+  "updatedAt": "2026-08-06T03:10:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -113,7 +113,7 @@
       "phase": 1,
       "status": "in_progress",
       "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32",
-      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f760444a0ea42308f6e68752b061ea360d): migrations 000003+000004, session inventory/revocation/security feed/password recovery, verified contacts + codes, TOTP 2FA with recovery codes and sign-in challenges, multi-step resumable activation; OpenAPI 0.3.0; mobile union sign-in + provider twofa + SignInScreen step; Go 7 pkgs + race, mobile 21/134. Remaining in phase 1: AUTH-01..11 + ACC-01..20 screens, role switch UI, privacy/consents/export/deletion (migration 000005), ACT deep-link guard base"
+      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f) + p1-privacy-data-rights (f6af36b): migrations 000003-000005, session inventory/revocation/security feed/password recovery, verified contacts + codes, TOTP 2FA, multi-step activation, policy catalog/acceptance, versioned privacy settings, DEC-104-safe export/deletion requests behind re-auth; OpenAPI 0.4.0 (9 new privacy ops, 18 security-feed actions); memory+PG parity incl. privacy integration test with scheduled_for schema guard; Go full suite + race on disposable PG, mobile 22 suites/144 tests. Remaining in phase 1: AUTH-01..11 + ACC-01..20 screens with i18n, role switch UI, ACT deep-link guard base"
     },
     {
       "id": "p2-core-lessons",
@@ -171,6 +171,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "006ae2f760444a0ea42308f6e68752b061ea360d",
-  "nextSafeAction": "continue p1-identity-account: migration 000005_policies_privacy (policy versions/acceptances, privacy settings, export/deletion requests DEC-104-safe) + AUTH/ACC screen set with i18n"
+  "lastGreenCodeSha": "f6af36b",
+  "nextSafeAction": "continue p1-identity-account: build AUTH-01..11 + ACC-01..20 screens with i18n on the finished API surface (sessions, contacts, 2FA, privacy, data rights), role switch UI (ACC-04/19/20), activation deep-link guard base"
 }
