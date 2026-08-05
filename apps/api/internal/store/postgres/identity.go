@@ -541,11 +541,13 @@ func (s *Store) CreateSession(ctx context.Context, accountID, tenantID string, m
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO sessions (
 				id, family_id, tenant_id, account_id, access_digest, refresh_digest,
-				status, access_expires_at, refresh_expires_at, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $8, $9)
+				status, access_expires_at, refresh_expires_at, created_at,
+				device_label, platform
+			) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $8, $9, NULLIF($10, ''), NULLIF($11, ''))
 		`, material.SessionID, material.FamilyID, tenantID, accountID,
 			material.AccessDigest, material.RefreshDigest, material.AccessExpiresAt,
-			material.RefreshExpiresAt, material.CreatedAt); err != nil {
+			material.RefreshExpiresAt, material.CreatedAt,
+			material.DeviceLabel, material.Platform); err != nil {
 			return fmt.Errorf("create session: %w", err)
 		}
 		return appendAudit(ctx, tx, auditInput{
@@ -641,11 +643,15 @@ func (s *Store) RotateSession(ctx context.Context, oldRefreshDigest []byte, mate
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO sessions (
 			id, family_id, tenant_id, account_id, access_digest, refresh_digest,
-			status, access_expires_at, refresh_expires_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $8, $9)
+			status, access_expires_at, refresh_expires_at, created_at,
+			device_label, platform, last_seen_at
+		)
+		SELECT $1, $2, $3, $4, $5, $6, 'active', $7, $8, $9,
+		       old.device_label, old.platform, $10
+		FROM sessions old WHERE old.id = $11
 	`, material.SessionID, familyID, tenantID, accountID, material.AccessDigest,
 		material.RefreshDigest, material.AccessExpiresAt, material.RefreshExpiresAt,
-		material.CreatedAt); err != nil {
+		material.CreatedAt, now, oldID); err != nil {
 		return "", "", fmt.Errorf("create replacement session: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `

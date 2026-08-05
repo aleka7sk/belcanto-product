@@ -12,6 +12,7 @@ import (
 type TokenCodec struct {
 	digestKey     []byte
 	invitationKey []byte
+	resetKey      []byte
 }
 
 func NewTokenCodec(masterKey []byte) (*TokenCodec, error) {
@@ -20,7 +21,8 @@ func NewTokenCodec(masterKey []byte) (*TokenCodec, error) {
 	}
 	digestKey := derive(masterKey, "belcanto-token-digest-v1")
 	invitationKey := derive(masterKey, "belcanto-invitation-token-v1")
-	return &TokenCodec{digestKey: digestKey, invitationKey: invitationKey}, nil
+	resetKey := derive(masterKey, "belcanto-password-reset-v1")
+	return &TokenCodec{digestKey: digestKey, invitationKey: invitationKey, resetKey: resetKey}, nil
 }
 
 func derive(master []byte, label string) []byte {
@@ -51,6 +53,16 @@ func (c *TokenCodec) Digest(raw string) []byte {
 func (c *TokenCodec) InvitationToken(invitationID string) string {
 	mac := hmac.New(sha256.New, c.invitationKey)
 	_, _ = mac.Write([]byte("invitation-id:" + invitationID))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// PasswordResetToken deterministically derives the recovery token from a
+// cryptographically random reset identifier, mirroring InvitationToken:
+// PostgreSQL keeps only the digest, and the delivery worker re-derives the
+// link from the identifier with the server-held master key.
+func (c *TokenCodec) PasswordResetToken(resetID string) string {
+	mac := hmac.New(sha256.New, c.resetKey)
+	_, _ = mac.Write([]byte("password-reset-id:" + resetID))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 

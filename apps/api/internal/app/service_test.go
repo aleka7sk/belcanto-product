@@ -82,7 +82,7 @@ func newFixture(t *testing.T) *fixture {
 	}); err != nil {
 		t.Fatalf("activate Owner: %v", err)
 	}
-	ownerTokens, err := service.SignIn(ctx, "+77000000001", ownerPassword)
+	ownerTokens, err := service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in Owner: %v", err)
 	}
@@ -119,7 +119,7 @@ func newFixture(t *testing.T) *fixture {
 	}); err != nil {
 		t.Fatalf("activate Teacher: %v", err)
 	}
-	adminTokens, err := service.SignIn(ctx, "+77000000002", adminPassword)
+	adminTokens, err := service.SignIn(ctx, "+77000000002", adminPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in Administrator: %v", err)
 	}
@@ -127,7 +127,7 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatalf("authenticate Administrator: %v", err)
 	}
-	teacherTokens, err := service.SignIn(ctx, "+77000000003", teacherPassword)
+	teacherTokens, err := service.SignIn(ctx, "+77000000003", teacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in Teacher: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestClosedInvitationJourneyAndEffectiveAccess(t *testing.T) {
 	}); !core.IsCode(err, core.CodeConflict) {
 		t.Fatalf("activation key reused with different password = %v", err)
 	}
-	studentTokens, err := fixture.service.SignIn(ctx, "+77000000101", studentPassword)
+	studentTokens, err := fixture.service.SignIn(ctx, "+77000000101", studentPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("Student must sign in after activation: %v", err)
 	}
@@ -449,7 +449,7 @@ func TestMutationReplayReauthorizesActorAndScopesIdempotency(t *testing.T) {
 func TestRefreshRotationDetectsReuseAndRevokesFamily(t *testing.T) {
 	fixture := newFixture(t)
 	ctx := context.Background()
-	original, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword)
+	original, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in for refresh test: %v", err)
 	}
@@ -467,7 +467,7 @@ func TestRefreshRotationDetectsReuseAndRevokesFamily(t *testing.T) {
 		t.Fatalf("refresh family remained active after reuse: %v", err)
 	}
 
-	fresh, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword)
+	fresh, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in for logout test: %v", err)
 	}
@@ -490,7 +490,7 @@ func TestConcurrentRefreshAndLogoutCannotLeaveFamilyActive(t *testing.T) {
 	fixture := newFixture(t)
 	ctx := context.Background()
 	for iteration := 0; iteration < 12; iteration++ {
-		original, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword)
+		original, err := fixture.service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 		if err != nil {
 			t.Fatalf("sign in iteration %d: %v", iteration, err)
 		}
@@ -691,11 +691,11 @@ func TestUnexpectedStoreFailuresAreInternal(t *testing.T) {
 			return service.CompleteActivation(ctx, app.CompleteActivationInput{Token: opaque, Phone: "+77000000001", Password: ownerPassword, IdempotencyKey: "fault-completion"})
 		}, &faultStore{Store: fixture.store, validatePass: true, completeErr: fault}, core.CodeInternal},
 		{"sign in", func(service *app.Service) error {
-			_, err := service.SignIn(ctx, "+77000000001", ownerPassword)
+			_, err := service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 			return err
 		}, &faultStore{Store: fixture.store, credentialByPhoneErr: fault}, core.CodeInternal},
 		{"corrupted sign-in credential", func(service *app.Service) error {
-			_, err := service.SignIn(ctx, "+77000000001", ownerPassword)
+			_, err := service.SignIn(ctx, "+77000000001", ownerPassword, core.SessionClientInfo{})
 			return err
 		}, &faultStore{Store: fixture.store, credentialByPhoneResult: &core.CredentialRecord{
 			AccountID: fixture.owner.AccountID, TenantID: fixture.owner.TenantID,
@@ -853,7 +853,7 @@ func TestStaffDiscoveryIsTenantIsolated(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("activate other Owner: %v", err)
 	}
-	otherOwnerTokens, err := fixture.service.SignIn(ctx, "+77000000601", ownerPassword)
+	otherOwnerTokens, err := fixture.service.SignIn(ctx, "+77000000601", ownerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in other Owner: %v", err)
 	}
@@ -875,7 +875,7 @@ func TestStaffDiscoveryIsTenantIsolated(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("activate other Teacher: %v", err)
 	}
-	otherTeacherTokens, err := fixture.service.SignIn(ctx, "+77000000602", teacherPassword)
+	otherTeacherTokens, err := fixture.service.SignIn(ctx, "+77000000602", teacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in other Teacher: %v", err)
 	}
@@ -927,7 +927,7 @@ func TestStudentOnboardingQueueStatesAndAssignmentScope(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("activate other assigned Teacher: %v", err)
 	}
-	otherTeacherTokens, err := fixture.service.SignIn(ctx, "+77000000701", teacherPassword)
+	otherTeacherTokens, err := fixture.service.SignIn(ctx, "+77000000701", teacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in other assigned Teacher: %v", err)
 	}
@@ -1261,7 +1261,7 @@ func (hasher *instrumentedPasswordHasher) DummyHash() string {
 
 func signInPrincipal(t *testing.T, service *app.Service, phone, password string) core.Principal {
 	t.Helper()
-	tokens, err := service.SignIn(context.Background(), phone, password)
+	tokens, err := service.SignIn(context.Background(), phone, password, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in principal: %v", err)
 	}

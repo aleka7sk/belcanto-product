@@ -31,6 +31,7 @@ type Service struct {
 	accessTTL         time.Duration
 	refreshTTL        time.Duration
 	invitationTTL     time.Duration
+	passwordResetTTL  time.Duration
 }
 
 type PasswordService interface {
@@ -45,6 +46,7 @@ type Options struct {
 	AccessTTL         time.Duration
 	RefreshTTL        time.Duration
 	InvitationTTL     time.Duration
+	PasswordResetTTL  time.Duration
 	Clock             Clock
 }
 
@@ -52,6 +54,10 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 	clock := options.Clock
 	if clock == nil {
 		clock = realClock{}
+	}
+	passwordResetTTL := options.PasswordResetTTL
+	if passwordResetTTL <= 0 {
+		passwordResetTTL = 30 * time.Minute
 	}
 	return &Service{
 		store:             store,
@@ -62,6 +68,7 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 		accessTTL:         options.AccessTTL,
 		refreshTTL:        options.RefreshTTL,
 		invitationTTL:     options.InvitationTTL,
+		passwordResetTTL:  passwordResetTTL,
 	}
 }
 
@@ -330,7 +337,11 @@ func (s *Service) CompleteActivation(ctx context.Context, input CompleteActivati
 	return nil
 }
 
-func (s *Service) SignIn(ctx context.Context, phone, password string) (core.SessionTokens, error) {
+func (s *Service) SignIn(ctx context.Context, phone, password string, client core.SessionClientInfo) (core.SessionTokens, error) {
+	normalizedClient, clientErr := validateSessionClientInfo(client)
+	if clientErr != nil {
+		return core.SessionTokens{}, clientErr
+	}
 	normalizedPhone, normalizeErr := security.NormalizePhone(phone)
 	encoded := s.passwords.DummyHash()
 	if normalizeErr != nil {
@@ -351,7 +362,7 @@ func (s *Service) SignIn(ctx context.Context, phone, password string) (core.Sess
 	if lookupErr != nil || !verified || record.Status != "active" {
 		return core.SessionTokens{}, core.E(core.CodeUnauthenticated, "phone or password is incorrect", nil)
 	}
-	return s.newSession(ctx, record.AccountID, record.TenantID)
+	return s.newSession(ctx, record.AccountID, record.TenantID, normalizedClient)
 }
 
 func (s *Service) Refresh(ctx context.Context, rawRefreshToken string) (core.SessionTokens, error) {
@@ -1088,11 +1099,13 @@ func (s *Service) reauthenticateOwner(ctx context.Context, principal core.Princi
 	return nil
 }
 
-func (s *Service) newSession(ctx context.Context, accountID, tenantID string) (core.SessionTokens, error) {
+func (s *Service) newSession(ctx context.Context, accountID, tenantID string, client core.SessionClientInfo) (core.SessionTokens, error) {
 	material, rawAccess, rawRefresh, err := s.newSessionMaterial("")
 	if err != nil {
 		return core.SessionTokens{}, core.E(core.CodeInternal, "could not generate session", err)
 	}
+	material.DeviceLabel = client.DeviceLabel
+	material.Platform = client.Platform
 	if err := s.store.CreateSession(ctx, accountID, tenantID, material); err != nil {
 		if core.IsCode(err, core.CodeUnauthenticated) {
 			return core.SessionTokens{}, err

@@ -90,6 +90,7 @@ type session struct {
 	TenantID   string
 	Status     string
 	ReplacedBy string
+	LastSeenAt *time.Time
 }
 
 type idempotencyRecord struct {
@@ -99,6 +100,8 @@ type idempotencyRecord struct {
 }
 
 type AuditRecord struct {
+	ID           int64
+	TargetType   string
 	TenantID     string
 	ActorID      string
 	OperatorID   string
@@ -136,6 +139,8 @@ type Store struct {
 	sessions     map[string]*session
 	accessIndex  map[string]string
 	refreshIndex map[string]string
+	resets       map[string]*passwordReset
+	resetDigest  map[string]string
 	idempotency  map[string]*idempotencyRecord
 	audit        []AuditRecord
 	outbox       []OutboxRecord
@@ -158,6 +163,8 @@ func New() *Store {
 		sessions:     make(map[string]*session),
 		accessIndex:  make(map[string]string),
 		refreshIndex: make(map[string]string),
+		resets:       make(map[string]*passwordReset),
+		resetDigest:  make(map[string]string),
 		idempotency:  make(map[string]*idempotencyRecord),
 	}
 }
@@ -386,6 +393,7 @@ func (s *Store) CreateSession(_ context.Context, accountID, tenantID string, mat
 	s.sessions[material.SessionID] = stored
 	s.accessIndex[hex.EncodeToString(material.AccessDigest)] = material.SessionID
 	s.refreshIndex[hex.EncodeToString(material.RefreshDigest)] = material.SessionID
+	s.appendSecurityAudit(tenantID, accountID, "SessionCreated", "session", material.SessionID, "allow", "", material.CreatedAt, nil)
 	return nil
 }
 
@@ -418,6 +426,8 @@ func (s *Store) RotateSession(_ context.Context, oldRefreshDigest []byte, materi
 	if old == nil || old.Status != "active" || !old.Material.RefreshExpiresAt.After(now) {
 		if old != nil {
 			s.revokeFamily(old.TenantID, old.AccountID, old.Material.FamilyID, now)
+			s.appendSecurityAudit(old.TenantID, old.AccountID, "RefreshTokenReuseDetected",
+				"session_family", old.Material.FamilyID, "deny", "inactive_or_reused_refresh_token", now, nil)
 		}
 		return "", "", core.E(core.CodeUnauthenticated, "refresh token cannot be reused", nil)
 	}
@@ -427,12 +437,20 @@ func (s *Store) RotateSession(_ context.Context, oldRefreshDigest []byte, materi
 		return "", "", core.E(core.CodeUnauthenticated, "account is inactive", nil)
 	}
 	material.FamilyID = old.Material.FamilyID
+	if material.DeviceLabel == "" {
+		material.DeviceLabel = old.Material.DeviceLabel
+	}
+	if material.Platform == "" {
+		material.Platform = old.Material.Platform
+	}
 	old.Status = "replaced"
 	old.ReplacedBy = material.SessionID
-	stored := &session{Material: cloneSession(material), AccountID: old.AccountID, TenantID: old.TenantID, Status: "active"}
+	lastSeen := now
+	stored := &session{Material: cloneSession(material), AccountID: old.AccountID, TenantID: old.TenantID, Status: "active", LastSeenAt: &lastSeen}
 	s.sessions[material.SessionID] = stored
 	s.accessIndex[hex.EncodeToString(material.AccessDigest)] = material.SessionID
 	s.refreshIndex[hex.EncodeToString(material.RefreshDigest)] = material.SessionID
+	s.appendSecurityAudit(old.TenantID, old.AccountID, "SessionRefreshed", "session", material.SessionID, "allow", "", now, nil)
 	return old.AccountID, old.TenantID, nil
 }
 
@@ -442,6 +460,9 @@ func (s *Store) RevokeSession(_ context.Context, accessDigest []byte, now time.T
 	if sessionID := s.accessIndex[hex.EncodeToString(accessDigest)]; sessionID != "" {
 		if stored := s.sessions[sessionID]; stored != nil {
 			s.revokeFamily(stored.TenantID, stored.AccountID, stored.Material.FamilyID, now)
+			s.appendSecurityAudit(stored.TenantID, stored.AccountID, "SessionRevoked",
+				"session_family", stored.Material.FamilyID, "allow", "", now,
+				map[string]any{"sessionId": sessionID})
 		}
 	}
 	return nil
@@ -1533,7 +1554,7 @@ func (s *Store) completeIdempotency(scope, tenantID, actorAccountID, key string,
 }
 
 func (s *Store) appendAudit(tenantID, actorID, delegationID, action, targetID, decision, reason string, at time.Time) {
-	s.audit = append(s.audit, AuditRecord{TenantID: tenantID, ActorID: actorID, DelegationID: delegationID, Action: action, TargetID: targetID, Decision: decision, Reason: reason, RecordedAt: at})
+	s.audit = append(s.audit, AuditRecord{ID: int64(len(s.audit) + 1), TenantID: tenantID, ActorID: actorID, DelegationID: delegationID, Action: action, TargetID: targetID, Decision: decision, Reason: reason, RecordedAt: at})
 }
 
 func (s *Store) appendAuditMetadata(tenantID, actorID, action, targetID, decision, reason string, at time.Time, metadata map[string]any) {
@@ -1542,13 +1563,14 @@ func (s *Store) appendAuditMetadata(tenantID, actorID, action, targetID, decisio
 		cloned[key] = value
 	}
 	s.audit = append(s.audit, AuditRecord{
+		ID:       int64(len(s.audit) + 1),
 		TenantID: tenantID, ActorID: actorID, Action: action, TargetID: targetID,
 		Decision: decision, Reason: reason, Metadata: cloned, RecordedAt: at,
 	})
 }
 
 func (s *Store) appendOperatorAudit(tenantID, operatorID, action, targetID, decision, reason string, at time.Time) {
-	s.audit = append(s.audit, AuditRecord{TenantID: tenantID, OperatorID: operatorID, Action: action, TargetID: targetID, Decision: decision, Reason: reason, RecordedAt: at})
+	s.audit = append(s.audit, AuditRecord{ID: int64(len(s.audit) + 1), TenantID: tenantID, OperatorID: operatorID, Action: action, TargetID: targetID, Decision: decision, Reason: reason, RecordedAt: at})
 }
 
 func (s *Store) appendOutbox(tenantID, eventType, aggregateID string, at time.Time) {

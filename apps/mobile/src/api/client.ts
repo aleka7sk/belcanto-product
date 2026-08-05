@@ -21,6 +21,13 @@ import {
   type ReplaceLessonTeachersRequest,
   type ReplaceLessonTeachersResult,
   type RevokeDelegationRequest,
+  type CompletePasswordResetRequest,
+  type RequestPasswordResetRequest,
+  type RevokeOtherSessionsResult,
+  type RevokeSessionRequest,
+  type SecurityEventsPage,
+  type SecurityEventsQuery,
+  type SessionDevice,
   type SessionTokens,
   type SignInRequest,
   type StaffMember,
@@ -180,6 +187,59 @@ export class ApiClient {
 
   signOut(accessToken: string, signal?: AbortSignal): Promise<void> {
     return this.request(routes.signOut, { accessToken, signal });
+  }
+
+  requestPasswordReset(
+    body: RequestPasswordResetRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.requestPasswordReset, { body, signal });
+  }
+
+  completePasswordReset(
+    body: CompletePasswordResetRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.completePasswordReset, { body, signal });
+  }
+
+  listMySessions(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<SessionDevice[]> {
+    return this.request(routes.listMySessions, { accessToken, signal });
+  }
+
+  revokeOtherSessions(
+    accessToken: string,
+    body: RevokeSessionRequest,
+    signal?: AbortSignal,
+  ): Promise<RevokeOtherSessionsResult> {
+    return this.request(routes.revokeOtherSessions, { accessToken, body, signal });
+  }
+
+  revokeMySession(
+    accessToken: string,
+    sessionId: string,
+    body: RevokeSessionRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.revokeMySession(sessionId), {
+      accessToken,
+      body,
+      signal,
+    });
+  }
+
+  listSecurityEvents(
+    accessToken: string,
+    query: SecurityEventsQuery = {},
+    signal?: AbortSignal,
+  ): Promise<SecurityEventsPage> {
+    return this.request(routes.listSecurityEvents(query), {
+      accessToken,
+      signal,
+    });
   }
 
   bootstrap(accessToken: string, signal?: AbortSignal): Promise<BootstrapView> {

@@ -97,9 +97,15 @@ export interface CompleteActivationRequest {
   password: string;
 }
 
+export type SessionPlatform = "ios" | "android" | "web";
+
+export const SESSION_PLATFORMS = ["ios", "android", "web"] as const;
+
 export interface SignInRequest {
   phone: string;
   password: string;
+  deviceLabel?: string;
+  platform?: SessionPlatform;
 }
 
 export interface RefreshSessionRequest {
@@ -1098,4 +1104,207 @@ export const decodeVoid: Decoder<void> = (value) => {
   if (value !== undefined) {
     throw new ContractDecodeError("NoContent", "$");
   }
+};
+
+// ---- P.1 session security (Page 32: ACC-05/08/09, AUTH-07/08) ----
+
+export interface RequestPasswordResetRequest {
+  phone: string;
+}
+
+export interface CompletePasswordResetRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface RevokeSessionRequest {
+  currentPassword: string;
+}
+
+export interface SessionDevice {
+  sessionId: string;
+  deviceLabel?: string;
+  platform?: SessionPlatform;
+  createdAt: IsoDateTime;
+  lastSeenAt?: IsoDateTime;
+  current: boolean;
+}
+
+export interface RevokeOtherSessionsResult {
+  revokedCount: number;
+}
+
+export const SECURITY_EVENT_ACTIONS = [
+  "SessionCreated",
+  "SessionRefreshed",
+  "SessionRevoked",
+  "RefreshTokenReuseDetected",
+  "AccountActivated",
+  "PasswordResetRequested",
+  "PasswordResetCompleted",
+  "OtherSessionsRevoked",
+] as const;
+
+export type SecurityEventAction = (typeof SECURITY_EVENT_ACTIONS)[number];
+
+export interface SecurityEvent {
+  id: number;
+  action: SecurityEventAction;
+  decision: "allow" | "deny";
+  reasonCode?: string;
+  targetType?: string;
+  targetId?: string;
+  recordedAt: IsoDateTime;
+}
+
+export interface SecurityEventsPage {
+  events: SecurityEvent[];
+  nextCursor?: string;
+}
+
+export interface SecurityEventsQuery {
+  cursor?: string;
+  limit?: number;
+}
+
+function booleanField(
+  value: JsonRecord,
+  key: string,
+  contract: string,
+): boolean {
+  const field = value[key];
+  if (typeof field !== "boolean") {
+    throw new ContractDecodeError(contract, `$.${key}`);
+  }
+  return field;
+}
+
+function decodeSessionDevice(
+  value: unknown,
+  contract: string,
+  path: string,
+): SessionDevice {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    ["sessionId", "deviceLabel", "platform", "createdAt", "lastSeenAt", "current"],
+    contract,
+    path,
+  );
+  const deviceLabel = stringField(source, "deviceLabel", contract, true);
+  if (deviceLabel !== undefined && deviceLabel.length > 120) {
+    throw new ContractDecodeError(contract, `${path}.deviceLabel`);
+  }
+  const platform =
+    source.platform === undefined
+      ? undefined
+      : oneOf(source.platform, SESSION_PLATFORMS, contract, `${path}.platform`);
+  const device: SessionDevice = {
+    sessionId: identifierField(source, "sessionId", contract)!,
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    current: booleanField(source, "current", contract),
+  };
+  if (deviceLabel !== undefined) {
+    device.deviceLabel = deviceLabel;
+  }
+  if (platform !== undefined) {
+    device.platform = platform;
+  }
+  const lastSeenAt = isoDateField(source, "lastSeenAt", contract, true);
+  if (lastSeenAt !== undefined) {
+    device.lastSeenAt = lastSeenAt;
+  }
+  return device;
+}
+
+export const decodeSessionDevices: Decoder<SessionDevice[]> = (value) => {
+  const contract = "SessionDeviceList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const devices = value.map((entry, index) =>
+    decodeSessionDevice(entry, contract, `$[${index}]`),
+  );
+  unique(
+    devices.map((device) => device.sessionId),
+    contract,
+    "$[].sessionId",
+  );
+  if (devices.filter((device) => device.current).length > 1) {
+    throw new ContractDecodeError(contract, "$[].current");
+  }
+  return devices;
+};
+
+export const decodeRevokeOtherSessionsResult: Decoder<
+  RevokeOtherSessionsResult
+> = (value) => {
+  const contract = "RevokeOtherSessionsResult";
+  const source = record(value, contract);
+  exactKeys(source, ["revokedCount"], contract);
+  return { revokedCount: numberField(source, "revokedCount", contract) };
+};
+
+export const decodeSecurityEventsPage: Decoder<SecurityEventsPage> = (
+  value,
+) => {
+  const contract = "SecurityEventsPage";
+  const source = record(value, contract);
+  exactKeys(source, ["events", "nextCursor"], contract);
+  if (!Array.isArray(source.events)) {
+    throw new ContractDecodeError(contract, "$.events");
+  }
+  const events = source.events.map((entry, index) => {
+    const path = `$.events[${index}]`;
+    const eventSource = record(entry, contract, path);
+    exactKeys(
+      eventSource,
+      ["id", "action", "decision", "reasonCode", "targetType", "targetId", "recordedAt"],
+      contract,
+      path,
+    );
+    const event: SecurityEvent = {
+      id: numberField(eventSource, "id", contract, 1),
+      action: oneOf(
+        eventSource.action,
+        SECURITY_EVENT_ACTIONS,
+        contract,
+        `${path}.action`,
+      ),
+      decision: oneOf(
+        eventSource.decision,
+        ["allow", "deny"] as const,
+        contract,
+        `${path}.decision`,
+      ),
+      recordedAt: isoDateField(eventSource, "recordedAt", contract)!,
+    };
+    const reasonCode = stringField(eventSource, "reasonCode", contract, true);
+    if (reasonCode !== undefined) {
+      event.reasonCode = reasonCode;
+    }
+    const targetType = stringField(eventSource, "targetType", contract, true);
+    if (targetType !== undefined) {
+      event.targetType = targetType;
+    }
+    const targetId = identifierField(eventSource, "targetId", contract, true);
+    if (targetId !== undefined) {
+      event.targetId = targetId;
+    }
+    return event;
+  });
+  for (let index = 1; index < events.length; index += 1) {
+    if (events[index]!.id >= events[index - 1]!.id) {
+      throw new ContractDecodeError(contract, `$.events[${index}].id`);
+    }
+  }
+  const page: SecurityEventsPage = { events };
+  const nextCursor = stringField(source, "nextCursor", contract, true);
+  if (nextCursor !== undefined) {
+    if (nextCursor.length > 64) {
+      throw new ContractDecodeError(contract, "$.nextCursor");
+    }
+    page.nextCursor = nextCursor;
+  }
+  return page;
 };

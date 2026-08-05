@@ -23,6 +23,13 @@ type Store interface {
 	RotateSession(context.Context, []byte, core.SessionMaterial, time.Time) (string, string, error)
 	RevokeSession(context.Context, []byte, time.Time) error
 
+	ListSessions(context.Context, core.Principal, time.Time) ([]core.SessionDevice, error)
+	RevokeSessionByID(context.Context, core.RevokeSessionByIDCommand) error
+	RevokeOtherSessions(context.Context, core.RevokeOtherSessionsCommand) (int, error)
+	ListSecurityEvents(context.Context, core.Principal, core.SecurityEventsQuery) ([]core.SecurityEvent, error)
+	CreatePasswordReset(context.Context, core.CreatePasswordResetCommand) error
+	CompletePasswordReset(context.Context, core.CompletePasswordResetCommand) error
+
 	GrantDelegation(context.Context, core.GrantDelegationCommand) (core.DelegationResult, error)
 	RevokeDelegation(context.Context, core.RevokeDelegationCommand) error
 	CreateStudent(context.Context, core.CreateStudentCommand) (core.StudentResult, error)

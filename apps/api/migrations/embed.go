@@ -35,6 +35,12 @@ var internalSchedulingUp string
 //go:embed 000002_internal_scheduling.down.sql
 var internalSchedulingDown string
 
+//go:embed 000003_session_security.up.sql
+var sessionSecurityUp string
+
+//go:embed 000003_session_security.down.sql
+var sessionSecurityDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -46,6 +52,7 @@ func registeredMigrations() []migration {
 	return []migration{
 		{version: initialVersion, description: "Belcanto B.0 initial schema", up: initialUp, down: initialDown},
 		{version: 2, description: "Belcanto L.1 internal scheduling", up: internalSchedulingUp, down: internalSchedulingDown},
+		{version: 3, description: "Belcanto P.1 session security", up: sessionSecurityUp, down: sessionSecurityDown},
 	}
 }
 

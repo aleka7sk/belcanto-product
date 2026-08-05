@@ -227,6 +227,16 @@ type SessionMaterial struct {
 	AccessExpiresAt  time.Time
 	RefreshExpiresAt time.Time
 	CreatedAt        time.Time
+	DeviceLabel      string
+	Platform         string
+}
+
+// SessionClientInfo carries optional, client-declared device metadata for
+// the session inventory (Page 32, ACC-08). It never influences
+// authorization decisions.
+type SessionClientInfo struct {
+	DeviceLabel string
+	Platform    string
 }
 
 type SessionTokens struct {
@@ -516,4 +526,63 @@ type PrimaryTeacherReassignment struct {
 type PrimaryTeacherReassignmentResult struct {
 	ReassignedCount int                          `json:"reassignedCount"`
 	Assignments     []PrimaryTeacherReassignment `json:"assignments"`
+}
+
+// ---- P.1 session security (Figma Page 32: ACC-05/08/09, AUTH-06..08) ----
+
+// SessionDevice is one row of the account's session inventory. Family
+// rotation collapses to the newest active session per family, so one row
+// represents one signed-in device.
+type SessionDevice struct {
+	SessionID   string     `json:"sessionId"`
+	DeviceLabel string     `json:"deviceLabel,omitempty"`
+	Platform    string     `json:"platform,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	LastSeenAt  *time.Time `json:"lastSeenAt,omitempty"`
+	Current     bool       `json:"current"`
+}
+
+type RevokeSessionByIDCommand struct {
+	Principal Principal
+	SessionID string
+	Now       time.Time
+}
+
+type RevokeOtherSessionsCommand struct {
+	Principal Principal
+	Now       time.Time
+}
+
+// SecurityEvent is a privacy-safe projection of the append-only audit
+// history: security-relevant actions of the account itself, never raw
+// tokens, contacts or free text.
+type SecurityEvent struct {
+	ID         int64     `json:"id"`
+	Action     string    `json:"action"`
+	Decision   string    `json:"decision"`
+	ReasonCode string    `json:"reasonCode,omitempty"`
+	TargetType string    `json:"targetType,omitempty"`
+	TargetID   string    `json:"targetId,omitempty"`
+	RecordedAt time.Time `json:"recordedAt"`
+}
+
+// SecurityEventsQuery pages backwards through the account's own security
+// history. BeforeID zero starts from the newest record.
+type SecurityEventsQuery struct {
+	BeforeID int64
+	Limit    int
+}
+
+type CreatePasswordResetCommand struct {
+	ResetID     string
+	Phone       string
+	TokenDigest []byte
+	ExpiresAt   time.Time
+	Now         time.Time
+}
+
+type CompletePasswordResetCommand struct {
+	TokenDigest  []byte
+	PasswordHash string
+	Now          time.Time
 }

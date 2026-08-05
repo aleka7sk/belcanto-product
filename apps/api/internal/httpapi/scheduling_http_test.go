@@ -23,7 +23,7 @@ func TestHTTPSchedulingAndContinuityContract(t *testing.T) {
 		t.Fatalf("bootstrap replacement Teacher: %v", err)
 	}
 	activateDirect(t, fixture.service, secondTeacherLink, "+77001001001", httpTeacherPassword, "http-replacement-teacher")
-	secondTeacherTokens, err := fixture.service.SignIn(ctx, "+77001001001", httpTeacherPassword)
+	secondTeacherTokens, err := fixture.service.SignIn(ctx, "+77001001001", httpTeacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in replacement Teacher: %v", err)
 	}

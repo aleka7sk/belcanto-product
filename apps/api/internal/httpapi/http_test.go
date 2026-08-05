@@ -61,7 +61,7 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Owner: %v", err)
 	}
 	activateDirect(t, service, ownerLink, "+77001000001", httpOwnerPassword, "http-owner")
-	ownerTokens, err := service.SignIn(ctx, "+77001000001", httpOwnerPassword)
+	ownerTokens, err := service.SignIn(ctx, "+77001000001", httpOwnerPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Owner: %v", err)
 	}
@@ -79,7 +79,7 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Administrator: %v", err)
 	}
 	activateDirect(t, service, adminLink, "+77001000002", httpAdminPassword, "http-admin")
-	adminTokens, err := service.SignIn(ctx, "+77001000002", httpAdminPassword)
+	adminTokens, err := service.SignIn(ctx, "+77001000002", httpAdminPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Administrator: %v", err)
 	}
@@ -97,7 +97,7 @@ func newHTTPFixture(t *testing.T) *httpFixture {
 		t.Fatalf("bootstrap HTTP Teacher: %v", err)
 	}
 	activateDirect(t, service, teacherLink, "+77001000003", httpTeacherPassword, "http-teacher")
-	teacherTokens, err := service.SignIn(ctx, "+77001000003", httpTeacherPassword)
+	teacherTokens, err := service.SignIn(ctx, "+77001000003", httpTeacherPassword, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in HTTP Teacher: %v", err)
 	}

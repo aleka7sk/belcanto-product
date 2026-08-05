@@ -1,5 +1,8 @@
 import {
   decodeActivationPreview,
+  decodeRevokeOtherSessionsResult,
+  decodeSecurityEventsPage,
+  decodeSessionDevices,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -32,6 +35,13 @@ import {
   type ReassignPrimaryTeachersResult,
   type RefreshSessionRequest,
   type ReplaceLessonTeachersRequest,
+  type RequestPasswordResetRequest,
+  type RevokeOtherSessionsResult,
+  type RevokeSessionRequest,
+  type CompletePasswordResetRequest,
+  type SecurityEventsPage,
+  type SecurityEventsQuery,
+  type SessionDevice,
   type ReplaceLessonTeachersResult,
   type RevokeDelegationRequest,
   type SessionTokens,
@@ -78,6 +88,25 @@ function pathPart(value: string, name: string): string {
     throw new TypeError(`${name} must be a valid backend identifier`);
   }
   return encodeURIComponent(normalized);
+}
+
+function securityEventsPath(query: SecurityEventsQuery): string {
+  const parameters: string[] = [];
+  if (query.cursor !== undefined) {
+    const cursor = query.cursor.trim();
+    if (cursor.length === 0 || cursor.length > 64) {
+      throw new TypeError("cursor must contain 1 to 64 characters");
+    }
+    parameters.push(`cursor=${encodeURIComponent(cursor)}`);
+  }
+  if (query.limit !== undefined) {
+    if (!Number.isSafeInteger(query.limit) || query.limit < 1 || query.limit > 50) {
+      throw new TypeError("limit must be an integer between 1 and 50");
+    }
+    parameters.push(`limit=${query.limit}`);
+  }
+  const suffix = parameters.length === 0 ? "" : `?${parameters.join("&")}`;
+  return `/v1/me/security-events${suffix}`;
 }
 
 function lessonsPath(query: LessonListQuery): string {
@@ -143,6 +172,56 @@ export const routes = {
     [401, 500],
     decodeVoid,
   ),
+  requestPasswordReset: route<void>(
+    "POST",
+    "/v1/password-resets",
+    "public",
+    204,
+    [422, 429, 500],
+    decodeVoid,
+  ),
+  completePasswordReset: route<void>(
+    "POST",
+    "/v1/password-resets/complete",
+    "public",
+    204,
+    [401, 422, 429, 500],
+    decodeVoid,
+  ),
+  listMySessions: route<SessionDevice[]>(
+    "GET",
+    "/v1/me/sessions",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeSessionDevices,
+  ),
+  revokeOtherSessions: route<RevokeOtherSessionsResult>(
+    "POST",
+    "/v1/me/sessions/revoke-others",
+    "required",
+    200,
+    [401, 422, 429, 500],
+    decodeRevokeOtherSessionsResult,
+  ),
+  revokeMySession: (sessionId: string) =>
+    route<void>(
+      "POST",
+      `/v1/me/sessions/${pathPart(sessionId, "sessionId")}/revoke`,
+      "required",
+      204,
+      [401, 404, 409, 422, 429, 500],
+      decodeVoid,
+    ),
+  listSecurityEvents: (query: SecurityEventsQuery = {}) =>
+    route<SecurityEventsPage>(
+      "GET",
+      securityEventsPath(query),
+      "required",
+      200,
+      [401, 422, 500],
+      decodeSecurityEventsPage,
+    ),
   bootstrap: route<BootstrapView>(
     "GET",
     "/v1/me/bootstrap",
@@ -287,6 +366,10 @@ export type RouteRequestBodies = {
   completeActivation: CompleteActivationRequest;
   signIn: SignInRequest;
   refreshSession: RefreshSessionRequest;
+  requestPasswordReset: RequestPasswordResetRequest;
+  completePasswordReset: CompletePasswordResetRequest;
+  revokeOtherSessions: RevokeSessionRequest;
+  revokeMySession: RevokeSessionRequest;
   grantDelegation: GrantDelegationRequest;
   revokeDelegation: RevokeDelegationRequest;
   createStudent: CreateStudentRequest;

@@ -513,7 +513,7 @@ func TestPostgreSQLInvitationActivationAndDelegatedOnboarding(t *testing.T) {
 
 	// Refresh rotation and logout serialize on the original session row. No
 	// interleaving may leave an active descendant in that session family.
-	raceSession, err := service.SignIn(ctx, "+77002000001", "Owner-password-123!")
+	raceSession, err := service.SignIn(ctx, "+77002000001", "Owner-password-123!", core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("sign in refresh/logout race: %v", err)
 	}
@@ -709,7 +709,7 @@ func activateIntegration(t *testing.T, ctx context.Context, service *app.Service
 
 func integrationPrincipal(t *testing.T, ctx context.Context, service *app.Service, phone, password string) core.Principal {
 	t.Helper()
-	tokens, err := service.SignIn(ctx, phone, password)
+	tokens, err := service.SignIn(ctx, phone, password, core.SessionClientInfo{})
 	if err != nil {
 		t.Fatalf("integration sign in: %v", err)
 	}

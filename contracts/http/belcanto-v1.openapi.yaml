@@ -3,9 +3,11 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.2.0
+  version: 0.3.0
   description: >-
-    HTTP contract for closed B.0 onboarding and L.1 internal Lesson scheduling.
+    HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
+    and P.1 session security (device inventory, targeted revocation, the
+    account security feed and one-time password recovery).
     There is intentionally no public sign-up operation: the school creates a
     Student and the invited person only activates the prepared Account.
 
@@ -20,6 +22,10 @@ tags:
     description: Public, invitation-bound account activation.
   - name: Sessions
     description: Authentication, rotation, sign-out, and account bootstrap.
+  - name: Security
+    description: >-
+      Session inventory, targeted revocation, the account security feed and
+      one-time password recovery.
   - name: Access
     description: Owner-controlled staff discovery and delegated access.
   - name: Onboarding
@@ -203,6 +209,194 @@ paths:
           description: Current session revoked, or already inactive.
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/password-resets:
+    post:
+      summary: Request password recovery
+      operationId: requestPasswordReset
+      tags: [Security]
+      security: []
+      description: >-
+        Starts one-time password recovery. The response never reveals
+        whether the phone belongs to an account; delivery happens
+        out-of-band and any previous unconsumed recovery link is
+        superseded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestPasswordResetRequest"
+      responses:
+        "204":
+          description: Recovery accepted; nothing about account existence is revealed.
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/password-resets/complete:
+    post:
+      summary: Complete password recovery
+      operationId: completePasswordReset
+      tags: [Security]
+      security: []
+      description: >-
+        Consumes the one-time recovery token, rotates the credential and
+        revokes every session family of the account. The token is the
+        idempotency mechanism: a consumed, superseded or expired token is
+        rejected as unauthenticated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompletePasswordResetRequest"
+      responses:
+        "204":
+          description: Password rotated; all previous sessions are revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/sessions:
+    get:
+      summary: List active sessions
+      operationId: listMySessions
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        The account's active signed-in devices, newest first, with the
+        calling session marked as current.
+      responses:
+        "200":
+          description: Active sessions of the calling account.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionDevice"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/sessions/revoke-others:
+    post:
+      summary: Revoke all other sessions
+      operationId: revokeOtherSessions
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        Requires fresh password re-authentication and revokes every session
+        family except the calling one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeSessionRequest"
+      responses:
+        "200":
+          description: Number of revoked session families.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevokeOtherSessionsResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/sessions/{sessionId}/revoke:
+    post:
+      summary: Revoke one session
+      operationId: revokeMySession
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        Requires fresh password re-authentication and revokes the selected
+        device's session family. The current session is refused; use
+        sign-out instead.
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeSessionRequest"
+      responses:
+        "204":
+          description: Session family revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/security-events:
+    get:
+      summary: List account security events
+      operationId: listSecurityEvents
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      description: >-
+        Privacy-safe projection of the account's own security history from
+        the append-only audit trail, newest first, cursor-paged.
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: One page of the account's security history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityEventsPage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
         "500":
           $ref: "#/components/responses/Internal"
 
@@ -813,6 +1007,15 @@ components:
         minLength: 1
         maxLength: 128
         pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
 
   responses:
     InvalidInput:
@@ -1057,6 +1260,14 @@ components:
         password:
           type: string
           format: password
+        deviceLabel:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Optional client-declared device name for the session inventory.
+        platform:
+          type: string
+          enum: [ios, android, web]
     RefreshSessionRequest:
       type: object
       additionalProperties: false
@@ -1067,6 +1278,117 @@ components:
           minLength: 43
           maxLength: 43
           pattern: '^[A-Za-z0-9_-]{43}$'
+    RequestPasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [phone]
+      properties:
+        phone:
+          type: string
+    CompletePasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        newPassword:
+          type: string
+          format: password
+    SessionDevice:
+      type: object
+      additionalProperties: false
+      required: [sessionId, createdAt, current]
+      properties:
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        deviceLabel:
+          type: string
+          minLength: 1
+          maxLength: 120
+        platform:
+          type: string
+          enum: [ios, android, web]
+        createdAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        current:
+          type: boolean
+    RevokeSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+    RevokeOtherSessionsResult:
+      type: object
+      additionalProperties: false
+      required: [revokedCount]
+      properties:
+        revokedCount:
+          type: integer
+          minimum: 0
+    SecurityEvent:
+      type: object
+      additionalProperties: false
+      required: [id, action, decision, recordedAt]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        action:
+          type: string
+          enum:
+            - SessionCreated
+            - SessionRefreshed
+            - SessionRevoked
+            - RefreshTokenReuseDetected
+            - AccountActivated
+            - PasswordResetRequested
+            - PasswordResetCompleted
+            - OtherSessionsRevoked
+        decision:
+          type: string
+          enum: [allow, deny]
+        reasonCode:
+          type: string
+          minLength: 1
+          maxLength: 100
+        targetType:
+          type: string
+          minLength: 1
+          maxLength: 100
+        targetId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        recordedAt:
+          type: string
+          format: date-time
+    SecurityEventsPage:
+      type: object
+      additionalProperties: false
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityEvent"
+        nextCursor:
+          type: string
+          minLength: 1
+          maxLength: 64
     SessionTokens:
       type: object
       additionalProperties: false

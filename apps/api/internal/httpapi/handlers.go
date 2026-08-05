@@ -61,8 +61,10 @@ func (api *API) completeActivation(response http.ResponseWriter, request *http.R
 }
 
 type signInRequest struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	Phone       string `json:"phone"`
+	Password    string `json:"password"`
+	DeviceLabel string `json:"deviceLabel,omitempty"`
+	Platform    string `json:"platform,omitempty"`
 }
 
 func (api *API) signIn(response http.ResponseWriter, request *http.Request) {
@@ -75,7 +77,10 @@ func (api *API) signIn(response http.ResponseWriter, request *http.Request) {
 		api.writeError(response, core.E(core.CodeRateLimited, "too many sign-in attempts", nil))
 		return
 	}
-	tokens, err := api.service.SignIn(request.Context(), input.Phone, input.Password)
+	tokens, err := api.service.SignIn(request.Context(), input.Phone, input.Password, core.SessionClientInfo{
+		DeviceLabel: input.DeviceLabel,
+		Platform:    input.Platform,
+	})
 	if err != nil {
 		api.writeError(response, err)
 		return
