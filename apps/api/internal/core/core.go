@@ -732,3 +732,70 @@ type FinishActivationCommand struct {
 	PayloadFingerprint []byte
 	Now                time.Time
 }
+
+// ---- P.1 policies, privacy and data rights (ACC-10..12, 14..18) ----
+
+type PolicyVersion struct {
+	ID            string     `json:"id"`
+	Kind          string     `json:"kind"`
+	Version       string     `json:"version"`
+	Title         string     `json:"title"`
+	BodyRef       string     `json:"bodyRef"`
+	EffectiveFrom time.Time  `json:"effectiveFrom"`
+	AcceptedAt    *time.Time `json:"acceptedAt,omitempty"`
+}
+
+type AcceptPolicyCommand struct {
+	Principal       Principal
+	AcceptanceID    string
+	PolicyVersionID string
+	Now             time.Time
+}
+
+type PrivacySettings struct {
+	CommunityProfileVisible bool   `json:"communityProfileVisible"`
+	AchievementsVisible     bool   `json:"achievementsVisible"`
+	StaffMessagesAllowed    bool   `json:"staffMessagesAllowed"`
+	MentionsAllowed         bool   `json:"mentionsAllowed"`
+	PushPreview             string `json:"pushPreview"`
+	Version                 int64  `json:"version"`
+}
+
+type UpdatePrivacySettingsCommand struct {
+	Principal       Principal
+	Settings        PrivacySettings
+	ExpectedVersion int64
+	Now             time.Time
+}
+
+type DataExportRequest struct {
+	ID          string     `json:"id"`
+	Status      string     `json:"status"`
+	RequestedAt time.Time  `json:"requestedAt"`
+	ReadyAt     *time.Time `json:"readyAt,omitempty"`
+	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
+}
+
+type CreateDataExportCommand struct {
+	Principal Principal
+	ExportID  string
+	Now       time.Time
+}
+
+type DeletionRequest struct {
+	ID          string     `json:"id"`
+	Status      string     `json:"status"`
+	RequestedAt time.Time  `json:"requestedAt"`
+	CancelledAt *time.Time `json:"cancelledAt,omitempty"`
+}
+
+type CreateDeletionRequestCommand struct {
+	Principal Principal
+	RequestID string
+	Now       time.Time
+}
+
+type CancelDeletionRequestCommand struct {
+	Principal Principal
+	Now       time.Time
+}

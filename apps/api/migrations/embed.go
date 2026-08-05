@@ -47,6 +47,12 @@ var contactTwofaUp string
 //go:embed 000004_contact_twofa.down.sql
 var contactTwofaDown string
 
+//go:embed 000005_policies_privacy.up.sql
+var policiesPrivacyUp string
+
+//go:embed 000005_policies_privacy.down.sql
+var policiesPrivacyDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -60,6 +66,7 @@ func registeredMigrations() []migration {
 		{version: 2, description: "Belcanto L.1 internal scheduling", up: internalSchedulingUp, down: internalSchedulingDown},
 		{version: 3, description: "Belcanto P.1 session security", up: sessionSecurityUp, down: sessionSecurityDown},
 		{version: 4, description: "Belcanto P.1 contacts and two-factor authentication", up: contactTwofaUp, down: contactTwofaDown},
+		{version: 5, description: "Belcanto P.1 policies, privacy and data rights", up: policiesPrivacyUp, down: policiesPrivacyDown},
 	}
 }
 

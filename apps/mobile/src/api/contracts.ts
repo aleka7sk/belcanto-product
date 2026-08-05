@@ -1148,6 +1148,11 @@ export const SECURITY_EVENT_ACTIONS = [
   "TwofaEnrolled",
   "TwofaDisabled",
   "TwofaChallengeFailed",
+  "PolicyAccepted",
+  "PrivacySettingsUpdated",
+  "DataExportRequested",
+  "DeletionRequested",
+  "DeletionRequestCancelled",
 ] as const;
 
 export type SecurityEventAction = (typeof SECURITY_EVENT_ACTIONS)[number];
@@ -1573,4 +1578,222 @@ export const decodeRecoveryCodes: Decoder<string[]> = (value) => {
   });
   unique(codes, contract, "$.recoveryCodes");
   return codes;
+};
+
+// ---- P.1 policies, privacy and data rights (ACC-10..12, ACC-14..18) ----
+
+export const POLICY_KINDS = [
+  "privacy",
+  "terms",
+  "community",
+  "media_consent",
+] as const;
+
+export type PolicyKind = (typeof POLICY_KINDS)[number];
+
+export interface PolicyVersion {
+  id: string;
+  kind: PolicyKind;
+  version: string;
+  title: string;
+  bodyRef: string;
+  effectiveFrom: IsoDateTime;
+  acceptedAt?: IsoDateTime;
+}
+
+export interface AcceptPolicyRequest {
+  policyVersionId: string;
+}
+
+export const PUSH_PREVIEW_MODES = ["hidden", "title", "full"] as const;
+
+export type PushPreviewMode = (typeof PUSH_PREVIEW_MODES)[number];
+
+export interface PrivacySettings {
+  communityProfileVisible: boolean;
+  achievementsVisible: boolean;
+  staffMessagesAllowed: boolean;
+  mentionsAllowed: boolean;
+  pushPreview: PushPreviewMode;
+  version: number;
+}
+
+export const DATA_EXPORT_STATUSES = [
+  "requested",
+  "processing",
+  "ready",
+  "expired",
+  "cancelled",
+] as const;
+
+export type DataExportStatus = (typeof DATA_EXPORT_STATUSES)[number];
+
+export interface DataExportRequest {
+  id: string;
+  status: DataExportStatus;
+  requestedAt: IsoDateTime;
+  readyAt?: IsoDateTime;
+  expiresAt?: IsoDateTime;
+}
+
+export const DELETION_REQUEST_STATUSES = [
+  "requested",
+  "pending_review",
+  "cancelled",
+] as const;
+
+export type DeletionRequestStatus = (typeof DELETION_REQUEST_STATUSES)[number];
+
+export interface DeletionRequest {
+  id: string;
+  status: DeletionRequestStatus;
+  requestedAt: IsoDateTime;
+  cancelledAt?: IsoDateTime;
+}
+
+function decodePolicyVersionEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): PolicyVersion {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    ["id", "kind", "version", "title", "bodyRef", "effectiveFrom", "acceptedAt"],
+    contract,
+    path,
+  );
+  const policy: PolicyVersion = {
+    id: identifierField(source, "id", contract)!,
+    kind: oneOf(source.kind, POLICY_KINDS, contract, `${path}.kind`),
+    version: stringField(source, "version", contract)!,
+    title: stringField(source, "title", contract)!,
+    bodyRef: stringField(source, "bodyRef", contract)!,
+    effectiveFrom: isoDateField(source, "effectiveFrom", contract)!,
+  };
+  const acceptedAt = isoDateField(source, "acceptedAt", contract, true);
+  if (acceptedAt !== undefined) {
+    policy.acceptedAt = acceptedAt;
+  }
+  return policy;
+}
+
+export const decodePolicyVersions: Decoder<PolicyVersion[]> = (value) => {
+  const contract = "PolicyVersionList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const policies = value.map((entry, index) =>
+    decodePolicyVersionEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    policies.map((policy) => policy.id),
+    contract,
+    "$[].id",
+  );
+  return policies;
+};
+
+export const decodePrivacySettings: Decoder<PrivacySettings> = (value) => {
+  const contract = "PrivacySettings";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "communityProfileVisible",
+      "achievementsVisible",
+      "staffMessagesAllowed",
+      "mentionsAllowed",
+      "pushPreview",
+      "version",
+    ],
+    contract,
+  );
+  return {
+    communityProfileVisible: booleanField(source, "communityProfileVisible", contract),
+    achievementsVisible: booleanField(source, "achievementsVisible", contract),
+    staffMessagesAllowed: booleanField(source, "staffMessagesAllowed", contract),
+    mentionsAllowed: booleanField(source, "mentionsAllowed", contract),
+    pushPreview: oneOf(source.pushPreview, PUSH_PREVIEW_MODES, contract, "$.pushPreview"),
+    version: numberField(source, "version", contract, 0),
+  };
+};
+
+function decodeDataExportEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): DataExportRequest {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    ["id", "status", "requestedAt", "readyAt", "expiresAt"],
+    contract,
+    path,
+  );
+  const request: DataExportRequest = {
+    id: identifierField(source, "id", contract)!,
+    status: oneOf(source.status, DATA_EXPORT_STATUSES, contract, `${path}.status`),
+    requestedAt: isoDateField(source, "requestedAt", contract)!,
+  };
+  const readyAt = isoDateField(source, "readyAt", contract, true);
+  if (readyAt !== undefined) {
+    request.readyAt = readyAt;
+  }
+  const expiresAt = isoDateField(source, "expiresAt", contract, true);
+  if (expiresAt !== undefined) {
+    request.expiresAt = expiresAt;
+  }
+  const requiresReadyAt = request.status === "ready" || request.status === "expired";
+  if (requiresReadyAt !== (request.readyAt !== undefined)) {
+    throw new ContractDecodeError(contract, `${path}.readyAt`);
+  }
+  return request;
+}
+
+export const decodeDataExport: Decoder<DataExportRequest> = (value) =>
+  decodeDataExportEntry(value, "DataExportRequest", "$");
+
+export const decodeDataExports: Decoder<DataExportRequest[]> = (value) => {
+  const contract = "DataExportRequestList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  if (value.length > 10) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const exports = value.map((entry, index) =>
+    decodeDataExportEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    exports.map((entry) => entry.id),
+    contract,
+    "$[].id",
+  );
+  const open = exports.filter(
+    (entry) => entry.status === "requested" || entry.status === "processing",
+  );
+  if (open.length > 1) {
+    throw new ContractDecodeError(contract, "$[].status");
+  }
+  return exports;
+};
+
+export const decodeDeletionRequest: Decoder<DeletionRequest> = (value) => {
+  const contract = "DeletionRequest";
+  const source = record(value, contract);
+  exactKeys(source, ["id", "status", "requestedAt", "cancelledAt"], contract);
+  const request: DeletionRequest = {
+    id: identifierField(source, "id", contract)!,
+    status: oneOf(source.status, DELETION_REQUEST_STATUSES, contract, "$.status"),
+    requestedAt: isoDateField(source, "requestedAt", contract)!,
+  };
+  const cancelledAt = isoDateField(source, "cancelledAt", contract, true);
+  if (cancelledAt !== undefined) {
+    request.cancelledAt = cancelledAt;
+  }
+  if ((request.status === "cancelled") !== (request.cancelledAt !== undefined)) {
+    throw new ContractDecodeError(contract, "$.cancelledAt");
+  }
+  return request;
 };

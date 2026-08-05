@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.3.0
+  version: 0.4.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -851,6 +851,245 @@ paths:
           $ref: "#/components/responses/InvalidInput"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/policies:
+    get:
+      summary: List policy versions
+      operationId: listPolicies
+      tags: [Security]
+      description: >-
+        Tenant policy catalog with the caller's acceptance marks
+        (ACC-14/15). Newest versions first within each kind.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Policy versions with per-caller acceptance state.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PolicyVersion"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/policy-acceptances:
+    post:
+      summary: Accept a policy version
+      operationId: acceptPolicy
+      tags: [Security]
+      description: Idempotent — repeating an acceptance is not an error.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptPolicyRequest"
+      responses:
+        "204":
+          description: Acceptance recorded (or already present).
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/privacy:
+    get:
+      summary: Read privacy settings
+      operationId: privacySettings
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current privacy settings with the optimistic version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    put:
+      summary: Update privacy settings
+      operationId: updatePrivacySettings
+      tags: [Security]
+      description: >-
+        Full replacement guarded by the version the caller loaded; a stale
+        version yields CONFLICT (ACC-16).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacySettings"
+      responses:
+        "200":
+          description: Persisted settings with the incremented version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/data-exports:
+    get:
+      summary: List data export requests
+      operationId: listDataExports
+      tags: [Security]
+      description: Up to 10 most recent export requests, newest first.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Export request history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataExportRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    post:
+      summary: Request a data export
+      operationId: createDataExport
+      tags: [Security]
+      description: >-
+        Requires fresh password re-authentication (HOF-12). Only one export
+        may be open at a time; DEC-104 is undecided, so no readiness SLA is
+        promised.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentPasswordRequest"
+      responses:
+        "201":
+          description: Export request registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExportRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/deletion-request:
+    get:
+      summary: Read the open deletion request
+      operationId: deletionRequest
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The currently open deletion request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    post:
+      summary: Request account deletion
+      operationId: createDeletionRequest
+      tags: [Security]
+      description: >-
+        Requires fresh password re-authentication (HOF-12). While DEC-104 is
+        open the request stays in a reviewable state — nothing is scheduled
+        for erasure and the request can be cancelled at any time (ACC-18).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentPasswordRequest"
+      responses:
+        "201":
+          description: Deletion request registered for review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/me/deletion-request/cancel:
+    post:
+      summary: Cancel the open deletion request
+      operationId: cancelDeletionRequest
+      tags: [Security]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The cancelled deletion request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
         "500":
           $ref: "#/components/responses/Internal"
 
@@ -1959,6 +2198,109 @@ components:
         currentPassword:
           type: string
           format: password
+    PolicyVersion:
+      type: object
+      additionalProperties: false
+      required: [id, kind, version, title, bodyRef, effectiveFrom]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [privacy, terms, community, media_consent]
+        version:
+          type: string
+          minLength: 1
+          maxLength: 50
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        bodyRef:
+          type: string
+          minLength: 1
+          maxLength: 500
+        effectiveFrom:
+          type: string
+          format: date-time
+        acceptedAt:
+          type: string
+          format: date-time
+    AcceptPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [policyVersionId]
+      properties:
+        policyVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+    PrivacySettings:
+      type: object
+      additionalProperties: false
+      required:
+        - communityProfileVisible
+        - achievementsVisible
+        - staffMessagesAllowed
+        - mentionsAllowed
+        - pushPreview
+        - version
+      properties:
+        communityProfileVisible:
+          type: boolean
+        achievementsVisible:
+          type: boolean
+        staffMessagesAllowed:
+          type: boolean
+        mentionsAllowed:
+          type: boolean
+        pushPreview:
+          type: string
+          enum: [hidden, title, full]
+        version:
+          type: integer
+          minimum: 0
+    DataExportRequest:
+      type: object
+      additionalProperties: false
+      required: [id, status, requestedAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        status:
+          type: string
+          enum: [requested, processing, ready, expired, cancelled]
+        requestedAt:
+          type: string
+          format: date-time
+        readyAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    DeletionRequest:
+      type: object
+      additionalProperties: false
+      required: [id, status, requestedAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        status:
+          type: string
+          enum: [requested, pending_review, cancelled]
+        requestedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
     DisableTwofaRequest:
       type: object
       additionalProperties: false
@@ -2050,6 +2392,11 @@ components:
             - TwofaEnrolled
             - TwofaDisabled
             - TwofaChallengeFailed
+            - PolicyAccepted
+            - PrivacySettingsUpdated
+            - DataExportRequested
+            - DeletionRequested
+            - DeletionRequestCancelled
         decision:
           type: string
           enum: [allow, deny]

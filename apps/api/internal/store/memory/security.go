@@ -37,6 +37,11 @@ var securityAuditActions = map[string]bool{
 	"TwofaEnrolled":             true,
 	"TwofaDisabled":             true,
 	"TwofaChallengeFailed":      true,
+	"PolicyAccepted":            true,
+	"PrivacySettingsUpdated":    true,
+	"DataExportRequested":       true,
+	"DeletionRequested":         true,
+	"DeletionRequestCancelled":  true,
 }
 
 func (s *Store) ListSessions(_ context.Context, principal core.Principal, now time.Time) ([]core.SessionDevice, error) {

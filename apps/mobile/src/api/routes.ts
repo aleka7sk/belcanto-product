@@ -10,6 +10,11 @@ import {
   decodeTwofaStatus,
   decodeVerifiedContact,
   decodeVerifiedContacts,
+  decodeDataExport,
+  decodeDataExports,
+  decodeDeletionRequest,
+  decodePolicyVersions,
+  decodePrivacySettings,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -50,6 +55,11 @@ import {
   type ActivationTokenRequest,
   type ConfirmContactChangeRequest,
   type CurrentPasswordRequest,
+  type AcceptPolicyRequest,
+  type DataExportRequest,
+  type DeletionRequest,
+  type PolicyVersion,
+  type PrivacySettings,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -365,6 +375,78 @@ export const routes = {
       [401, 422, 500],
       decodeSecurityEventsPage,
     ),
+  listPolicies: route<PolicyVersion[]>(
+    "GET",
+    "/v1/policies",
+    "required",
+    200,
+    [401, 422, 500],
+    decodePolicyVersions,
+  ),
+  acceptPolicy: route<void>(
+    "POST",
+    "/v1/me/policy-acceptances",
+    "required",
+    204,
+    [401, 404, 422, 500],
+    decodeVoid,
+  ),
+  privacySettings: route<PrivacySettings>(
+    "GET",
+    "/v1/me/privacy",
+    "required",
+    200,
+    [401, 422, 500],
+    decodePrivacySettings,
+  ),
+  updatePrivacySettings: route<PrivacySettings>(
+    "PUT",
+    "/v1/me/privacy",
+    "required",
+    200,
+    [401, 409, 422, 500],
+    decodePrivacySettings,
+  ),
+  listDataExports: route<DataExportRequest[]>(
+    "GET",
+    "/v1/me/data-exports",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeDataExports,
+  ),
+  createDataExport: route<DataExportRequest>(
+    "POST",
+    "/v1/me/data-exports",
+    "required",
+    201,
+    [401, 409, 422, 429, 500],
+    decodeDataExport,
+  ),
+  deletionRequest: route<DeletionRequest>(
+    "GET",
+    "/v1/me/deletion-request",
+    "required",
+    200,
+    [401, 404, 422, 500],
+    decodeDeletionRequest,
+  ),
+  createDeletionRequest: route<DeletionRequest>(
+    "POST",
+    "/v1/me/deletion-request",
+    "required",
+    201,
+    [401, 409, 422, 429, 500],
+    decodeDeletionRequest,
+  ),
+  cancelDeletionRequest: route<DeletionRequest>(
+    "POST",
+    "/v1/me/deletion-request/cancel",
+    "required",
+    200,
+    [401, 409, 422, 500],
+    decodeDeletionRequest,
+  ),
   bootstrap: route<BootstrapView>(
     "GET",
     "/v1/me/bootstrap",
@@ -523,6 +605,10 @@ export type RouteRequestBodies = {
   startTwofaEnrollment: CurrentPasswordRequest;
   confirmTwofaEnrollment: TwofaCodeRequest;
   disableTwofa: DisableTwofaRequest;
+  acceptPolicy: AcceptPolicyRequest;
+  updatePrivacySettings: PrivacySettings;
+  createDataExport: CurrentPasswordRequest;
+  createDeletionRequest: CurrentPasswordRequest;
   completePasswordReset: CompletePasswordResetRequest;
   revokeOtherSessions: RevokeSessionRequest;
   revokeMySession: RevokeSessionRequest;

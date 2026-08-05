@@ -30,6 +30,11 @@ import {
   type CompletePasswordResetRequest,
   type ConfirmContactChangeRequest,
   type CurrentPasswordRequest,
+  type AcceptPolicyRequest,
+  type DataExportRequest,
+  type DeletionRequest,
+  type PolicyVersion,
+  type PrivacySettings,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -364,6 +369,81 @@ export class ApiClient {
       accessToken,
       signal,
     });
+  }
+
+  listPolicies(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<PolicyVersion[]> {
+    return this.request(routes.listPolicies, { accessToken, signal });
+  }
+
+  acceptPolicy(
+    accessToken: string,
+    body: AcceptPolicyRequest,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request(routes.acceptPolicy, { accessToken, body, signal });
+  }
+
+  privacySettings(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<PrivacySettings> {
+    return this.request(routes.privacySettings, { accessToken, signal });
+  }
+
+  updatePrivacySettings(
+    accessToken: string,
+    body: PrivacySettings,
+    signal?: AbortSignal,
+  ): Promise<PrivacySettings> {
+    return this.request(routes.updatePrivacySettings, {
+      accessToken,
+      body,
+      signal,
+    });
+  }
+
+  listDataExports(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<DataExportRequest[]> {
+    return this.request(routes.listDataExports, { accessToken, signal });
+  }
+
+  createDataExport(
+    accessToken: string,
+    body: CurrentPasswordRequest,
+    signal?: AbortSignal,
+  ): Promise<DataExportRequest> {
+    return this.request(routes.createDataExport, { accessToken, body, signal });
+  }
+
+  deletionRequest(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<DeletionRequest> {
+    return this.request(routes.deletionRequest, { accessToken, signal });
+  }
+
+  createDeletionRequest(
+    accessToken: string,
+    body: CurrentPasswordRequest,
+    signal?: AbortSignal,
+  ): Promise<DeletionRequest> {
+    return this.request(routes.createDeletionRequest, {
+      accessToken,
+      body,
+      signal,
+    });
+  }
+
+  cancelDeletionRequest(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<DeletionRequest> {
+    return this.request(routes.cancelDeletionRequest, { accessToken, signal });
   }
 
   bootstrap(accessToken: string, signal?: AbortSignal): Promise<BootstrapView> {

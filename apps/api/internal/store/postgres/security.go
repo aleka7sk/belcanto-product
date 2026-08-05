@@ -29,6 +29,11 @@ var securityAuditActions = []string{
 	"TwofaEnrolled",
 	"TwofaDisabled",
 	"TwofaChallengeFailed",
+	"PolicyAccepted",
+	"PrivacySettingsUpdated",
+	"DataExportRequested",
+	"DeletionRequested",
+	"DeletionRequestCancelled",
 }
 
 func (s *Store) ListSessions(ctx context.Context, principal core.Principal, now time.Time) ([]core.SessionDevice, error) {

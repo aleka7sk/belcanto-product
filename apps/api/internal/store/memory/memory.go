@@ -148,6 +148,11 @@ type Store struct {
 	twofaChallenges map[string]*twofaChallenge
 	challengeDigest map[string]string
 	activationProg  map[string]*activationProgress
+	policies        map[string]*policyVersion
+	acceptances     map[string]*policyAcceptance
+	privacy         map[string]*privacyRecord
+	exports         map[string]*dataExport
+	deletions       map[string]*deletionRequest
 	idempotency     map[string]*idempotencyRecord
 	audit           []AuditRecord
 	outbox          []OutboxRecord
@@ -178,6 +183,11 @@ func New() *Store {
 		twofaChallenges: make(map[string]*twofaChallenge),
 		challengeDigest: make(map[string]string),
 		activationProg:  make(map[string]*activationProgress),
+		policies:        make(map[string]*policyVersion),
+		acceptances:     make(map[string]*policyAcceptance),
+		privacy:         make(map[string]*privacyRecord),
+		exports:         make(map[string]*dataExport),
+		deletions:       make(map[string]*deletionRequest),
 		idempotency:     make(map[string]*idempotencyRecord),
 	}
 }

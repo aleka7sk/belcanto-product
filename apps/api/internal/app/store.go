@@ -44,6 +44,16 @@ type Store interface {
 	FailTwofaChallenge(context.Context, []byte, time.Time) error
 	TryConsumeRecoveryCode(context.Context, string, string, []byte, time.Time) (bool, error)
 
+	ListPolicies(context.Context, core.Principal) ([]core.PolicyVersion, error)
+	AcceptPolicy(context.Context, core.AcceptPolicyCommand) error
+	PrivacySettings(context.Context, core.Principal) (core.PrivacySettings, error)
+	UpdatePrivacySettings(context.Context, core.UpdatePrivacySettingsCommand) (core.PrivacySettings, error)
+	CreateDataExport(context.Context, core.CreateDataExportCommand) (core.DataExportRequest, error)
+	ListDataExports(context.Context, core.Principal) ([]core.DataExportRequest, error)
+	DeletionRequest(context.Context, core.Principal) (core.DeletionRequest, error)
+	CreateDeletionRequest(context.Context, core.CreateDeletionRequestCommand) (core.DeletionRequest, error)
+	CancelDeletionRequest(context.Context, core.CancelDeletionRequestCommand) (core.DeletionRequest, error)
+
 	ActivationProgress(context.Context, []byte, time.Time) (core.ActivationProgressView, error)
 	SetActivationPassword(context.Context, core.SetActivationPasswordCommand) error
 	StartActivationContact(context.Context, core.StartActivationContactCommand) error
