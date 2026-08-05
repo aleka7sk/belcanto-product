@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T05:40:00Z",
+  "updatedAt": "2026-08-06T06:05:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -171,6 +171,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "24f16d7",
-  "nextSafeAction": "finish p1-identity-account: AUTH-06 sign-in restyle + AUTH-10 resume-activation checklist + AUTH-11 no-roles state, ACC-07/13 device capability screens, activation deep-link guard chain; then phase 2 core lessons"
+  "lastGreenCodeSha": "ed0af18",
+  "nextSafeAction": "finish p1-identity-account: multi-step activation wizard (AUTH-01..05 + AUTH-10 resume checklist over activationProgress), ACC-07/13 device capability screens, ACT-01..09 deep-link guard chain; then phase 2 core lessons"
 }
