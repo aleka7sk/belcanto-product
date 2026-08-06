@@ -180,6 +180,14 @@
       "deferred": "ErrorNotice sweep + pull-to-refresh + FlatList + IA decomposition ride with slices ux2 (student contour) and ux3 (staff contours) per audit plan; legacy token layer removal blocked until 13 legacy screens migrate; B.0 auth decoration dims stay on metrics until the Page-32 auth re-skin"
     },
     {
+      "id": "ux2-student-contour",
+      "phase": "ux-overhaul",
+      "status": "completed",
+      "summary": "student contour rebuilt to the Figma storyboard: three-screen community safety, progress/goal/achievements split, homework submit/review split, virtualized feeds, retry+pull-to-refresh everywhere, auth+student screens on semantic tokens",
+      "evidence": "commit 3d73209; findings closed per audit table: IA-01 (COM-POST-01 thread only + /community/report per 348:683 + /community/safety per 348:757, com.safety.* ru verbatim/kk implementation-translated), IA-02 (/progress overview + /progress/goal + /progress/achievements; GrowthSections' GoalSection/AchievementsSection now screen bodies), IA-03 (/practice/[homeworkId] status + /submit + /review screens), LST-01 partial (ScreenList: activity with section rows + community feed), LST-02/03/04 (ErrorNotice retry + RefreshControl + guard-before-hook stubs across student contour and the whole account zone - 18 files by delegated sweep; JournalScreen/EventDetail/EventsCatalog/RescheduleRequest included), LST-05 (policies error surfaces before the community gate), TK-03 partial (Welcome/SignIn/SessionRecovery/Activation/StudentHome/Schedule/LessonDetail semantic; only B.0 decoration dims remain on metrics). REMAINING recorded honestly: 11 account screens never rendered load errors (pre-existing; ride ux3 or later), per-frame visual QA of 242 states stays a device/human step, Home/auth keep the B.0 composition until Page-21/32 content decisions, FlatList for Repertoire/EventsCatalog deferred (bounded volumes). Gates: mobile:check 44 suites / 232 tests, eslint 0 warnings, tsc strict, validate.py 0/99.",
+      "deferred": "slice ux3: staff contours (TeacherToday/TeacherStudents/Assessment*/Operations/OwnerOverview/Series/StaffLessons/StaffWorkspace/Create*/TeacherChange/Onboarding token migration + density + staff feeds virtualization + remaining active-tab checks), then legacy token layer removal from tokens.ts"
+    },
+    {
       "id": "p8-e2e-release",
       "phase": 8,
       "status": "completed",
@@ -188,6 +196,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "1973ad3",
-  "nextSafeAction": "UX overhaul in progress per .claude/implementation/ux-overhaul-audit.md. Slice ux1 (foundation) is green and committed. Next: slice ux2 — student contour screen by screen (Вход -> Дом -> Расписание -> Урок -> Практика -> Прогресс decomposition IA-02 -> Сообщество decomposition IA-01 -> Активность -> Профиль): legacy->semantic tokens per screen, ErrorNotice retry + pull-to-refresh wiring, ScreenList/FlatList for feeds, density per Figma storyboard, checkpoint after each 2-3 screen cluster. Then slice ux3 (staff contours). Release blockers unchanged: DEC-102/103/104."
+  "lastGreenCodeSha": "3d73209",
+  "nextSafeAction": "UX overhaul per .claude/implementation/ux-overhaul-audit.md: ux1 (foundation) and ux2 (student contour) green and committed. Next: slice ux3 — staff contours (Teacher/Admin/Owner screens: legacy->semantic tokens on StaffLessons/StaffWorkspace/CreateLesson/CreateStudent/OnboardingDetail/TeacherChange/AccessDelegation, retry+PTR on remaining staff screens, roster/lessons feeds to ScreenList, density check), then remove the legacy token layer from tokens.ts once no importers remain. Release blockers unchanged: DEC-102/103/104."
 }
