@@ -65,6 +65,12 @@ var eventsRsvpUp string
 //go:embed 000007_events_rsvp.down.sql
 var eventsRsvpDown string
 
+//go:embed 000008_reschedule_requests.up.sql
+var rescheduleRequestsUp string
+
+//go:embed 000008_reschedule_requests.down.sql
+var rescheduleRequestsDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -81,6 +87,7 @@ func registeredMigrations() []migration {
 		{version: 5, description: "Belcanto P.1 policies, privacy and data rights", up: policiesPrivacyUp, down: policiesPrivacyDown},
 		{version: 6, description: "Belcanto L.2 rooms and core lessons", up: roomsCoreLessonsUp, down: roomsCoreLessonsDown},
 		{version: 7, description: "Belcanto L.2 events and RSVP", up: eventsRsvpUp, down: eventsRsvpDown},
+		{version: 8, description: "Belcanto L.2 reschedule requests", up: rescheduleRequestsUp, down: rescheduleRequestsDown},
 	}
 }
 

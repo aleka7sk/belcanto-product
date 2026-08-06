@@ -247,6 +247,17 @@ export interface LessonStudent {
   fullName: string;
 }
 
+export const LESSON_OCCURRENCE_STATUSES = [
+  "scheduled",
+  "completed",
+  "cancelled_school",
+  "cancelled_student",
+  "rescheduled",
+  "no_show",
+] as const;
+
+export type LessonOccurrenceStatus = (typeof LESSON_OCCURRENCE_STATUSES)[number];
+
 export interface Lesson {
   id: string;
   title: string;
@@ -255,7 +266,7 @@ export interface Lesson {
   location?: string;
   teacher: LessonTeacher;
   students: LessonStudent[];
-  status: "scheduled";
+  status: LessonOccurrenceStatus;
   version: number;
 }
 
@@ -646,7 +657,7 @@ export const decodeLesson: Decoder<Lesson> = (value) => {
     durationMinutes: numberField(source, "durationMinutes", contract, 1),
     teacher: decodeLessonTeacher(source.teacher, contract, "$.teacher"),
     students,
-    status: oneOf(source.status, ["scheduled"] as const, contract, "$.status"),
+    status: oneOf(source.status, LESSON_OCCURRENCE_STATUSES, contract, "$.status"),
     version: numberField(source, "version", contract),
   };
   const location = stringField(source, "location", contract, true);
@@ -2349,4 +2360,124 @@ export const decodeEventOccurrences: Decoder<EventOccurrence[]> = (value) => {
     "$[].id",
   );
   return occurrences;
+};
+
+// ---- L.2 reschedule and cancellation requests (flows J/K/L) ----
+
+export interface RescheduleRequest {
+  id: string;
+  occurrenceId: string;
+  kind: "reschedule" | "cancellation";
+  proposedStartsAt?: IsoDateTime;
+  reason: string;
+  status: "pending" | "approved" | "declined" | "withdrawn";
+  requestedBy: LessonTeacher;
+  decisionNote?: string;
+  decidedAt?: IsoDateTime;
+  createdAt: IsoDateTime;
+  version: number;
+}
+
+export interface CreateRescheduleRequestRequest {
+  occurrenceId: string;
+  kind: "reschedule" | "cancellation";
+  proposedStartsAt?: IsoDateTime;
+  reason: string;
+}
+
+export interface DecideRescheduleRequestRequest {
+  approve: boolean;
+  decisionNote?: string;
+  expectedVersion: number;
+}
+
+function decodeRescheduleEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): RescheduleRequest {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "occurrenceId",
+      "kind",
+      "proposedStartsAt",
+      "reason",
+      "status",
+      "requestedBy",
+      "decisionNote",
+      "decidedAt",
+      "createdAt",
+      "version",
+    ],
+    contract,
+    path,
+  );
+  const requesterSource = record(source.requestedBy, contract, `${path}.requestedBy`);
+  exactKeys(requesterSource, ["accountId", "fullName"], contract, `${path}.requestedBy`);
+  const kind = oneOf(
+    source.kind,
+    ["reschedule", "cancellation"] as const,
+    contract,
+    `${path}.kind`,
+  );
+  const request: RescheduleRequest = {
+    id: identifierField(source, "id", contract)!,
+    occurrenceId: identifierField(source, "occurrenceId", contract)!,
+    kind,
+    reason: stringField(source, "reason", contract)!,
+    status: oneOf(
+      source.status,
+      ["pending", "approved", "declined", "withdrawn"] as const,
+      contract,
+      `${path}.status`,
+    ),
+    requestedBy: {
+      accountId: identifierField(requesterSource, "accountId", contract)!,
+      fullName: stringField(requesterSource, "fullName", contract)!,
+    },
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    version: numberField(source, "version", contract, 0),
+  };
+  const proposed = isoDateField(source, "proposedStartsAt", contract, true);
+  if (proposed !== undefined) {
+    request.proposedStartsAt = proposed;
+  }
+  if ((kind === "reschedule") !== (request.proposedStartsAt !== undefined)) {
+    throw new ContractDecodeError(contract, `${path}.proposedStartsAt`);
+  }
+  const decisionNote = stringField(source, "decisionNote", contract, true);
+  if (decisionNote !== undefined) {
+    request.decisionNote = decisionNote;
+  }
+  const decidedAt = isoDateField(source, "decidedAt", contract, true);
+  if (decidedAt !== undefined) {
+    request.decidedAt = decidedAt;
+  }
+  const decided = request.status === "approved" || request.status === "declined";
+  if (decided !== (request.decidedAt !== undefined)) {
+    throw new ContractDecodeError(contract, `${path}.decidedAt`);
+  }
+  return request;
+}
+
+export const decodeRescheduleRequest: Decoder<RescheduleRequest> = (value) =>
+  decodeRescheduleEntry(value, "RescheduleRequest", "$");
+
+export const decodeRescheduleRequests: Decoder<RescheduleRequest[]> = (value) => {
+  const contract = "RescheduleRequestList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const requests = value.map((entry, index) =>
+    decodeRescheduleEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    requests.map((request) => request.id),
+    contract,
+    "$[].id",
+  );
+  return requests;
 };

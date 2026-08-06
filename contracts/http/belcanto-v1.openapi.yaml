@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.6.0
+  version: 0.7.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -1977,6 +1977,135 @@ paths:
         "500":
           $ref: "#/components/responses/Internal"
 
+  /v1/reschedule-requests:
+    get:
+      summary: List reschedule requests
+      operationId: listRescheduleRequests
+      tags: [Scheduling]
+      description: >-
+        Owner/Administrator see the school's requests (pending first);
+        everyone else sees their own.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Requests, pending first, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RescheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    post:
+      summary: Ask to reschedule or cancel a Lesson
+      operationId: createRescheduleRequest
+      tags: [Scheduling]
+      description: >-
+        A participant Student or the Lesson's Teacher asks; one open
+        request per person and Lesson. DEC-102 is open — the request
+        carries a reason, never a consequence. Requires an
+        Idempotency-Key header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRescheduleRequestRequest"
+      responses:
+        "201":
+          description: The pending request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RescheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/reschedule-requests/{requestId}/decide:
+    post:
+      summary: Decide a reschedule request
+      operationId: decideRescheduleRequest
+      tags: [Scheduling]
+      description: >-
+        Owner/Administrator only, guarded by the request version.
+        Approval applies the change in the same transaction: a
+        reschedule moves the occurrence in place, a cancellation sets
+        cancelled_student or cancelled_school by who asked.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RescheduleRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideRescheduleRequestRequest"
+      responses:
+        "200":
+          description: The decided request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RescheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/reschedule-requests/{requestId}/withdraw:
+    post:
+      summary: Withdraw an own pending request
+      operationId: withdrawRescheduleRequest
+      tags: [Scheduling]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RescheduleRequestId"
+      responses:
+        "200":
+          description: The withdrawn request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RescheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
   /v1/lessons:
     get:
       summary: List role-scoped Lessons
@@ -2288,6 +2417,14 @@ components:
         maxLength: 128
     SpotOfferId:
       name: offerId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    RescheduleRequestId:
+      name: requestId
       in: path
       required: true
       schema:
@@ -3852,6 +3989,80 @@ components:
           type: integer
           minimum: 1
           maximum: 500
+    RescheduleRequest:
+      type: object
+      additionalProperties: false
+      required: [id, occurrenceId, kind, reason, status, requestedBy, createdAt, version]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        occurrenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [reschedule, cancellation]
+        proposedStartsAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        status:
+          type: string
+          enum: [pending, approved, declined, withdrawn]
+        requestedBy:
+          $ref: "#/components/schemas/TeacherSummary"
+        decisionNote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        decidedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 0
+    CreateRescheduleRequestRequest:
+      type: object
+      additionalProperties: false
+      required: [occurrenceId, kind, reason]
+      properties:
+        occurrenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [reschedule, cancellation]
+        proposedStartsAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    DecideRescheduleRequestRequest:
+      type: object
+      additionalProperties: false
+      required: [approve, expectedVersion]
+      properties:
+        approve:
+          type: boolean
+        decisionNote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        expectedVersion:
+          type: integer
+          minimum: 0
     Room:
       type: object
       additionalProperties: false
@@ -4070,7 +4281,14 @@ components:
           items:
             $ref: "#/components/schemas/LessonStudent"
         status:
-          const: scheduled
+          type: string
+          enum:
+            - scheduled
+            - completed
+            - cancelled_school
+            - cancelled_student
+            - rescheduled
+            - no_show
         version:
           type: integer
           minimum: 0

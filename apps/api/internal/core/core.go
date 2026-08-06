@@ -405,7 +405,14 @@ type StudentOnboardingItem struct {
 
 type LessonStatus string
 
-const LessonScheduled LessonStatus = "scheduled"
+const (
+	LessonScheduled        LessonStatus = "scheduled"
+	LessonCompleted        LessonStatus = "completed"
+	LessonCancelledSchool  LessonStatus = "cancelled_school"
+	LessonCancelledStudent LessonStatus = "cancelled_student"
+	LessonRescheduled      LessonStatus = "rescheduled"
+	LessonNoShow           LessonStatus = "no_show"
+)
 
 type TeacherSummary struct {
 	AccountID string `json:"accountId"`
@@ -1019,5 +1026,49 @@ type SpotOfferDecisionCommand struct {
 	Principal Principal
 	OfferID   string
 	OfferTTL  time.Duration
+	Now       time.Time
+}
+
+// L.2 reschedule and cancellation requests (flows J/K/L). DEC-102 is
+// open: no request carries or triggers a late-cancellation consequence.
+
+type RescheduleRequest struct {
+	ID               string         `json:"id"`
+	OccurrenceID     string         `json:"occurrenceId"`
+	Kind             string         `json:"kind"`
+	ProposedStartsAt *time.Time     `json:"proposedStartsAt,omitempty"`
+	Reason           string         `json:"reason"`
+	Status           string         `json:"status"`
+	RequestedBy      TeacherSummary `json:"requestedBy"`
+	DecisionNote     string         `json:"decisionNote,omitempty"`
+	DecidedAt        *time.Time     `json:"decidedAt,omitempty"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	Version          int64          `json:"version"`
+}
+
+type CreateRescheduleRequestCommand struct {
+	Principal          Principal
+	RequestID          string
+	OccurrenceID       string
+	Kind               string
+	ProposedStartsAt   *time.Time
+	Reason             string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type DecideRescheduleRequestCommand struct {
+	Principal       Principal
+	RequestID       string
+	Approve         bool
+	DecisionNote    string
+	ExpectedVersion int64
+	Now             time.Time
+}
+
+type WithdrawRescheduleRequestCommand struct {
+	Principal Principal
+	RequestID string
 	Now       time.Time
 }

@@ -26,6 +26,8 @@ import {
   decodeEventOccurrence,
   decodeEventOccurrences,
   decodeEventSeries,
+  decodeRescheduleRequest,
+  decodeRescheduleRequests,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -86,6 +88,9 @@ import {
   type EventListWindow,
   type EventOccurrence,
   type EventSeries,
+  type CreateRescheduleRequestRequest,
+  type DecideRescheduleRequestRequest,
+  type RescheduleRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -687,6 +692,40 @@ export const routes = {
       [401, 403, 404, 409, 422, 500],
       decodeEventOccurrence,
     ),
+  listRescheduleRequests: route<RescheduleRequest[]>(
+    "GET",
+    "/v1/reschedule-requests",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeRescheduleRequests,
+  ),
+  createRescheduleRequest: route<RescheduleRequest>(
+    "POST",
+    "/v1/reschedule-requests",
+    "required",
+    201,
+    [401, 403, 404, 409, 422, 500],
+    decodeRescheduleRequest,
+  ),
+  decideRescheduleRequest: (requestId: string) =>
+    route<RescheduleRequest>(
+      "POST",
+      `/v1/reschedule-requests/${pathPart(requestId, "requestId")}/decide`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeRescheduleRequest,
+    ),
+  withdrawRescheduleRequest: (requestId: string) =>
+    route<RescheduleRequest>(
+      "POST",
+      `/v1/reschedule-requests/${pathPart(requestId, "requestId")}/withdraw`,
+      "required",
+      200,
+      [401, 409, 422, 500],
+      decodeRescheduleRequest,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -819,6 +858,8 @@ export type RouteRequestBodies = {
   createEventSeries: CreateEventSeriesRequest;
   generateEventSeriesOccurrences: GenerateOccurrencesRequest;
   createEvent: CreateEventRequest;
+  createRescheduleRequest: CreateRescheduleRequestRequest;
+  decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;
   reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;

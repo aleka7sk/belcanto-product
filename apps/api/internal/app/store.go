@@ -83,6 +83,11 @@ type Store interface {
 	GetCoreLessonSeries(context.Context, core.Principal, string) (core.CoreLessonSeries, error)
 	GenerateSeriesOccurrences(context.Context, core.GenerateSeriesOccurrencesCommand) (core.SeriesOccurrenceGenerationResult, error)
 
+	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
+	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
+	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)
+	WithdrawRescheduleRequest(context.Context, core.WithdrawRescheduleRequestCommand) (core.RescheduleRequest, error)
+
 	CreateEventCategory(context.Context, core.CreateEventCategoryCommand) (core.EventCategory, error)
 	ListEventCategories(context.Context, core.Principal) ([]core.EventCategory, error)
 	CreateEventSeries(context.Context, core.CreateEventSeriesCommand) (core.EventSeries, error)

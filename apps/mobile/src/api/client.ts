@@ -50,6 +50,9 @@ import {
   type EventListWindow,
   type EventOccurrence,
   type EventSeries,
+  type CreateRescheduleRequestRequest,
+  type DecideRescheduleRequestRequest,
+  type RescheduleRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -686,6 +689,51 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<EventOccurrence> {
     return this.request(routes.declineSpotOffer(offerId), { accessToken, signal });
+  }
+
+  listRescheduleRequests(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<RescheduleRequest[]> {
+    return this.request(routes.listRescheduleRequests, { accessToken, signal });
+  }
+
+  createRescheduleRequest(
+    accessToken: string,
+    body: CreateRescheduleRequestRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<RescheduleRequest> {
+    return this.request(routes.createRescheduleRequest, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  decideRescheduleRequest(
+    accessToken: string,
+    requestId: string,
+    body: DecideRescheduleRequestRequest,
+    signal?: AbortSignal,
+  ): Promise<RescheduleRequest> {
+    return this.request(routes.decideRescheduleRequest(requestId), {
+      accessToken,
+      body,
+      signal,
+    });
+  }
+
+  withdrawRescheduleRequest(
+    accessToken: string,
+    requestId: string,
+    signal?: AbortSignal,
+  ): Promise<RescheduleRequest> {
+    return this.request(routes.withdrawRescheduleRequest(requestId), {
+      accessToken,
+      signal,
+    });
   }
 
   createLesson(
