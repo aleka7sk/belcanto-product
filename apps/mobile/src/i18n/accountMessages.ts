@@ -1334,6 +1334,154 @@ const account = {
     ru: "Журнал ведёт преподаватель урока; ученику доступен опубликованный итог.",
     kk: "Журналды сабақ оқытушысы жүргізеді; оқушыға жарияланған қорытынды қолжетімді.",
   },
+
+  // Practice & homework (Figma Page 23, STU-PRACTICE-01..16; approved
+  // lifecycle from domain/homework.md). Russian copy is verbatim where
+  // the design string matches the API's truth; sample data and modules
+  // that are not built (recorder, репертуар, метроном) are not promised.
+  "prac.eyebrow": { ru: "Практика", kk: "Тәжірибе" },
+  "prac.hub.title": { ru: "Домашнее и практика", kk: "Үй жұмысы және тәжірибе" },
+  "prac.hub.subtitle": {
+    ru: "Заданий: {count} · обновлено {date}",
+    kk: "Тапсырмалар: {count} · жаңартылды {date}",
+  },
+  "prac.hub.open": { ru: "Открыть задание", kk: "Тапсырманы ашу" },
+  "prac.hub.entry": {
+    ru: "{teacher} · срок {date}",
+    kk: "{teacher} · мерзімі {date}",
+  },
+  "prac.hub.entry.noDue": { ru: "{teacher}", kk: "{teacher}" },
+  "prac.empty.title": {
+    ru: "Новых заданий пока нет",
+    kk: "Әзірге жаңа тапсырмалар жоқ",
+  },
+  "prac.empty.body": {
+    ru: "Педагог публикует домашнее после урока — вы увидите его здесь.",
+    kk: "Педагог үй жұмысын сабақтан кейін жариялайды — оны осында көресіз.",
+  },
+  "prac.empty.card.title": {
+    ru: "Можно продолжить самостоятельно",
+    kk: "Өз бетінше жалғастыруға болады",
+  },
+  "prac.empty.card.body": {
+    ru: "Откройте развитие и повторите последние итоги уроков.",
+    kk: "Дамуды ашып, соңғы сабақ қорытындыларын қайталаңыз.",
+  },
+  "prac.empty.card.status": {
+    ru: "Без обязательной отправки",
+    kk: "Міндетті жіберусіз",
+  },
+  "prac.empty.action": { ru: "Моё развитие", kk: "Менің дамуым" },
+  "prac.guard.title": { ru: "Раздел доступен ученику", kk: "Бөлім оқушыға қолжетімді" },
+  "prac.guard.body": {
+    ru: "Практику видит сам ученик и его педагоги.",
+    kk: "Тәжірибені оқушының өзі және оның педагогтары көреді.",
+  },
+  "prac.detail.eyebrow.student": {
+    ru: "Задание от педагога",
+    kk: "Педагогтан тапсырма",
+  },
+  "prac.detail.eyebrow.teacher": {
+    ru: "Домашнее ученика",
+    kk: "Оқушының үй жұмысы",
+  },
+  "prac.detail.title": { ru: "Домашнее задание", kk: "Үй жұмысы" },
+  "prac.detail.context": {
+    ru: "{teacher} · срок {date}",
+    kk: "{teacher} · мерзімі {date}",
+  },
+  "prac.detail.context.noDue": { ru: "{teacher}", kk: "{teacher}" },
+  "prac.goal.title": { ru: "Цель", kk: "Мақсат" },
+  "prac.plan.title": { ru: "План", kk: "Жоспар" },
+  "prac.plan.progress": {
+    ru: "Готово: {done} из {total}",
+    kk: "Дайын: {done} / {total}",
+  },
+  "prac.task.done": { ru: "Готово", kk: "Дайын" },
+  "prac.task.pending": { ru: "Отметить", kk: "Белгілеу" },
+  "prac.materials.title": { ru: "Материалы", kk: "Материалдар" },
+  "prac.materials.count": { ru: "Вложений: {count}", kk: "Тіркемелер: {count}" },
+  "prac.materials.ready": { ru: "Готово", kk: "Дайын" },
+  "prac.status.draft": { ru: "Черновик педагога", kk: "Педагог жобасы" },
+  "prac.status.assigned": { ru: "Назначено", kk: "Тағайындалды" },
+  "prac.status.in_progress": { ru: "В работе", kk: "Жұмыс үстінде" },
+  "prac.status.submitted": { ru: "На проверке", kk: "Тексеруде" },
+  "prac.status.reviewed": { ru: "Доработка", kk: "Пысықтау" },
+  "prac.status.completed": { ru: "Принято", kk: "Қабылданды" },
+  "prac.status.cancelled": { ru: "Отменено", kk: "Болдырылмады" },
+  "prac.status.expired": { ru: "Срок истёк", kk: "Мерзімі өтті" },
+  "prac.start": { ru: "Начать практику", kk: "Тәжірибені бастау" },
+  "prac.submit.note": { ru: "Комментарий к попытке", kk: "Әрекетке түсініктеме" },
+  "prac.submit.noteHint": {
+    ru: "Что получилось и что было сложно",
+    kk: "Не сәтті шықты және не қиын болды",
+  },
+  "prac.submit": { ru: "Отправить педагогу", kk: "Педагогке жіберу" },
+  "prac.submit.recorderNote": {
+    ru: "Запись голоса добавится позже; сейчас педагог получит текст попытки.",
+    kk: "Дауыс жазбасы кейінірек қосылады; қазір педагог әрекет мәтінін алады.",
+  },
+  "prac.submitted.title": {
+    ru: "Педагог уже получил работу",
+    kk: "Педагог жұмысты алды",
+  },
+  "prac.submitted.body": {
+    ru: "Изменения попадут в прогресс только после комментария педагога.",
+    kk: "Өзгерістер прогреске тек педагог түсініктемесінен кейін түседі.",
+  },
+  "prac.submitted.status": {
+    ru: "Повторная отправка доступна после комментария педагога",
+    kk: "Қайта жіберу педагог түсініктемесінен кейін қолжетімді",
+  },
+  "prac.feedback.title": { ru: "Комментарий педагога", kk: "Педагог түсініктемесі" },
+  "prac.feedback.nextStep": {
+    ru: "Один следующий шаг: {step}",
+    kk: "Келесі бір қадам: {step}",
+  },
+  "prac.resubmit.title": { ru: "Доработка", kk: "Пысықтау" },
+  "prac.resubmit.body": {
+    ru: "Сфокусируйтесь на одном месте, не переписывайте всё.",
+    kk: "Бір жерге назар аударыңыз, бәрін қайта жазбаңыз.",
+  },
+  "prac.accepted.title": { ru: "Работа принята", kk: "Жұмыс қабылданды" },
+  "prac.accepted.body": {
+    ru: "Подтверждение добавлено в историю развития.",
+    kk: "Растау даму тарихына қосылды.",
+  },
+  "prac.accepted.action": { ru: "Открыть прогресс", kk: "Прогресті ашу" },
+  "prac.cancelled.title": { ru: "Задание отменено", kk: "Тапсырма болдырылмады" },
+  "prac.cancelled.reason": { ru: "Причина: {reason}", kk: "Себебі: {reason}" },
+  "prac.expired.title": { ru: "Срок выполнения истёк", kk: "Орындау мерзімі өтті" },
+  "prac.expired.body": {
+    ru: "Задание остаётся в истории; последствий нет.",
+    kk: "Тапсырма тарихта қалады; салдары жоқ.",
+  },
+  "prac.attempts.title": { ru: "Попытки", kk: "Әрекеттер" },
+  "prac.attempt.entry": {
+    ru: "Попытка {attempt} · {date}",
+    kk: "Әрекет {attempt} · {date}",
+  },
+  "prac.attempt.media": { ru: "Записей: {count}", kk: "Жазбалар: {count}" },
+  "prac.attempt.uploading": { ru: "Попытка {attempt}", kk: "Әрекет {attempt}" },
+  "prac.review.title": { ru: "Проверка работы", kk: "Жұмысты тексеру" },
+  "prac.review.body": { ru: "Комментарий", kk: "Түсініктеме" },
+  "prac.review.bodyHint": {
+    ru: "Что получилось и что доработать",
+    kk: "Не сәтті шықты және нені пысықтау керек",
+  },
+  "prac.review.nextStep": { ru: "Следующий шаг", kk: "Келесі қадам" },
+  "prac.review.needsRevision": { ru: "На доработку", kk: "Пысықтауға" },
+  "prac.review.accept": { ru: "Принять работу", kk: "Жұмысты қабылдау" },
+  "prac.review.evidenceArea": { ru: "Область", kk: "Бағыт" },
+  "prac.review.evidenceNote": { ru: "Подтверждение", kk: "Растау" },
+  "prac.review.evidenceHint": {
+    ru: "Появится в развитии ученика (DEC-006: без оценки)",
+    kk: "Оқушының дамуында пайда болады (DEC-006: бағасыз)",
+  },
+  "prac.review.submit": { ru: "Отправить комментарий", kk: "Түсініктеме жіберу" },
+  "prac.cancel.action": { ru: "Отменить задание", kk: "Тапсырманы болдырмау" },
+  "prac.cancel.reason": { ru: "Причина отмены", kk: "Болдырмау себебі" },
+  "prac.cancel.confirm": { ru: "Подтвердить отмену", kk: "Болдырмауды растау" },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

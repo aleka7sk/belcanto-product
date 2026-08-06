@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -398,6 +398,17 @@ export function JournalScreen() {
           label={message("jrnl.correct.action")}
           onPress={() => setCorrecting(true)}
           testID="journal-correct-open"
+        />
+        <BlockAction
+          kind="secondary"
+          label={message("prac.detail.eyebrow.teacher")}
+          onPress={() =>
+            router.push({
+              pathname: "/(protected)/practice",
+              params: { studentId },
+            })
+          }
+          testID="journal-open-homework"
         />
       </AccountScreenShell>
     );

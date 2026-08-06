@@ -125,7 +125,10 @@ export function LessonDetailScreen({
       <RoleBottomNav
         active="schedule"
         isTabEnabled={(tab) =>
-          tab.key === "today" || tab.key === "schedule" || tab.key === "profile"
+          tab.key === "today" ||
+          tab.key === "schedule" ||
+          tab.key === "practice" ||
+          tab.key === "profile"
         }
         label={(key) => message(`nav.${key}`)}
         onSelectTab={(tab) => {
@@ -133,6 +136,8 @@ export function LessonDetailScreen({
             router.replace("/(protected)");
           } else if (tab.key === "schedule") {
             router.replace("/(protected)/schedule");
+          } else if (tab.key === "practice") {
+            router.push("/(protected)/practice");
           } else if (tab.key === "profile") {
             router.push("/(protected)/account");
           }

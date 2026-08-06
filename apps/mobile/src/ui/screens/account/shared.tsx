@@ -15,7 +15,12 @@ import { RoleBottomNav } from "../../roleNavigation";
  * are not built yet stay visible but inert (HOF-03 — no empty slots).
  */
 
-const BUILT_TABS: ReadonlySet<TabKey> = new Set(["today", "schedule", "profile"]);
+const BUILT_TABS: ReadonlySet<TabKey> = new Set([
+  "today",
+  "schedule",
+  "practice",
+  "profile",
+]);
 
 export function useWorkingRole(): Role | null {
   const { state } = useSession();
@@ -36,6 +41,7 @@ export function AccountNav({ active = "profile" }: { active?: TabKey }) {
       onSelectTab={(tab) => {
         if (tab.key === "today") router.push("/(protected)");
         if (tab.key === "schedule") router.push("/(protected)/schedule");
+        if (tab.key === "practice") router.push("/(protected)/practice");
         if (tab.key === "profile") router.push("/(protected)/account");
       }}
       role={navigationRoleFor(workingRole)}
