@@ -16,6 +16,11 @@ import {
   decodePolicyVersions,
   decodePrivacySettings,
   decodeProfileView,
+  decodeCoreLessonSeries,
+  decodeCoreLessonSeriesList,
+  decodeRoom,
+  decodeRooms,
+  decodeSeriesGenerationResult,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -63,6 +68,12 @@ import {
   type PrivacySettings,
   type ProfileView,
   type UpdateProfileRequest,
+  type CoreLessonSeries,
+  type CreateLessonSeriesRequest,
+  type CreateRoomRequest,
+  type GenerateOccurrencesRequest,
+  type Room,
+  type SeriesGenerationResult,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -510,6 +521,56 @@ export const routes = {
       [401, 403, 404, 500],
       decodeLesson,
     ),
+  listRooms: route<Room[]>(
+    "GET",
+    "/v1/rooms",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeRooms,
+  ),
+  createRoom: route<Room>(
+    "POST",
+    "/v1/rooms",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeRoom,
+  ),
+  listLessonSeries: route<CoreLessonSeries[]>(
+    "GET",
+    "/v1/lesson-series",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeCoreLessonSeriesList,
+  ),
+  createLessonSeries: route<CoreLessonSeries>(
+    "POST",
+    "/v1/lesson-series",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeCoreLessonSeries,
+  ),
+  getLessonSeries: (seriesId: string) =>
+    route<CoreLessonSeries>(
+      "GET",
+      `/v1/lesson-series/${pathPart(seriesId, "seriesId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeCoreLessonSeries,
+    ),
+  generateSeriesOccurrences: (seriesId: string) =>
+    route<SeriesGenerationResult>(
+      "POST",
+      `/v1/lesson-series/${pathPart(seriesId, "seriesId")}/occurrences`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeSeriesGenerationResult,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -637,6 +698,9 @@ export type RouteRequestBodies = {
   createStudent: CreateStudentRequest;
   publishFirstMinute: PublishFirstMinuteRequest;
   createLesson: CreateLessonRequest;
+  createRoom: CreateRoomRequest;
+  createLessonSeries: CreateLessonSeriesRequest;
+  generateSeriesOccurrences: GenerateOccurrencesRequest;
   reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;
   replaceLessonTeachers: ReplaceLessonTeachersRequest;
 };

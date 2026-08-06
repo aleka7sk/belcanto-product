@@ -37,6 +37,12 @@ import {
   type PrivacySettings,
   type ProfileView,
   type UpdateProfileRequest,
+  type CoreLessonSeries,
+  type CreateLessonSeriesRequest,
+  type CreateRoomRequest,
+  type GenerateOccurrencesRequest,
+  type Room,
+  type SeriesGenerationResult,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -494,6 +500,62 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<Lesson> {
     return this.request(routes.getLesson(lessonId), { accessToken, signal });
+  }
+
+  listRooms(accessToken: string, signal?: AbortSignal): Promise<Room[]> {
+    return this.request(routes.listRooms, { accessToken, signal });
+  }
+
+  createRoom(
+    accessToken: string,
+    body: CreateRoomRequest,
+    signal?: AbortSignal,
+  ): Promise<Room> {
+    return this.request(routes.createRoom, { accessToken, body, signal });
+  }
+
+  listLessonSeries(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<CoreLessonSeries[]> {
+    return this.request(routes.listLessonSeries, { accessToken, signal });
+  }
+
+  createLessonSeries(
+    accessToken: string,
+    body: CreateLessonSeriesRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CoreLessonSeries> {
+    return this.request(routes.createLessonSeries, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  getLessonSeries(
+    accessToken: string,
+    seriesId: string,
+    signal?: AbortSignal,
+  ): Promise<CoreLessonSeries> {
+    return this.request(routes.getLessonSeries(seriesId), { accessToken, signal });
+  }
+
+  generateSeriesOccurrences(
+    accessToken: string,
+    seriesId: string,
+    body: GenerateOccurrencesRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<SeriesGenerationResult> {
+    return this.request(routes.generateSeriesOccurrences(seriesId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
   }
 
   createLesson(

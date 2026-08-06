@@ -58,6 +58,7 @@ type teacherAssignment struct {
 type lesson struct {
 	ID               string
 	TenantID         string
+	SeriesID         string
 	Title            string
 	StartsAt         time.Time
 	DurationMinutes  int
@@ -132,6 +133,8 @@ type Store struct {
 	assignments     map[string][]*teacherAssignment
 	logicalTimes    map[string]time.Time
 	lessons         map[string]*lesson
+	rooms           map[string]*room
+	lessonSeries    map[string]*coreLessonSeries
 	enrollments     map[string]string
 	firstMinutes    map[string][]core.FirstMinute
 	invitations     map[string]*invitation
@@ -168,6 +171,8 @@ func New() *Store {
 		assignments:     make(map[string][]*teacherAssignment),
 		logicalTimes:    make(map[string]time.Time),
 		lessons:         make(map[string]*lesson),
+		rooms:           make(map[string]*room),
+		lessonSeries:    make(map[string]*coreLessonSeries),
 		enrollments:     make(map[string]string),
 		firstMinutes:    make(map[string][]core.FirstMinute),
 		invitations:     make(map[string]*invitation),

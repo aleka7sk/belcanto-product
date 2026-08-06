@@ -76,6 +76,13 @@ type Store interface {
 	ListStaff(context.Context, core.Principal, core.Role, time.Time) ([]core.StaffMember, error)
 	ListStudentOnboarding(context.Context, core.Principal, time.Time) ([]core.StudentOnboardingItem, error)
 	ListStudents(context.Context, core.Principal, time.Time, time.Time) ([]core.StudentDirectoryItem, error)
+	CreateRoom(context.Context, core.CreateRoomCommand) (core.Room, error)
+	ListRooms(context.Context, core.Principal) ([]core.Room, error)
+	CreateCoreLessonSeries(context.Context, core.CreateCoreLessonSeriesCommand) (core.CoreLessonSeries, error)
+	ListCoreLessonSeries(context.Context, core.Principal) ([]core.CoreLessonSeries, error)
+	GetCoreLessonSeries(context.Context, core.Principal, string) (core.CoreLessonSeries, error)
+	GenerateSeriesOccurrences(context.Context, core.GenerateSeriesOccurrencesCommand) (core.SeriesOccurrenceGenerationResult, error)
+
 	ScheduleLesson(context.Context, core.ScheduleLessonCommand) (core.Lesson, error)
 	ListLessons(context.Context, core.Principal, core.LessonListQuery, time.Time) ([]core.Lesson, error)
 	GetLesson(context.Context, core.Principal, string, time.Time) (core.Lesson, error)

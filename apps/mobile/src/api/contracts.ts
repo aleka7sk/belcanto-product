@@ -1833,3 +1833,219 @@ export const decodeDeletionRequest: Decoder<DeletionRequest> = (value) => {
   }
   return request;
 };
+
+// ---- L.2 rooms and core lesson series (Pages 24/26/29; DEC-002/004) ----
+
+export interface Room {
+  id: string;
+  name: string;
+  capacity?: number;
+  status: "active" | "archived";
+  version: number;
+}
+
+export interface CreateRoomRequest {
+  name: string;
+  capacity?: number;
+}
+
+export const LESSON_FORMATS = ["individual", "group"] as const;
+
+export type LessonFormat = (typeof LESSON_FORMATS)[number];
+
+export interface CoreLessonSeries {
+  id: string;
+  format: LessonFormat;
+  title: string;
+  teacher: LessonTeacher;
+  roomId?: string;
+  weekday: number;
+  startMinutes: number;
+  durationMinutes: number;
+  effectiveFrom: string;
+  effectiveUntil?: string;
+  status: "active" | "paused" | "ended";
+  version: number;
+  students: LessonStudent[];
+}
+
+export interface CreateLessonSeriesRequest {
+  format: LessonFormat;
+  title: string;
+  teacherAccountId: string;
+  roomId?: string;
+  weekday: number;
+  startMinutes: number;
+  durationMinutes: number;
+  effectiveFrom: string;
+  effectiveUntil?: string;
+  studentIds: string[];
+}
+
+export interface GenerateOccurrencesRequest {
+  weeks: number;
+}
+
+export interface SeriesGenerationResult {
+  seriesId: string;
+  createdCount: number;
+  occurrenceIds: string[];
+}
+
+export const decodeRoom: Decoder<Room> = (value) => {
+  const contract = "Room";
+  const source = record(value, contract);
+  exactKeys(source, ["id", "name", "capacity", "status", "version"], contract);
+  const roomView: Room = {
+    id: identifierField(source, "id", contract)!,
+    name: stringField(source, "name", contract)!,
+    status: oneOf(source.status, ["active", "archived"] as const, contract, "$.status"),
+    version: numberField(source, "version", contract, 0),
+  };
+  if (source.capacity !== undefined) {
+    const capacity = numberField(source, "capacity", contract, 1);
+    roomView.capacity = capacity;
+  }
+  return roomView;
+};
+
+export const decodeRooms: Decoder<Room[]> = (value) => {
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError("RoomList", "$");
+  }
+  const rooms = value.map((entry) => decodeRoom(entry));
+  unique(
+    rooms.map((roomView) => roomView.id),
+    "RoomList",
+    "$[].id",
+  );
+  return rooms;
+};
+
+function decodeSeriesEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): CoreLessonSeries {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "format",
+      "title",
+      "teacher",
+      "roomId",
+      "weekday",
+      "startMinutes",
+      "durationMinutes",
+      "effectiveFrom",
+      "effectiveUntil",
+      "status",
+      "version",
+      "students",
+    ],
+    contract,
+    path,
+  );
+  const teacherSource = record(source.teacher, contract, `${path}.teacher`);
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, `${path}.teacher`);
+  if (!Array.isArray(source.students)) {
+    throw new ContractDecodeError(contract, `${path}.students`);
+  }
+  const format = oneOf(source.format, LESSON_FORMATS, contract, `${path}.format`);
+  const students = source.students.map((entry, index) => {
+    const studentSource = record(entry, contract, `${path}.students[${index}]`);
+    exactKeys(studentSource, ["studentId", "fullName"], contract, `${path}.students[${index}]`);
+    return {
+      studentId: identifierField(studentSource, "studentId", contract)!,
+      fullName: stringField(studentSource, "fullName", contract)!,
+    };
+  });
+  unique(
+    students.map((student) => student.studentId),
+    contract,
+    `${path}.students[].studentId`,
+  );
+  if (format === "individual" && students.length !== 1) {
+    throw new ContractDecodeError(contract, `${path}.students`);
+  }
+  if (format === "group" && (students.length < 1 || students.length > 3)) {
+    throw new ContractDecodeError(contract, `${path}.students`);
+  }
+  const weekday = numberField(source, "weekday", contract, 0);
+  if (weekday > 6) {
+    throw new ContractDecodeError(contract, `${path}.weekday`);
+  }
+  const series: CoreLessonSeries = {
+    id: identifierField(source, "id", contract)!,
+    format,
+    title: stringField(source, "title", contract)!,
+    teacher: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    weekday,
+    startMinutes: numberField(source, "startMinutes", contract, 0),
+    durationMinutes: numberField(source, "durationMinutes", contract, 1),
+    effectiveFrom: stringField(source, "effectiveFrom", contract)!,
+    status: oneOf(source.status, ["active", "paused", "ended"] as const, contract, `${path}.status`),
+    version: numberField(source, "version", contract, 0),
+    students,
+  };
+  const roomId = identifierField(source, "roomId", contract, true);
+  if (roomId !== undefined) {
+    series.roomId = roomId;
+  }
+  const effectiveUntil = stringField(source, "effectiveUntil", contract, true);
+  if (effectiveUntil !== undefined) {
+    series.effectiveUntil = effectiveUntil;
+  }
+  return series;
+}
+
+export const decodeCoreLessonSeries: Decoder<CoreLessonSeries> = (value) =>
+  decodeSeriesEntry(value, "CoreLessonSeries", "$");
+
+export const decodeCoreLessonSeriesList: Decoder<CoreLessonSeries[]> = (value) => {
+  const contract = "CoreLessonSeriesList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const seriesList = value.map((entry, index) =>
+    decodeSeriesEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    seriesList.map((series) => series.id),
+    contract,
+    "$[].id",
+  );
+  return seriesList;
+};
+
+export const decodeSeriesGenerationResult: Decoder<SeriesGenerationResult> = (
+  value,
+) => {
+  const contract = "SeriesGenerationResult";
+  const source = record(value, contract);
+  exactKeys(source, ["seriesId", "createdCount", "occurrenceIds"], contract);
+  if (!Array.isArray(source.occurrenceIds)) {
+    throw new ContractDecodeError(contract, "$.occurrenceIds");
+  }
+  const occurrenceIds = source.occurrenceIds.map((entry, index) => {
+    if (typeof entry !== "string" || entry.length === 0) {
+      throw new ContractDecodeError(contract, `$.occurrenceIds[${index}]`);
+    }
+    return entry;
+  });
+  unique(occurrenceIds, contract, "$.occurrenceIds");
+  const createdCount = numberField(source, "createdCount", contract, 0);
+  if (createdCount !== occurrenceIds.length) {
+    throw new ContractDecodeError(contract, "$.createdCount");
+  }
+  return {
+    seriesId: identifierField(source, "seriesId", contract)!,
+    createdCount,
+    occurrenceIds,
+  };
+};

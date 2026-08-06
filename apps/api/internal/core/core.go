@@ -815,3 +815,77 @@ type UpdateProfileCommand struct {
 	FullName  string
 	Now       time.Time
 }
+
+// L.2 rooms and core lesson series (Figma Pages 24/26/29; DEC-002/004).
+
+type Room struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Capacity *int   `json:"capacity,omitempty"`
+	Status   string `json:"status"`
+	Version  int64  `json:"version"`
+}
+
+type CreateRoomCommand struct {
+	Principal Principal
+	RoomID    string
+	Name      string
+	Capacity  *int
+	Now       time.Time
+}
+
+type CoreLessonSeries struct {
+	ID              string          `json:"id"`
+	Format          string          `json:"format"`
+	Title           string          `json:"title"`
+	Teacher         TeacherSummary  `json:"teacher"`
+	RoomID          string          `json:"roomId,omitempty"`
+	Weekday         int             `json:"weekday"`
+	StartMinutes    int             `json:"startMinutes"`
+	DurationMinutes int             `json:"durationMinutes"`
+	EffectiveFrom   string          `json:"effectiveFrom"`
+	EffectiveUntil  string          `json:"effectiveUntil,omitempty"`
+	Status          string          `json:"status"`
+	Version         int64           `json:"version"`
+	Students        []LessonStudent `json:"students"`
+}
+
+type CreateCoreLessonSeriesCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	SeriesID           string
+	Format             string
+	Title              string
+	TeacherAccountID   string
+	RoomID             string
+	Weekday            int
+	StartMinutes       int
+	DurationMinutes    int
+	EffectiveFrom      string
+	EffectiveUntil     string
+	StudentIDs         []string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type GenerateSeriesOccurrencesCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	SeriesID           string
+	Occurrences        []PlannedOccurrence
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type PlannedOccurrence struct {
+	OccurrenceID string
+	StartsAt     time.Time
+}
+
+type SeriesOccurrenceGenerationResult struct {
+	SeriesID      string   `json:"seriesId"`
+	CreatedCount  int      `json:"createdCount"`
+	OccurrenceIDs []string `json:"occurrenceIds"`
+}
