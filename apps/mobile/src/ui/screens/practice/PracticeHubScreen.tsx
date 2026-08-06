@@ -14,6 +14,7 @@ import {
   StatusRow,
 } from "../../patterns/accountPatterns";
 import { HOMEWORK_STATUS_TONE } from "../../patterns/practicePatterns";
+import { domainAccent } from "../../domainAccent";
 import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -82,6 +83,7 @@ export function PracticeHubScreen() {
       testID="practice-hub"
     >
       <ScreenHeading
+        accent={domainAccent("practice")}
         eyebrow={message("prac.eyebrow")}
         subtitle={
           loading

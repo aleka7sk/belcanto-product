@@ -19,6 +19,7 @@ import {
 } from "../../patterns/accountPatterns";
 import { AreaChip } from "../../patterns/journalPatterns";
 import { ScreenList } from "../../screen";
+import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { almatyDayRange } from "../../teacherToday";
@@ -235,6 +236,7 @@ export function ActivityScreen() {
       ListHeaderComponent={
         <View style={styles.header}>
           <ScreenHeading
+            accent={domainAccent("activity")}
             eyebrow={message("act.eyebrow")}
             subtitle={
               view !== null && view.unreadCount > 0

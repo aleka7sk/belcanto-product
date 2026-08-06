@@ -12,6 +12,7 @@ import {
   ScreenHeading,
   ToggleRow,
 } from "../../patterns/accountPatterns";
+import { domainAccent } from "../../domainAccent";
 import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -67,6 +68,7 @@ export function NotificationPreferencesScreen() {
       testID="notification-preferences"
     >
       <ScreenHeading
+        accent={domainAccent("activity")}
         eyebrow={message("act.prefs.eyebrow")}
         subtitle={message("act.prefs.subtitle")}
         title={message("act.prefs.title")}

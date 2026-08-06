@@ -79,16 +79,35 @@ export function ScreenHeading({
   eyebrow,
   title,
   subtitle,
+  accent,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
+  /** Domain accent for the eyebrow (see domainAccent); gold otherwise. */
+  accent?: string | undefined;
 }) {
   return (
     <View accessibilityRole="header" style={styles.heading}>
-      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
+      <Text style={[styles.eyebrow, accent !== undefined && { color: accent }]}>
+        {eyebrow.toUpperCase()}
+      </Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
+    </View>
+  );
+}
+
+/**
+ * Toned status pill: the tone renders as an indicator dot while the
+ * label keeps full text contrast in both color modes — the tone is
+ * never conveyed by low-contrast colored text.
+ */
+function StatusPill({ tone, label }: { tone: StatusTone; label: string }) {
+  return (
+    <View style={styles.statusPill}>
+      <View style={[styles.statusPillDot, { backgroundColor: toneColor[tone] }]} />
+      <Text style={styles.statusPillLabel}>{label}</Text>
     </View>
   );
 }
@@ -111,11 +130,7 @@ export function StatusCard({
     <View style={[styles.statusCard, accent ? styles.cardAccentBorder : null]}>
       <Text style={styles.statusCardTitle}>{title}</Text>
       <Text style={styles.statusCardBody}>{body}</Text>
-      {status ? (
-        <Text style={[styles.statusLine, { color: toneColor[tone] }]}>
-          {status}
-        </Text>
-      ) : null}
+      {status ? <StatusPill label={status} tone={tone} /> : null}
     </View>
   );
 }
@@ -142,11 +157,7 @@ export function StatusRow({
     <>
       <Text style={styles.statusRowTitle}>{title}</Text>
       <Text style={styles.statusRowSubtitle}>{subtitle}</Text>
-      {status ? (
-        <Text style={[styles.statusLine, { color: toneColor[tone] }]}>
-          {status}
-        </Text>
-      ) : null}
+      {status ? <StatusPill label={status} tone={tone} /> : null}
     </>
   );
   if (!onPress) {
@@ -207,9 +218,7 @@ export function ToggleRow({
     >
       <Text style={styles.statusRowTitle}>{title}</Text>
       <Text style={styles.statusRowSubtitle}>{subtitle}</Text>
-      <Text style={[styles.statusLine, { color: toneColor[tone] }]}>
-        {status}
-      </Text>
+      <StatusPill label={status} tone={tone} />
     </Pressable>
   );
 }
@@ -374,11 +383,7 @@ export function ProfileHero({
         <Text numberOfLines={1} style={styles.heroContext}>
           {context}
         </Text>
-        {status ? (
-          <Text style={[styles.statusLine, { color: toneColor[statusTone] }]}>
-            {status}
-          </Text>
-        ) : null}
+        {status ? <StatusPill label={status} tone={statusTone} /> : null}
       </View>
     </View>
   );
@@ -409,7 +414,25 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   statusCardBody: { color: semantic.textSecondary, ...typeStyles.bodyS },
-  statusLine: { ...typeStyles.labelM },
+  statusPill: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: semantic.bgSunken,
+    borderRadius: radius.pill,
+    flexDirection: "row",
+    gap: space.s1,
+    paddingHorizontal: space.s2,
+    paddingVertical: 2,
+  },
+  statusPillDot: {
+    borderRadius: radius.pill,
+    height: 6,
+    width: 6,
+  },
+  statusPillLabel: {
+    color: semantic.textSecondary,
+    ...typeStyles.labelM,
+  },
   statusRow: {
     backgroundColor: semantic.bgSurface,
     borderColor: semantic.borderDefault,

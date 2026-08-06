@@ -27,6 +27,7 @@ import {
   opacities,
   radius,
   semantic,
+  semanticByMode,
   sizes,
   space,
   strokes,
@@ -87,6 +88,12 @@ export function PremiumScrollScreen({
 
 export function AmbientGlow() {
   const insets = useSafeAreaInsets();
+  // The glow asset is a dark-violet halo drawn for the ink canvas; on
+  // the light projection it would read as a smudge, so it only renders
+  // when the dark projection is active.
+  if (semantic.bgCanvas !== semanticByMode.dark.bgCanvas) {
+    return null;
+  }
   return (
     <View
       accessible={false}

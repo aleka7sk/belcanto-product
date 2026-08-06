@@ -8,6 +8,7 @@ import { createIntentIdempotency } from "@/controllers";
 import { useMessage, type MessageKey } from "@/i18n";
 import { useSession } from "@/session";
 import { ErrorNotice, InlineNotice, PremiumTextField } from "../../components";
+import { domainAccent } from "../../domainAccent";
 import {
   AccountScreenShell,
   BlockAction,
@@ -105,6 +106,7 @@ export function ReportScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active="community" />} testID="community-report-filed">
         <ScreenHeading
+          accent={domainAccent("community")}
           eyebrow={message("com.report.eyebrow")}
           subtitle={message("com.report.subtitle")}
           title={message("com.report.filedTitle")}
@@ -130,6 +132,7 @@ export function ReportScreen() {
       testID="community-report"
     >
       <ScreenHeading
+        accent={domainAccent("community")}
         eyebrow={message("com.report.eyebrow")}
         subtitle={message("com.report.subtitle")}
         title={message("com.report.title")}

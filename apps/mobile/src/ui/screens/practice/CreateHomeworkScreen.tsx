@@ -15,6 +15,7 @@ import {
   ScreenHeading,
 } from "../../patterns/accountPatterns";
 import { EventDetailCard } from "../../patterns/eventPatterns";
+import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav } from "../account/shared";
@@ -119,6 +120,7 @@ export function CreateHomeworkScreen() {
   return (
     <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="homework-create">
       <ScreenHeading
+        accent={domainAccent("practice")}
         eyebrow={message("prac.create.eyebrow")}
         subtitle={message("prac.create.subtitle")}
         title={message("prac.create.title")}

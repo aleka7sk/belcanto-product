@@ -14,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { domainAccent } from "../../domainAccent";
 import { semantic, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
@@ -101,6 +102,7 @@ export function ModerationScreen() {
       testID="moderation-queue"
     >
       <ScreenHeading
+        accent={domainAccent("community")}
         eyebrow={message("com.moderation.eyebrow")}
         subtitle={message("com.moderation.subtitle")}
         title={message("com.moderation.title")}
