@@ -28,6 +28,9 @@ import {
   decodeEventSeries,
   decodeRescheduleRequest,
   decodeRescheduleRequests,
+  decodeLessonJournal,
+  decodeLessonJournals,
+  decodeProgressEvidence,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -91,6 +94,10 @@ import {
   type CreateRescheduleRequestRequest,
   type DecideRescheduleRequestRequest,
   type RescheduleRequest,
+  type JournalDraftRequest,
+  type LessonJournal,
+  type ProgressEvidence,
+  type PublishJournalRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -735,6 +742,49 @@ export const routes = {
       [401, 409, 422, 500],
       decodeRescheduleRequest,
     ),
+  saveJournalDraft: route<LessonJournal>(
+    "PUT",
+    "/v1/journal-drafts",
+    "required",
+    200,
+    [401, 403, 404, 422, 500],
+    decodeLessonJournal,
+  ),
+  publishJournal: route<LessonJournal>(
+    "POST",
+    "/v1/journals/publish",
+    "required",
+    200,
+    [401, 403, 404, 409, 422, 500],
+    decodeLessonJournal,
+  ),
+  getJournal: (occurrenceId: string, studentId: string) =>
+    route<LessonJournal>(
+      "GET",
+      `/v1/journals/${pathPart(occurrenceId, "occurrenceId")}/${pathPart(studentId, "studentId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeLessonJournal,
+    ),
+  listStudentJournals: (studentId: string) =>
+    route<LessonJournal[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/journals`,
+      "required",
+      200,
+      [401, 422, 500],
+      decodeLessonJournals,
+    ),
+  listProgressEvidence: (studentId: string) =>
+    route<ProgressEvidence[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/progress`,
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeProgressEvidence,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -868,6 +918,8 @@ export type RouteRequestBodies = {
   generateEventSeriesOccurrences: GenerateOccurrencesRequest;
   createEvent: CreateEventRequest;
   createRescheduleRequest: CreateRescheduleRequestRequest;
+  saveJournalDraft: JournalDraftRequest;
+  publishJournal: PublishJournalRequest;
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;

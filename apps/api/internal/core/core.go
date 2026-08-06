@@ -1072,3 +1072,70 @@ type WithdrawRescheduleRequestCommand struct {
 	RequestID string
 	Now       time.Time
 }
+
+// L.3 lesson journals and evidence-based progress (DEC-006/007). The
+// journal speaks the First Belcanto Minute language: what worked,
+// current focus, next step. Published versions are immutable; progress
+// is observed evidence tied to a named area — never a score.
+
+type JournalVersion struct {
+	Version        int       `json:"version"`
+	WhatWorked     string    `json:"whatWorked"`
+	CurrentFocus   string    `json:"currentFocus"`
+	NextStep       string    `json:"nextStep"`
+	CorrectionNote string    `json:"correctionNote,omitempty"`
+	PublishedAt    time.Time `json:"publishedAt"`
+}
+
+type JournalDraft struct {
+	WhatWorked   string `json:"whatWorked"`
+	CurrentFocus string `json:"currentFocus"`
+	NextStep     string `json:"nextStep"`
+}
+
+type LessonJournal struct {
+	ID             string           `json:"id"`
+	OccurrenceID   string           `json:"occurrenceId"`
+	StudentID      string           `json:"studentId"`
+	Teacher        TeacherSummary   `json:"teacher"`
+	Status         string           `json:"status"`
+	CurrentVersion int              `json:"currentVersion"`
+	Draft          *JournalDraft    `json:"draft,omitempty"`
+	Versions       []JournalVersion `json:"versions"`
+	UpdatedAt      time.Time        `json:"updatedAt"`
+}
+
+type SaveJournalDraftCommand struct {
+	Principal    Principal
+	JournalID    string
+	OccurrenceID string
+	StudentID    string
+	Draft        JournalDraft
+	Now          time.Time
+}
+
+type EvidenceInput struct {
+	Area string `json:"area"`
+	Note string `json:"note"`
+}
+
+type PublishJournalCommand struct {
+	Principal          Principal
+	OccurrenceID       string
+	StudentID          string
+	CorrectionNote     string
+	Evidence           []EvidenceInput
+	EvidenceIDs        []string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type ProgressEvidence struct {
+	ID         string    `json:"id"`
+	Area       string    `json:"area"`
+	Note       string    `json:"note"`
+	SourceKind string    `json:"sourceKind"`
+	SourceID   string    `json:"sourceId"`
+	RecordedAt time.Time `json:"recordedAt"`
+}

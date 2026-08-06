@@ -141,6 +141,8 @@ type Store struct {
 	eventRsvps         map[string]map[string]*eventRsvp
 	eventWaitlists     map[string][]*waitlistEntry
 	rescheduleRequests map[string]*rescheduleRequest
+	journals           map[string]*lessonJournal
+	evidence           []*progressEvidenceRecord
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -186,6 +188,7 @@ func New() *Store {
 		eventRsvps:         make(map[string]map[string]*eventRsvp),
 		eventWaitlists:     make(map[string][]*waitlistEntry),
 		rescheduleRequests: make(map[string]*rescheduleRequest),
+		journals:           make(map[string]*lessonJournal),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),

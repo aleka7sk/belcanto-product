@@ -2481,3 +2481,187 @@ export const decodeRescheduleRequests: Decoder<RescheduleRequest[]> = (value) =>
   );
   return requests;
 };
+
+// ---- L.3 lesson journals and progress (DEC-006/007) ----
+
+export interface JournalDraft {
+  whatWorked: string;
+  currentFocus: string;
+  nextStep: string;
+}
+
+export interface JournalVersion {
+  version: number;
+  whatWorked: string;
+  currentFocus: string;
+  nextStep: string;
+  correctionNote?: string;
+  publishedAt: IsoDateTime;
+}
+
+export interface LessonJournal {
+  id: string;
+  occurrenceId: string;
+  studentId: string;
+  teacher: LessonTeacher;
+  status: "draft" | "published";
+  currentVersion: number;
+  draft?: JournalDraft;
+  versions: JournalVersion[];
+  updatedAt: IsoDateTime;
+}
+
+export interface JournalDraftRequest {
+  occurrenceId: string;
+  studentId: string;
+  whatWorked: string;
+  currentFocus: string;
+  nextStep: string;
+}
+
+export interface JournalEvidenceInput {
+  area: string;
+  note: string;
+}
+
+export interface PublishJournalRequest {
+  occurrenceId: string;
+  studentId: string;
+  correctionNote?: string;
+  evidence?: JournalEvidenceInput[];
+}
+
+export interface ProgressEvidence {
+  id: string;
+  area: string;
+  note: string;
+  sourceKind: "lesson_journal" | "practice" | "review";
+  sourceId: string;
+  recordedAt: IsoDateTime;
+}
+
+export const decodeLessonJournal: Decoder<LessonJournal> = (value) => {
+  const contract = "LessonJournal";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "occurrenceId",
+      "studentId",
+      "teacher",
+      "status",
+      "currentVersion",
+      "draft",
+      "versions",
+      "updatedAt",
+    ],
+    contract,
+  );
+  const teacherSource = record(source.teacher, contract, "$.teacher");
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, "$.teacher");
+  if (!Array.isArray(source.versions)) {
+    throw new ContractDecodeError(contract, "$.versions");
+  }
+  const versions = source.versions.map((entry, index) => {
+    const path = `$.versions[${index}]`;
+    const versionSource = record(entry, contract, path);
+    exactKeys(
+      versionSource,
+      ["version", "whatWorked", "currentFocus", "nextStep", "correctionNote", "publishedAt"],
+      contract,
+      path,
+    );
+    const version: JournalVersion = {
+      version: numberField(versionSource, "version", contract, 1),
+      whatWorked: stringField(versionSource, "whatWorked", contract)!,
+      currentFocus: stringField(versionSource, "currentFocus", contract)!,
+      nextStep: stringField(versionSource, "nextStep", contract)!,
+      publishedAt: isoDateField(versionSource, "publishedAt", contract)!,
+    };
+    const correctionNote = stringField(versionSource, "correctionNote", contract, true);
+    if (correctionNote !== undefined) {
+      version.correctionNote = correctionNote;
+    }
+    if (version.version > 1 && version.correctionNote === undefined) {
+      throw new ContractDecodeError(contract, `${path}.correctionNote`);
+    }
+    return version;
+  });
+  for (let index = 1; index < versions.length; index += 1) {
+    if (versions[index]!.version >= versions[index - 1]!.version) {
+      throw new ContractDecodeError(contract, `$.versions[${index}].version`);
+    }
+  }
+  const journal: LessonJournal = {
+    id: identifierField(source, "id", contract)!,
+    occurrenceId: identifierField(source, "occurrenceId", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    teacher: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    status: oneOf(source.status, ["draft", "published"] as const, contract, "$.status"),
+    currentVersion: numberField(source, "currentVersion", contract, 0),
+    versions,
+    updatedAt: isoDateField(source, "updatedAt", contract)!,
+  };
+  if (journal.status === "published" && journal.currentVersion < 1) {
+    throw new ContractDecodeError(contract, "$.currentVersion");
+  }
+  if (source.draft !== undefined) {
+    const draftSource = record(source.draft, contract, "$.draft");
+    exactKeys(draftSource, ["whatWorked", "currentFocus", "nextStep"], contract, "$.draft");
+    journal.draft = {
+      whatWorked: stringField(draftSource, "whatWorked", contract)!,
+      currentFocus: stringField(draftSource, "currentFocus", contract)!,
+      nextStep: stringField(draftSource, "nextStep", contract)!,
+    };
+  }
+  return journal;
+};
+
+export const decodeLessonJournals: Decoder<LessonJournal[]> = (value) => {
+  const contract = "LessonJournalList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const journals = value.map((entry) => decodeLessonJournal(entry));
+  unique(
+    journals.map((journal) => journal.id),
+    contract,
+    "$[].id",
+  );
+  return journals;
+};
+
+export const decodeProgressEvidence: Decoder<ProgressEvidence[]> = (value) => {
+  const contract = "ProgressEvidenceList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const entries = value.map((entry, index) => {
+    const path = `$[${index}]`;
+    const source = record(entry, contract, path);
+    exactKeys(source, ["id", "area", "note", "sourceKind", "sourceId", "recordedAt"], contract, path);
+    return {
+      id: identifierField(source, "id", contract)!,
+      area: stringField(source, "area", contract)!,
+      note: stringField(source, "note", contract)!,
+      sourceKind: oneOf(
+        source.sourceKind,
+        ["lesson_journal", "practice", "review"] as const,
+        contract,
+        `${path}.sourceKind`,
+      ),
+      sourceId: stringField(source, "sourceId", contract)!,
+      recordedAt: isoDateField(source, "recordedAt", contract)!,
+    };
+  });
+  unique(
+    entries.map((entry) => entry.id),
+    contract,
+    "$[].id",
+  );
+  return entries;
+};

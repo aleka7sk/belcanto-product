@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.8.0
+  version: 0.9.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -2134,6 +2134,166 @@ paths:
         "500":
           $ref: "#/components/responses/Internal"
 
+  /v1/journal-drafts:
+    put:
+      summary: Save a lesson journal draft
+      operationId: saveJournalDraft
+      tags: [Journal]
+      description: >-
+        Teacher-private draft in the First Belcanto Minute language:
+        what worked, current focus, next step. Saving never touches
+        published versions.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JournalDraftRequest"
+      responses:
+        "200":
+          description: The journal with its draft and version history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonJournal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/journals/publish:
+    post:
+      summary: Publish the journal draft
+      operationId: publishJournal
+      tags: [Journal]
+      description: >-
+        Snapshots the draft as an immutable version the Student can see
+        (DEC-007); a second and later publish is a correction and
+        requires an explicit note. Optional evidence attaches named-area
+        observations (DEC-006 — never a score). Requires an
+        Idempotency-Key header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishJournalRequest"
+      responses:
+        "200":
+          description: The journal with the new current version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonJournal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/journals/{occurrenceId}/{studentId}:
+    get:
+      summary: Read a lesson journal
+      operationId: getJournal
+      tags: [Journal]
+      description: >-
+        The teacher and managers see the draft; the Student sees
+        published versions only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventOccurrenceId"
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: The journal scoped to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonJournal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/journals:
+    get:
+      summary: List a Student's journals
+      operationId: listStudentJournals
+      tags: [Journal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Journals visible to the caller, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LessonJournal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/progress:
+    get:
+      summary: List progress evidence
+      operationId: listProgressEvidence
+      tags: [Journal]
+      description: >-
+        Named-area observations for the Student (DEC-006). Visible to the
+        Student, their teachers and managers.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Evidence, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProgressEvidence"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
   /v1/lessons:
     get:
       summary: List role-scoped Lessons
@@ -2445,6 +2605,14 @@ components:
         maxLength: 128
     SpotOfferId:
       name: offerId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    JournalStudentId:
+      name: studentId
       in: path
       required: true
       schema:
@@ -4017,6 +4185,171 @@ components:
           type: integer
           minimum: 1
           maximum: 500
+    JournalDraft:
+      type: object
+      additionalProperties: false
+      required: [whatWorked, currentFocus, nextStep]
+      properties:
+        whatWorked:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        currentFocus:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        nextStep:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    JournalVersion:
+      type: object
+      additionalProperties: false
+      required: [version, whatWorked, currentFocus, nextStep, publishedAt]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        whatWorked:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        currentFocus:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        nextStep:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        correctionNote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        publishedAt:
+          type: string
+          format: date-time
+    LessonJournal:
+      type: object
+      additionalProperties: false
+      required: [id, occurrenceId, studentId, teacher, status, currentVersion, versions, updatedAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        occurrenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        teacher:
+          $ref: "#/components/schemas/TeacherSummary"
+        status:
+          type: string
+          enum: [draft, published]
+        currentVersion:
+          type: integer
+          minimum: 0
+        draft:
+          $ref: "#/components/schemas/JournalDraft"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/JournalVersion"
+        updatedAt:
+          type: string
+          format: date-time
+    JournalDraftRequest:
+      type: object
+      additionalProperties: false
+      required: [occurrenceId, studentId, whatWorked, currentFocus, nextStep]
+      properties:
+        occurrenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        whatWorked:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        currentFocus:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        nextStep:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    EvidenceInput:
+      type: object
+      additionalProperties: false
+      required: [area, note]
+      properties:
+        area:
+          type: string
+          minLength: 1
+          maxLength: 100
+        note:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    PublishJournalRequest:
+      type: object
+      additionalProperties: false
+      required: [occurrenceId, studentId]
+      properties:
+        occurrenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        studentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        correctionNote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        evidence:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/EvidenceInput"
+    ProgressEvidence:
+      type: object
+      additionalProperties: false
+      required: [id, area, note, sourceKind, sourceId, recordedAt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        area:
+          type: string
+          minLength: 1
+          maxLength: 100
+        note:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        sourceKind:
+          type: string
+          enum: [lesson_journal, practice, review]
+        sourceId:
+          type: string
+          minLength: 1
+          maxLength: 160
+        recordedAt:
+          type: string
+          format: date-time
     RescheduleRequest:
       type: object
       additionalProperties: false

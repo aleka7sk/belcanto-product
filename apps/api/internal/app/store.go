@@ -83,6 +83,12 @@ type Store interface {
 	GetCoreLessonSeries(context.Context, core.Principal, string) (core.CoreLessonSeries, error)
 	GenerateSeriesOccurrences(context.Context, core.GenerateSeriesOccurrencesCommand) (core.SeriesOccurrenceGenerationResult, error)
 
+	SaveJournalDraft(context.Context, core.SaveJournalDraftCommand) (core.LessonJournal, error)
+	PublishJournal(context.Context, core.PublishJournalCommand) (core.LessonJournal, error)
+	GetJournal(context.Context, core.Principal, string, string) (core.LessonJournal, error)
+	ListStudentJournals(context.Context, core.Principal, string) ([]core.LessonJournal, error)
+	ListProgressEvidence(context.Context, core.Principal, string) ([]core.ProgressEvidence, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

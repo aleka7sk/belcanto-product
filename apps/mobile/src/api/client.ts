@@ -53,6 +53,10 @@ import {
   type CreateRescheduleRequestRequest,
   type DecideRescheduleRequestRequest,
   type RescheduleRequest,
+  type JournalDraftRequest,
+  type LessonJournal,
+  type ProgressEvidence,
+  type PublishJournalRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -739,6 +743,62 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<RescheduleRequest> {
     return this.request(routes.withdrawRescheduleRequest(requestId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  saveJournalDraft(
+    accessToken: string,
+    body: JournalDraftRequest,
+    signal?: AbortSignal,
+  ): Promise<LessonJournal> {
+    return this.request(routes.saveJournalDraft, { accessToken, body, signal });
+  }
+
+  publishJournal(
+    accessToken: string,
+    body: PublishJournalRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<LessonJournal> {
+    return this.request(routes.publishJournal, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  getJournal(
+    accessToken: string,
+    occurrenceId: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<LessonJournal> {
+    return this.request(routes.getJournal(occurrenceId, studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  listStudentJournals(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<LessonJournal[]> {
+    return this.request(routes.listStudentJournals(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  listProgressEvidence(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<ProgressEvidence[]> {
+    return this.request(routes.listProgressEvidence(studentId), {
       accessToken,
       signal,
     });
