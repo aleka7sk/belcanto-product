@@ -4,8 +4,8 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T13:10:00Z",
-  "phase": "phase2",
+  "updatedAt": "2026-08-06T15:20:00Z",
+  "phase": "phase3",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
     "rootNodeName": "Document",
@@ -139,8 +139,9 @@
     {
       "id": "p3-student-loop",
       "phase": 3,
-      "status": "not_started",
-      "summary": "Today/Home, progress/evidence/goals/achievements, homework/practice/recorder, repertoire, teachers"
+      "status": "in_progress",
+      "summary": "Today/Home, progress/evidence/goals/achievements, homework/practice/recorder, repertoire, teachers",
+      "evidence": "journal/progress backbone green (33a35e8): migration 000009 (teacher-private drafts, immutable published versions via DB triggers proven by PG UPDATE/DELETE rejection tests, correction requires explicit note per DEC-007, progress = named-area evidence with no score per DEC-006); publish gated to started lessons, up to 10 evidence per publish, visibility scoped (teacher/manager see drafts, student published-only); 5 ops in OpenAPI 0.9.0, mobile decoders with correction-note and ordering invariants; Go full suite + race, mobile 29 suites/167 tests. Remaining: student progress/journal UI (Page 22), teacher journal UI (Pages 26/27), homework/practice (migration 000010), repertoire, goals/achievements"
     },
     {
       "id": "p4-teacher-ops",
@@ -174,6 +175,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "2939695",
-  "nextSafeAction": "phase 2 remainder: schedule day-view upgrade (STU-SCHEDULE-01/02/09 mixed lesson+event feed, date navigation) and teacher/admin scheduling screens (Pages 26/29) — or proceed to phase 3 student learning loop (migration 000009 journal/progress) and fold remaining Page 24/26/29 screens into their role phases"
+  "lastGreenCodeSha": "33a35e8",
+  "nextSafeAction": "continue phase 3/4 on the journal backbone: teacher journal UI (draft/publish/correct, Page 26) and student progress UI (Page 22 evidence by area + journal history); then homework/practice migration 000010 with media upload sessions"
 }
