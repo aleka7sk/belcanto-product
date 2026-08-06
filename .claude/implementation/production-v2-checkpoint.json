@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T21:35:00Z",
+  "updatedAt": "2026-08-06T22:40:00Z",
   "phase": "phase3",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -148,7 +148,7 @@
       "phase": 4,
       "status": "in_progress",
       "summary": "teacher today, attendance, journal draft/publish cascade/correction, review, roster",
-      "evidence": "today cockpit + lesson context green (58d6158): Asia/Almaty civil-day agenda with six-state Agenda Entries, on-air lesson «Сейчас» block, unfinished-journal continue card (draft/missing detection over the latest finished lesson); per-participant lesson context (latest recap, homework lifecycle status, latest named-area evidence, journal entry) with group roster + verbatim privacy card; entries from workspace and staff lessons list; tch.* ru/kk; mobile 33 suites/186 tests. Journal draft/publish/correction and homework review shipped earlier in phase-3 slices. attendance vertical green (8850d91): migration 000011 per approved domain/lesson.md (present/late-with-minutes/absent-with-note per participant, teacher-or-admin markers, corrections require reason with prev/new audit, DELETE trigger-rejected, empty group seat has no row, absence emits outbox event); attendance block in the lesson context with status chips + reason-gated correction; student view hides teacher note; OpenAPI 0.11.0 (+2 ops), mobile decoder with late<->minutes invariant; Go full suite + race, mobile 34 suites/189 tests. Remaining: lesson-goal and private-note models, Page 27 roster screens"
+      "evidence": "today cockpit + lesson context green (58d6158): Asia/Almaty civil-day agenda with six-state Agenda Entries, on-air lesson «Сейчас» block, unfinished-journal continue card (draft/missing detection over the latest finished lesson); per-participant lesson context (latest recap, homework lifecycle status, latest named-area evidence, journal entry) with group roster + verbatim privacy card; entries from workspace and staff lessons list; tch.* ru/kk; mobile 33 suites/186 tests. Journal draft/publish/correction and homework review shipped earlier in phase-3 slices. attendance vertical green (8850d91): migration 000011 per approved domain/lesson.md (present/late-with-minutes/absent-with-note per participant, teacher-or-admin markers, corrections require reason with prev/new audit, DELETE trigger-rejected, empty group seat has no row, absence emits outbox event); attendance block in the lesson context with status chips + reason-gated correction; student view hides teacher note; OpenAPI 0.11.0 (+2 ops), mobile decoder with late<->minutes invariant; Go full suite + race, mobile 34 suites/189 tests. repertoire vertical green (fff8fec): migration 000012 StudentSong with the design's five-step journey as data (slugs, labels verbatim), seq-keyed append-only stage history (triggers reject rewrite/delete), assigned-teacher-or-admin authority under CAS, explicitly NOT SongReadiness (approved entity catalog keeps that a separate policy-computed aggregate); repertoire screen with filters/journey bar/history/teacher stage editor/add form, entries from practice hub and lesson context; OpenAPI 0.12.0 (+3 ops), rep.* ru/kk; Go full suite + race, mobile 35 suites/193 tests. Remaining: lesson-goal and private-note models, Page 27 roster screens"
     },
     {
       "id": "p5-community-notifications",
@@ -176,6 +176,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "8850d91",
-  "nextSafeAction": "continue phase 3 remainder: repertoire vertical (STU-GROWTH-07 + STU-PRACTICE-10..12 — song/repertoire-item model per domain song references, journey stages, teacher stage updates, student library/detail UI); then goals/achievements (STU-GROWTH-04/08)"
+  "lastGreenCodeSha": "fff8fec",
+  "nextSafeAction": "continue phase 3 remainder: goals/achievements vertical (STU-GROWTH-04/08 — Goal and AchievementAward aggregates per the approved aggregate list: teacher-set goal with reframe-not-fail semantics, evidence-backed achievement awards without ratings/XP/penalties, student UI) — after that phase 5 community/notifications with the outbox worker"
 }
