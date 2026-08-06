@@ -20,6 +20,10 @@ import { RoleBottomNav } from "../roleNavigation";
 import { colors, fonts, gradients, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
 
+function lessonStarted(lesson: Lesson): boolean {
+  return new Date(lesson.startsAt).getTime() <= Date.now();
+}
+
 export function LessonDetailScreen({
   lessonId,
   firstMinute,
@@ -55,6 +59,7 @@ export function LessonDetailScreen({
     return () => { active = false; };
   }, [load]);
   if (bootstrap === null) return null;
+  const selfStudentId = bootstrap.studentId;
   if (!bootstrap.roles.includes("Student") || !canReadLessons(bootstrap)) {
     return (
       <PremiumScrollScreen>
@@ -104,6 +109,17 @@ export function LessonDetailScreen({
             <Text style={styles.cyanLabel}>ФОКУС УРОКА</Text>
             <Text style={styles.focus}>{firstMinute.currentFocus}</Text>
           </PremiumCard>
+          {selfStudentId !== undefined && lessonStarted(lesson) ? (
+            <SecondaryButton
+              label="Итог урока"
+              onPress={() =>
+                router.push({
+                  pathname: "/(protected)/journal/[occurrenceId]/[studentId]",
+                  params: { occurrenceId: lesson.id, studentId: selfStudentId },
+                })
+              }
+            />
+          ) : null}
         </>
       ) : null}
       <RoleBottomNav

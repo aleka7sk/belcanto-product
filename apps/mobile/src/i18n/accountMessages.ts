@@ -1126,6 +1126,214 @@ const account = {
   },
   "auth11.refresh": { ru: "Обновить статус", kk: "Күйді жаңарту" },
   "auth11.contact": { ru: "Связаться со школой", kk: "Мектеппен байланысу" },
+
+  // Student progress (Figma Page 22, STU-GROWTH-01/06/09/10). Russian copy
+  // is verbatim where the design string applies; sample-persona genders and
+  // references to not-yet-built modules (levels, reviews, media) are
+  // generalized to what the journal/evidence API actually serves.
+  "growth.entry.title": { ru: "Моё развитие", kk: "Менің дамуым" },
+  "growth.entry.subtitle": {
+    ru: "Подтверждения, итоги уроков и области роста",
+    kk: "Растаулар, сабақ қорытындылары және даму бағыттары",
+  },
+  "growth.eyebrow": { ru: "Моё развитие", kk: "Менің дамуым" },
+  "growth.title": {
+    ru: "Что изменилось и что дальше",
+    kk: "Не өзгерді және әрі қарай не",
+  },
+  "growth.subtitle": {
+    ru: "Подтверждений: {count} · обновлено {date}",
+    kk: "Растаулар: {count} · жаңартылды {date}",
+  },
+  "growth.areas.title": { ru: "Области роста", kk: "Даму бағыттары" },
+  "growth.areas.all": { ru: "Все области", kk: "Барлық бағыттар" },
+  "growth.signal.kind": { ru: "Прогресс", kk: "Прогресс" },
+  "growth.signal.state": { ru: "Обновлено", kk: "Жаңартылды" },
+  "growth.signal.source": {
+    ru: "Журнал урока · {date}",
+    kk: "Сабақ журналы · {date}",
+  },
+  "growth.evidence.title": {
+    ru: "Записи и наблюдения",
+    kk: "Жазбалар мен бақылаулар",
+  },
+  "growth.evidence.source": {
+    ru: "Журнал урока · {date}",
+    kk: "Сабақ журналы · {date}",
+  },
+  "growth.evidence.visibility": {
+    ru: "Приватно · вы и педагог",
+    kk: "Жеке · сіз және педагог",
+  },
+  "growth.history.title": { ru: "История развития", kk: "Даму тарихы" },
+  "growth.history.subtitle": {
+    ru: "Не только текущее состояние",
+    kk: "Тек ағымдағы күй емес",
+  },
+  "growth.history.entry": {
+    ru: "Итог урока · {date}",
+    kk: "Сабақ қорытындысы · {date}",
+  },
+  "growth.history.version": { ru: "Версия {version}", kk: "Нұсқа {version}" },
+  "growth.history.corrected": {
+    ru: "Версия {version} · есть исправление",
+    kk: "Нұсқа {version} · түзету бар",
+  },
+  "growth.empty.title": {
+    ru: "История только начинается",
+    kk: "Тарих енді басталып жатыр",
+  },
+  "growth.empty.body": {
+    ru: "Не показываем нулевую оценку и пустые красные графики.",
+    kk: "Нөлдік баға мен бос қызыл графиктерді көрсетпейміз.",
+  },
+  "growth.empty.card.title": { ru: "Что появится здесь", kk: "Мұнда не пайда болады" },
+  "growth.empty.card.body": {
+    ru: "Понятные подтверждения, итоги уроков и следующий шаг.",
+    kk: "Түсінікті растаулар, сабақ қорытындылары және келесі қадам.",
+  },
+  "growth.empty.card.status": {
+    ru: "Без оценивания человека",
+    kk: "Адамды бағалаусыз",
+  },
+  "growth.empty.action": { ru: "Открыть Сегодня", kk: "Бүгінді ашу" },
+  "growth.guard.title": { ru: "Раздел доступен ученику", kk: "Бөлім оқушыға қолжетімді" },
+  "growth.guard.body": {
+    ru: "Развитие видит сам ученик и его педагоги.",
+    kk: "Дамуды оқушының өзі және оның педагогтары көреді.",
+  },
+
+  // Lesson journal (Figma Page 26, TCH-JOURNAL-03/04/08/10/13 + Lesson
+  // Recap 309:20119). DEC-007: a correction always carries an explicit
+  // reason and creates the next version, never a silent rewrite.
+  "jrnl.eyebrow": { ru: "Журнал урока", kk: "Сабақ журналы" },
+  "jrnl.editor.title": { ru: "Короткий итог", kk: "Қысқа қорытынды" },
+  "jrnl.editor.subtitle": {
+    ru: "Эта запись обновит итог для ученика и журнал.",
+    kk: "Бұл жазба оқушы қорытындысы мен журналды жаңартады.",
+  },
+  "jrnl.field.whatWorked": { ru: "Что получилось", kk: "Не сәтті шықты" },
+  "jrnl.field.currentFocus": { ru: "Следующий фокус", kk: "Келесі фокус" },
+  "jrnl.field.nextStep": { ru: "До следующего урока", kk: "Келесі сабаққа дейін" },
+  "jrnl.field.visible": { ru: "Видит ученик", kk: "Оқушы көреді" },
+  "jrnl.draft.privacy": {
+    ru: "Черновик виден только вам до публикации",
+    kk: "Жариялағанға дейін жоба тек сізге көрінеді",
+  },
+  "jrnl.saveDraft": { ru: "Сохранить черновик", kk: "Жобаны сақтау" },
+  "jrnl.draft.saved": {
+    ru: "Черновик сохранён · {date}",
+    kk: "Жоба сақталды · {date}",
+  },
+  "jrnl.evidence.title": { ru: "Что оценивалось", kk: "Не бағаланды" },
+  "jrnl.evidence.subtitle": {
+    ru: "Не нужно проходить всю методику после каждого урока.",
+    kk: "Әр сабақтан кейін бүкіл әдістемені өтудің қажеті жоқ.",
+  },
+  "jrnl.evidence.area": { ru: "Область", kk: "Бағыт" },
+  "jrnl.evidence.note": { ru: "Подтверждение", kk: "Растау" },
+  "jrnl.evidence.noteHint": {
+    ru: "Наблюдение на уроке",
+    kk: "Сабақтағы бақылау",
+  },
+  "jrnl.evidence.add": { ru: "Добавить подтверждение", kk: "Растау қосу" },
+  "jrnl.evidence.remove": { ru: "Убрать", kk: "Алып тастау" },
+  "jrnl.evidence.limit": {
+    ru: "Не больше 10 подтверждений за публикацию",
+    kk: "Бір жариялауда 10 растаудан аспайды",
+  },
+  "jrnl.review.eyebrow": {
+    ru: "Проверьте перед публикацией",
+    kk: "Жарияламас бұрын тексеріңіз",
+  },
+  "jrnl.review.title": { ru: "Итог урока готов", kk: "Сабақ қорытындысы дайын" },
+  "jrnl.recap.draft": {
+    ru: "Черновик · не опубликован",
+    kk: "Жоба · жарияланмаған",
+  },
+  "jrnl.recap.published": {
+    ru: "Опубликовано · ученику видно",
+    kk: "Жарияланды · оқушыға көрінеді",
+  },
+  "jrnl.recap.whatWorked": { ru: "Получилось", kk: "Сәтті шықты" },
+  "jrnl.recap.currentFocus": { ru: "Фокус", kk: "Фокус" },
+  "jrnl.recap.nextStep": { ru: "До следующего урока", kk: "Келесі сабаққа дейін" },
+  "jrnl.recap.evidenceChip": {
+    ru: "Подтверждений: {count}",
+    kk: "Растаулар: {count}",
+  },
+  "jrnl.publish.updates.title": {
+    ru: "После публикации обновятся",
+    kk: "Жарияланғаннан кейін жаңарады",
+  },
+  "jrnl.publish.updates.body": {
+    ru: "Итог для ученика и подтверждения прогресса.",
+    kk: "Оқушы қорытындысы және прогресс растаулары.",
+  },
+  "jrnl.publish.updates.status": {
+    ru: "Разделы обновятся одновременно",
+    kk: "Бөлімдер бір мезгілде жаңарады",
+  },
+  "jrnl.publish": { ru: "Опубликовать итог", kk: "Қорытындыны жариялау" },
+  "jrnl.publish.gate": {
+    ru: "Публикация откроется после начала урока",
+    kk: "Жариялау сабақ басталғаннан кейін ашылады",
+  },
+  "jrnl.published.eyebrow": { ru: "Опубликовано", kk: "Жарияланды" },
+  "jrnl.published.title": {
+    ru: "Итог доступен ученику",
+    kk: "Қорытынды оқушыға қолжетімді",
+  },
+  "jrnl.published.subtitle": {
+    ru: "{date} · версия {version}",
+    kk: "{date} · нұсқа {version}",
+  },
+  "jrnl.correct.action": { ru: "Исправить итог", kk: "Қорытындыны түзету" },
+  "jrnl.correct.eyebrow": { ru: "Исправление", kk: "Түзету" },
+  "jrnl.correct.title": {
+    ru: "Создать версию {version}",
+    kk: "{version}-нұсқаны жасау",
+  },
+  "jrnl.correct.subtitle": {
+    ru: "Опубликованные итоги не перезаписываются молча.",
+    kk: "Жарияланған қорытындылар үнсіз қайта жазылмайды.",
+  },
+  "jrnl.correct.note": { ru: "Причина", kk: "Себеп" },
+  "jrnl.correct.noteHelper": {
+    ru: "Обязательно для audit",
+    kk: "Audit үшін міндетті",
+  },
+  "jrnl.correct.publish": {
+    ru: "Опубликовать исправление",
+    kk: "Түзетуді жариялау",
+  },
+  "jrnl.correct.required": {
+    ru: "Исправление требует причины",
+    kk: "Түзету себепті қажет етеді",
+  },
+  "jrnl.versions.title": { ru: "История версий", kk: "Нұсқалар тарихы" },
+  "jrnl.version.label": {
+    ru: "Версия {version} · {date}",
+    kk: "Нұсқа {version} · {date}",
+  },
+  "jrnl.version.correction": {
+    ru: "Исправление: {note}",
+    kk: "Түзету: {note}",
+  },
+  "jrnl.student.pending.title": {
+    ru: "Итог ещё готовится",
+    kk: "Қорытынды әлі дайындалуда",
+  },
+  "jrnl.student.pending.body": {
+    ru: "Преподаватель опубликует итог после урока.",
+    kk: "Оқытушы қорытындыны сабақтан кейін жариялайды.",
+  },
+  "jrnl.teacher.line": { ru: "Педагог · {name}", kk: "Педагог · {name}" },
+  "jrnl.guard.title": { ru: "Журнал недоступен", kk: "Журнал қолжетімсіз" },
+  "jrnl.guard.body": {
+    ru: "Журнал ведёт преподаватель урока; ученику доступен опубликованный итог.",
+    kk: "Журналды сабақ оқытушысы жүргізеді; оқушыға жарияланған қорытынды қолжетімді.",
+  },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

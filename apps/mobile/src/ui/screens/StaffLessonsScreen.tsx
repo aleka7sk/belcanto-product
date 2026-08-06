@@ -17,10 +17,26 @@ import {
   PremiumScrollScreen,
   PrimaryButton,
   SecondaryButton,
+  TextAction,
   uiStyles,
 } from "../components";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime, roleLabel } from "../viewModels";
+
+function splitLessons(lessons: Lesson[]): { upcoming: Lesson[]; past: Lesson[] } {
+  const nowMs = Date.now();
+  return {
+    upcoming: lessons.filter(
+      (lesson) => new Date(lesson.startsAt).getTime() > nowMs,
+    ),
+    past: lessons
+      .filter((lesson) => new Date(lesson.startsAt).getTime() <= nowMs)
+      .sort(
+        (left, right) =>
+          new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime(),
+      ),
+  };
+}
 
 export function StaffLessonsScreen() {
   const api = useApiClient();
@@ -36,8 +52,11 @@ export function StaffLessonsScreen() {
     if (refresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
-    const from = new Date();
-    const to = new Date(from.getTime() + 90 * 24 * 60 * 60 * 1000);
+    // Окно включает прошедшие 14 дней: журнал урока публикуется после
+    // его начала, и педагогу нужен вход в недавние занятия.
+    const now = new Date();
+    const from = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
     const teacherOnly =
       bootstrap.roles.includes("Teacher") &&
       !bootstrap.roles.includes("Owner") &&
@@ -76,6 +95,7 @@ export function StaffLessonsScreen() {
   }
   const mayChangeTeacher =
     canReplaceLessonTeachers(bootstrap) && canReassignPrimaryTeachers(bootstrap);
+  const { upcoming, past } = splitLessons(lessons);
 
   return (
     <PremiumScrollScreen
@@ -111,7 +131,7 @@ export function StaffLessonsScreen() {
       </View>
       <View style={styles.sectionHeader}>
         <Text style={uiStyles.sectionTitle}>Будущие занятия</Text>
-        <Text style={uiStyles.supporting}>{lessons.length}</Text>
+        <Text style={uiStyles.supporting}>{upcoming.length}</Text>
       </View>
       {loading ? <PremiumCard><Text style={uiStyles.body}>Загружаем расписание…</Text></PremiumCard> : null}
       {error ? (
@@ -120,14 +140,14 @@ export function StaffLessonsScreen() {
           <SecondaryButton label="Повторить" onPress={() => void load()} />
         </View>
       ) : null}
-      {!loading && !error && lessons.length === 0 ? (
+      {!loading && !error && upcoming.length === 0 ? (
         <PremiumCard>
           <Text style={uiStyles.sectionTitle}>Будущих занятий пока нет</Text>
           <Text style={[uiStyles.body, styles.emptyBody]}>Создайте первое занятие для выбранных учеников.</Text>
         </PremiumCard>
       ) : null}
       <View style={styles.stack}>
-        {lessons.map((lesson) => (
+        {upcoming.map((lesson) => (
           <PremiumCard key={lesson.id}>
             <View style={styles.lessonHeader}>
               <View style={styles.lessonCopy}>
@@ -143,6 +163,41 @@ export function StaffLessonsScreen() {
           </PremiumCard>
         ))}
       </View>
+      {past.length > 0 ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={uiStyles.sectionTitle}>Журналы уроков</Text>
+            <Text style={uiStyles.supporting}>{past.length}</Text>
+          </View>
+          <View style={styles.stack}>
+            {past.map((lesson) => (
+              <PremiumCard key={lesson.id}>
+                <View style={styles.lessonHeader}>
+                  <View style={styles.lessonCopy}>
+                    <Text style={styles.lessonTime}>{formatLessonDay(lesson.startsAt)} · {formatLessonTime(lesson.startsAt)}</Text>
+                    <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                  </View>
+                  <Text style={styles.version}>v{lesson.version}</Text>
+                </View>
+                <Text style={styles.lessonMeta}>{lesson.teacher.fullName}</Text>
+                {lesson.students.map((student) => (
+                  <TextAction
+                    align="right"
+                    key={student.studentId}
+                    label={`Журнал · ${student.fullName}`}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(protected)/journal/[occurrenceId]/[studentId]",
+                        params: { occurrenceId: lesson.id, studentId: student.studentId },
+                      })
+                    }
+                  />
+                ))}
+              </PremiumCard>
+            ))}
+          </View>
+        </>
+      ) : null}
       <SecondaryButton label="Рабочее пространство" onPress={() => router.replace({ pathname: "/(protected)", params: { workspace: "staff" } })} />
     </PremiumScrollScreen>
   );

@@ -2,6 +2,7 @@ import { router } from "expo-router";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
+import { useSession } from "@/session";
 import { InlineNotice } from "../../components";
 import {
   AccountScreenShell,
@@ -16,9 +17,11 @@ import { AccountNav, initialsOf, useAccountResource, useWorkingRole } from "./sh
 export function AccountHubScreen() {
   const message = useMessage();
   const api = useApiClient();
+  const { state } = useSession();
   const workingRole = useWorkingRole();
   const profile = useAccountResource((accessToken) => api.myProfile(accessToken));
   const twofa = useAccountResource((accessToken) => api.twofaStatus(accessToken));
+  const isStudent = state.bootstrap?.studentId !== undefined;
 
   const roleLabel = workingRole ? message(`role.${workingRole}`) : "";
   const roleCount = profile.value?.roles.length ?? 0;
@@ -63,6 +66,14 @@ export function AccountHubScreen() {
         testID="account-role-row"
         title={message("acc01.roleRow.title", { role: roleLabel })}
       />
+      {isStudent ? (
+        <SettingsRow
+          onPress={() => router.push("/(protected)/progress")}
+          subtitle={message("growth.entry.subtitle")}
+          testID="account-progress-row"
+          title={message("growth.entry.title")}
+        />
+      ) : null}
       <SettingsRow
         onPress={() => router.push("/(protected)/account/personal")}
         subtitle={message("acc01.personal.subtitle")}
