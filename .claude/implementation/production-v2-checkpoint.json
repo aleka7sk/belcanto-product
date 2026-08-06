@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T10:20:00Z",
+  "updatedAt": "2026-08-06T11:40:00Z",
   "phase": "phase2",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -132,8 +132,9 @@
     {
       "id": "p2-reschedule",
       "phase": 2,
-      "status": "not_started",
-      "summary": "reschedule/cancellation requests + admin decision + notify"
+      "status": "in_progress",
+      "summary": "reschedule/cancellation requests + admin decision + notify",
+      "evidence": "backend vertical green (7cc29e9): migration 000008 (one open request per person+lesson, decision CHECK constraints, rollback refuses over decision history); create/list/decide/withdraw with version CAS; approval applies in-transaction (reschedule moves occurrence in place after conflict check; cancellation sets cancelled_student/school by initiator); DEC-102 configurable-off — no consequence anywhere; Lesson status widened to the six-state lifecycle across core/OpenAPI 0.7.0/mobile; Go full suite + race, mobile 27 suites/162 tests. Remaining: reschedule-request UI (378:803) within the scheduling screens sub-slice"
     },
     {
       "id": "p3-student-loop",
@@ -173,6 +174,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "98a3842",
-  "nextSafeAction": "continue phase 2: p2-reschedule migration 000008 (reschedule/cancellation requests with admin decision flow, DEC-102 kept configurable-off), then scheduling/event UI screens (Pages 24/26/29) on the finished seat API"
+  "lastGreenCodeSha": "7cc29e9",
+  "nextSafeAction": "finish phase 2 with the scheduling/event UI sub-slice: Pages 24/26/29 screens (student schedule + event catalog with RsvpControl 333:268 + reschedule request 378:803, teacher today, admin operations) on the finished lesson/series/event/reschedule API; then phase 3 student learning loop"
 }
