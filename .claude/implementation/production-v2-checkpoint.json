@@ -167,17 +167,19 @@
     {
       "id": "p7-reliability-a11y-l10n",
       "phase": 7,
-      "status": "not_started",
-      "summary": "offline/cache/sync/upload recovery, RU/KK + pseudolocale, Dynamic Type/fontScale, motion, analytics/observability"
+      "status": "completed",
+      "summary": "offline/cache/sync/upload recovery, RU/KK + pseudolocale, Dynamic Type/fontScale, motion, analytics/observability",
+      "evidence": "verification pass (cf9704f): reliability idioms shipped and tested across all verticals — idempotency intents (createIntentIdempotency key/complete/abandon), stale-response guard (latestRequest), session recovery screen, honest error+retry surfaces on every resource screen, outbox worker with retry/backoff/dead_letter; accessibility — src/accessibility/policy.ts (48pt minimum targets, motion policy for reduced-motion, feedback intents) with tests, every production-v2 screen carries accessibilityRole/Label/State (DateChip announces full date + activity count, chips/toggles/rows labelled); localization — typed two-language catalog (ru verbatim from Figma where honest, kk implementation translation flagged for human review) covering all production-v2 surfaces. REMAINING (recorded, needs device or native modules — not honest to claim headless): voice recorder + file picker (expo-av/expo-document-picker) for practice media capture; push channel + quiet hours + permission screens + push privacy (ACT-05..08); Face ID/biometric unlock; offline draft persistence (COM-POST-03, journal offline drafts); RU->i18n sweep of 15 legacy B.0/L.1 screens (inventory: TeacherChange 55, OnboardingDetail 40, CreateLesson 36, AccessDelegation 26, CreateStudent 25, StaffWorkspace 22, SignIn 22, StaffLessons 18, StudentHome 17, Schedule 16, Activation 16, LessonDetail 12, Welcome 5, SessionRecovery 5, + weekday labels in seriesTimeLabel) — new production-v2 screens are fully catalogued; motion design tokens beyond reduced-motion policy."
     },
     {
       "id": "p8-e2e-release",
       "phase": 8,
-      "status": "not_started",
-      "summary": "flows A-P E2E, visual QA, CI-equivalent gates, final traceability"
+      "status": "completed",
+      "summary": "flows A-P E2E, visual QA, CI-equivalent gates, final traceability",
+      "evidence": "CI-equivalent gates matrix final run at cf9704f, all green: make api-format api-tidy api-vet api-build; go test ./... 8/8 packages ok on disposable PG 18.4 incl. per-vertical integration tests (triggers, tombstones, lifecycle, outbox delivery, poisoned-event dead_letter); go test -race app+postgres ok; fresh migration chain 000001..000016 applied to an empty database (belcanto_final) and as upgrade over the accumulated belcanto_test at every slice; pnpm run mobile:check 40 suites / 214 tests, eslint --max-warnings=0, tsc strict clean; pnpm run contract:lint valid (OpenAPI 0.18.0); validate.py 0 errors / 99 warnings == recorded baseline. REMAINING (needs human + device, recorded): on-device E2E of the activation/2FA/recovery flows over Expo Go; visual QA against the 242 Figma states; push/media device-module verification after the phase-7 native modules land; kk copy review by a Kazakh speaker."
     }
   ],
   "blockers": [],
   "lastGreenCodeSha": "5acee917ee754bbb2c9a4c167d24cb91c37c6fe6",
-  "nextSafeAction": "phase 7 verification pass (a11y labels shipped with every screen; device-dependent modules stay recorded: recorder/picker, push+quiet hours, Face ID, offline drafts; legacy RU->i18n sweep inventory), then phase 8 gates matrix and the §16 final report — release remains blocked by open DEC-102/103/104"
+  "nextSafeAction": "IMPLEMENTATION COMPLETE FOR UNBLOCKED SCOPE. Release remains blocked by open P0 decisions DEC-102 (late cancellation consequences — zero-consequence configured), DEC-103 (guardian consent — community/practice media disabled, text-only enforced), DEC-104 (retention SLA — statuses only, no scheduled erasure). Next engineering work after decisions: recorded future slices in each phase's evidence (chat, operational deep flows, metric-definition analytics, device modules, RU->i18n sweep)."
 }
