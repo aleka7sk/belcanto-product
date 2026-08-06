@@ -41,6 +41,7 @@ import {
   type CreateLessonSeriesRequest,
   type CreateRoomRequest,
   type GenerateOccurrencesRequest,
+  type ChangeSeriesStatusRequest,
   type Room,
   type SeriesGenerationResult,
   type CreateEventCategoryRequest,
@@ -604,6 +605,21 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<SeriesGenerationResult> {
     return this.request(routes.generateSeriesOccurrences(seriesId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  changeLessonSeriesStatus(
+    accessToken: string,
+    seriesId: string,
+    body: ChangeSeriesStatusRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CoreLessonSeries> {
+    return this.request(routes.changeLessonSeriesStatus(seriesId), {
       accessToken,
       body,
       idempotencyKey,

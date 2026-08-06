@@ -261,6 +261,8 @@ export type LessonOccurrenceStatus = (typeof LESSON_OCCURRENCE_STATUSES)[number]
 export interface Lesson {
   id: string;
   title: string;
+  /** Core Lesson format (DEC-002); absent on legacy pre-core Lessons. */
+  format?: "individual" | "group";
   startsAt: IsoDateTime;
   durationMinutes: number;
   location?: string;
@@ -631,6 +633,7 @@ export const decodeLesson: Decoder<Lesson> = (value) => {
     [
       "id",
       "title",
+      "format",
       "startsAt",
       "durationMinutes",
       "location",
@@ -662,6 +665,19 @@ export const decodeLesson: Decoder<Lesson> = (value) => {
   };
   const location = stringField(source, "location", contract, true);
   if (location !== undefined) lesson.location = location;
+  if (source.format !== undefined) {
+    lesson.format = oneOf(
+      source.format,
+      ["individual", "group"] as const,
+      contract,
+      "$.format",
+    );
+    // DEC-002: a group Lesson never exceeds three participants, and the
+    // format never contradicts the visible participant count.
+    if (lesson.format === "individual" && students.length > 1) {
+      throw new ContractDecodeError(contract, "$.format");
+    }
+  }
   return lesson;
 };
 
@@ -1895,6 +1911,11 @@ export interface CreateLessonSeriesRequest {
 
 export interface GenerateOccurrencesRequest {
   weeks: number;
+}
+
+export interface ChangeSeriesStatusRequest {
+  status: "active" | "paused" | "ended";
+  expectedVersion: number;
 }
 
 export interface SeriesGenerationResult {

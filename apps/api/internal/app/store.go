@@ -82,6 +82,7 @@ type Store interface {
 	ListCoreLessonSeries(context.Context, core.Principal) ([]core.CoreLessonSeries, error)
 	GetCoreLessonSeries(context.Context, core.Principal, string) (core.CoreLessonSeries, error)
 	GenerateSeriesOccurrences(context.Context, core.GenerateSeriesOccurrencesCommand) (core.SeriesOccurrenceGenerationResult, error)
+	ChangeCoreLessonSeriesStatus(context.Context, core.ChangeCoreLessonSeriesStatusCommand) (core.CoreLessonSeries, error)
 
 	SaveJournalDraft(context.Context, core.SaveJournalDraftCommand) (core.LessonJournal, error)
 	PublishJournal(context.Context, core.PublishJournalCommand) (core.LessonJournal, error)

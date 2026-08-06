@@ -125,3 +125,26 @@ func (api *API) generateSeriesOccurrences(response http.ResponseWriter, request 
 	}
 	api.writeJSON(response, http.StatusCreated, result)
 }
+
+type changeSeriesStatusRequest struct {
+	Status          string `json:"status"`
+	ExpectedVersion int64  `json:"expectedVersion"`
+}
+
+func (api *API) changeLessonSeriesStatus(response http.ResponseWriter, request *http.Request) {
+	var input changeSeriesStatusRequest
+	if err := api.decodeJSON(response, request, &input); err != nil {
+		api.writeError(response, err)
+		return
+	}
+	authenticated := authenticatedPrincipal(request)
+	series, err := api.service.ChangeCoreLessonSeriesStatus(request.Context(), authenticated.principal, app.ChangeSeriesStatusInput{
+		SeriesID: request.PathValue("seriesId"), Status: input.Status,
+		ExpectedVersion: input.ExpectedVersion, IdempotencyKey: idempotencyKey(request),
+	})
+	if err != nil {
+		api.writeError(response, err)
+		return
+	}
+	api.writeJSON(response, http.StatusOK, series)
+}

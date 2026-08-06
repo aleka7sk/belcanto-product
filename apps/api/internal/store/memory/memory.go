@@ -60,6 +60,7 @@ type lesson struct {
 	TenantID         string
 	SeriesID         string
 	Title            string
+	Format           string
 	StartsAt         time.Time
 	DurationMinutes  int
 	Location         string
@@ -1039,8 +1040,12 @@ func (s *Store) ScheduleLesson(_ context.Context, command core.ScheduleLessonCom
 	if s.lessonScheduleConflict(command.TenantID, command.StartsAt, command.DurationMinutes, command.TeacherAccountID, studentIDs, nil) {
 		return core.Lesson{}, core.E(core.CodeConflict, "Teacher or Student has an overlapping Lesson", nil)
 	}
+	format := "individual"
+	if len(studentIDs) > 1 {
+		format = "group"
+	}
 	stored := &lesson{
-		ID: command.LessonID, TenantID: command.TenantID, Title: command.Title,
+		ID: command.LessonID, TenantID: command.TenantID, Title: command.Title, Format: format,
 		StartsAt: command.StartsAt, DurationMinutes: command.DurationMinutes, Location: command.Location,
 		TeacherAccountID: command.TeacherAccountID, StudentIDs: studentIDs,
 		Status: core.LessonScheduled, Version: 0, CreatedBy: command.ActorAccountID,
@@ -1558,7 +1563,7 @@ func (s *Store) lessonView(stored *lesson) core.Lesson {
 		return students[left].FullName < students[right].FullName
 	})
 	return core.Lesson{
-		ID: stored.ID, Title: stored.Title, StartsAt: stored.StartsAt,
+		ID: stored.ID, Title: stored.Title, Format: stored.Format, StartsAt: stored.StartsAt,
 		DurationMinutes: stored.DurationMinutes, Location: stored.Location,
 		Teacher:  core.TeacherSummary{AccountID: stored.TeacherAccountID, FullName: teacherName},
 		Students: students, Status: stored.Status, Version: stored.Version,

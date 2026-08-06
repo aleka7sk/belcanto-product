@@ -82,6 +82,7 @@ func New(service *app.Service) http.Handler {
 	mux.Handle("POST /v1/lesson-series", api.authenticated(http.HandlerFunc(api.createLessonSeries)))
 	mux.Handle("GET /v1/lesson-series/{seriesId}", api.authenticated(http.HandlerFunc(api.getLessonSeries)))
 	mux.Handle("POST /v1/lesson-series/{seriesId}/occurrences", api.authenticated(http.HandlerFunc(api.generateSeriesOccurrences)))
+	mux.Handle("POST /v1/lesson-series/{seriesId}/status", api.authenticated(http.HandlerFunc(api.changeLessonSeriesStatus)))
 	mux.Handle("GET /v1/event-categories", api.authenticated(http.HandlerFunc(api.listEventCategories)))
 	mux.Handle("POST /v1/event-categories", api.authenticated(http.HandlerFunc(api.createEventCategory)))
 	mux.Handle("POST /v1/event-series", api.authenticated(http.HandlerFunc(api.createEventSeries)))

@@ -83,11 +83,25 @@ export function LessonDetailScreen({
       {lesson ? (
         <>
           <LinearGradient colors={gradients.feature} style={styles.hero}>
-            <Text style={styles.eyebrow}>{formatLessonDay(lesson.startsAt).toUpperCase()}</Text>
+            <Text style={styles.eyebrow}>
+              {lesson.format === "group"
+                ? "ГРУППОВОЕ ЗАНЯТИЕ"
+                : lesson.format === "individual"
+                  ? "ИНДИВИДУАЛЬНОЕ ЗАНЯТИЕ"
+                  : formatLessonDay(lesson.startsAt).toUpperCase()}
+            </Text>
             <Text style={styles.time}>{formatLessonTime(lesson.startsAt)}</Text>
             <Text accessibilityRole="header" style={styles.title}>{lesson.title}</Text>
             <Text style={styles.meta}>
-              {[`${lesson.durationMinutes} мин`, lesson.location].filter(Boolean).join(" · ")}
+              {[
+                lesson.format !== undefined
+                  ? formatLessonDay(lesson.startsAt)
+                  : undefined,
+                `${lesson.durationMinutes} мин`,
+                lesson.location,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </Text>
           </LinearGradient>
 

@@ -439,6 +439,7 @@ type LessonStudent struct {
 type Lesson struct {
 	ID              string          `json:"id"`
 	Title           string          `json:"title"`
+	Format          string          `json:"format,omitempty"`
 	StartsAt        time.Time       `json:"startsAt"`
 	DurationMinutes int             `json:"durationMinutes"`
 	Location        string          `json:"location,omitempty"`
@@ -896,6 +897,22 @@ type SeriesOccurrenceGenerationResult struct {
 	SeriesID      string   `json:"seriesId"`
 	CreatedCount  int      `json:"createdCount"`
 	OccurrenceIDs []string `json:"occurrenceIds"`
+}
+
+// ChangeCoreLessonSeriesStatusCommand moves a series between the
+// statuses migration 000006 already models: active ⇄ paused, and the
+// terminal ended. Pausing or ending stops occurrence generation only;
+// already-scheduled Lessons stay and are changed through the explicit
+// Lesson operations.
+type ChangeCoreLessonSeriesStatusCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	SeriesID           string
+	Status             string
+	ExpectedVersion    int64
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
 }
 
 // L.2 events and RSVP (DEC-001: events never mix with core lessons;

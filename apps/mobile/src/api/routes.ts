@@ -103,6 +103,7 @@ import {
   type CreateLessonSeriesRequest,
   type CreateRoomRequest,
   type GenerateOccurrencesRequest,
+  type ChangeSeriesStatusRequest,
   type Room,
   type SeriesGenerationResult,
   type CreateEventCategoryRequest,
@@ -652,6 +653,15 @@ export const routes = {
       201,
       [401, 403, 404, 409, 422, 500],
       decodeSeriesGenerationResult,
+    ),
+  changeLessonSeriesStatus: (seriesId: string) =>
+    route<CoreLessonSeries>(
+      "POST",
+      `/v1/lesson-series/${pathPart(seriesId, "seriesId")}/status`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeCoreLessonSeries,
     ),
   listEventCategories: route<EventCategory[]>(
     "GET",
@@ -1361,6 +1371,7 @@ export type RouteRequestBodies = {
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;
+  changeLessonSeriesStatus: ChangeSeriesStatusRequest;
   reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;
   replaceLessonTeachers: ReplaceLessonTeachersRequest;
   createCommunityPost: CreateCommunityPostRequest;

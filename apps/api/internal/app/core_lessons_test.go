@@ -146,5 +146,60 @@ func TestCoreLessonSeriesGeneration(t *testing.T) {
 		if local.Weekday() != time.Monday || local.Hour() != 10 || local.Minute() != 0 {
 			t.Fatalf("occurrence %s at %s, want Monday 10:00 Almaty", lesson.ID, local)
 		}
+		// The Lesson view carries the series format and the room name.
+		if lesson.Format != "individual" || lesson.Location != "Зал на Абая" {
+			t.Fatalf("occurrence view = format %q, location %q", lesson.Format, lesson.Location)
+		}
+	}
+
+	// Lifecycle: pausing stops generation, resuming restores it, ending
+	// is terminal. Scheduled Lessons stay untouched throughout.
+	if _, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.teacher, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "paused", ExpectedVersion: series.Version,
+		IdempotencyKey: "series-pause-teacher",
+	}); !core.IsCode(err, core.CodeForbidden) {
+		t.Fatalf("teacher pausing a series = %v, want FORBIDDEN", err)
+	}
+	paused, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.owner, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "paused", ExpectedVersion: series.Version,
+		IdempotencyKey: "series-pause",
+	})
+	if err != nil || paused.Status != "paused" {
+		t.Fatalf("pause series = %#v, %v", paused, err)
+	}
+	if _, err := fixture.service.GenerateSeriesOccurrences(ctx, fixture.owner, series.ID, 6, "series-gen-paused"); !core.IsCode(err, core.CodeInvalidState) {
+		t.Fatalf("generation on a paused series = %v, want INVALID_STATE", err)
+	}
+	if _, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.owner, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "ended", ExpectedVersion: paused.Version - 1,
+		IdempotencyKey: "series-end-stale",
+	}); !core.IsCode(err, core.CodeConflict) {
+		t.Fatalf("stale version = %v, want CONFLICT", err)
+	}
+	resumed, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.owner, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "active", ExpectedVersion: paused.Version,
+		IdempotencyKey: "series-resume",
+	})
+	if err != nil || resumed.Status != "active" {
+		t.Fatalf("resume series = %#v, %v", resumed, err)
+	}
+	ended, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.owner, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "ended", ExpectedVersion: resumed.Version,
+		IdempotencyKey: "series-end",
+	})
+	if err != nil || ended.Status != "ended" {
+		t.Fatalf("end series = %#v, %v", ended, err)
+	}
+	if _, err := fixture.service.ChangeCoreLessonSeriesStatus(ctx, fixture.owner, app.ChangeSeriesStatusInput{
+		SeriesID: series.ID, Status: "active", ExpectedVersion: ended.Version,
+		IdempotencyKey: "series-reopen",
+	}); !core.IsCode(err, core.CodeInvalidState) {
+		t.Fatalf("reopening an ended series = %v, want INVALID_STATE", err)
+	}
+	remaining, err := fixture.service.ListLessons(ctx, fixture.owner, app.ListLessonsInput{
+		From: fixture.clock.Now(), To: fixture.clock.Now().Add(40 * 24 * time.Hour),
+	})
+	if err != nil || len(remaining) != 4 {
+		t.Fatalf("lessons after lifecycle = %d, %v (scheduled Lessons must stay)", len(remaining), err)
 	}
 }

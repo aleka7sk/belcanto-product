@@ -432,3 +432,82 @@ func readCoreLessonSeries(ctx context.Context, reader lessonReader, tenantID, se
 	}
 	return series, nil
 }
+
+// ChangeCoreLessonSeriesStatus moves a series along the lifecycle the
+// schema models: active ⇄ paused and the terminal ended. It gates
+// future occurrence generation only — scheduled Lessons stay and are
+// changed through the explicit Lesson operations.
+func (s *Store) ChangeCoreLessonSeriesStatus(ctx context.Context, command core.ChangeCoreLessonSeriesStatusCommand) (core.CoreLessonSeries, error) {
+	var result core.CoreLessonSeries
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		manager, err := lessonManagementAuthority(ctx, tx, command.TenantID, command.ActorAccountID)
+		if err != nil {
+			return err
+		}
+		if !manager {
+			return core.E(core.CodeForbidden, "series management permission is required", nil)
+		}
+		claim, err := claimIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "change_series_status", command.IdempotencyKey, command.PayloadFingerprint, command.Now)
+		if err != nil {
+			return err
+		}
+		if claim.replayed {
+			result, err = decodeReplay[core.CoreLessonSeries](claim)
+			return err
+		}
+		var current string
+		var version int64
+		err = tx.QueryRow(ctx, `
+			SELECT status, version FROM core_lesson_series
+			WHERE tenant_id = $1 AND id = $2
+			FOR UPDATE
+		`, command.TenantID, command.SeriesID).Scan(&current, &version)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return core.E(core.CodeNotFound, "series not found", nil)
+		}
+		if err != nil {
+			return fmt.Errorf("read series status: %w", err)
+		}
+		if version != command.ExpectedVersion {
+			return core.E(core.CodeConflict, "series was changed by someone else", nil)
+		}
+		allowed := map[string][]string{
+			"active": {"paused", "ended"},
+			"paused": {"active", "ended"},
+		}
+		permitted := false
+		for _, next := range allowed[current] {
+			if next == command.Status {
+				permitted = true
+			}
+		}
+		if !permitted {
+			return core.E(core.CodeInvalidState, "series cannot move to this status", nil)
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE core_lesson_series
+			SET status = $3, version = version + 1, updated_at = $4
+			WHERE tenant_id = $1 AND id = $2
+		`, command.TenantID, command.SeriesID, command.Status, command.Now); err != nil {
+			return mapWriteError(err, "series status conflicts with existing data")
+		}
+		result, err = readCoreLessonSeries(ctx, tx, command.TenantID, command.SeriesID)
+		if err != nil {
+			return err
+		}
+		if err := completeIdempotency(ctx, tx, command.TenantID, command.ActorAccountID, "change_series_status", command.IdempotencyKey, result, command.Now); err != nil {
+			return err
+		}
+		return appendAudit(ctx, tx, auditInput{
+			tenantID: command.TenantID, actorID: command.ActorAccountID,
+			action: "LessonSeriesStatusChanged", targetType: "lesson_series", targetID: command.SeriesID,
+			decision: "allow", idempotencyKey: command.IdempotencyKey,
+			metadata: map[string]any{"previousStatus": current, "newStatus": command.Status},
+			at:       command.Now,
+		})
+	})
+	if err != nil {
+		return core.CoreLessonSeries{}, err
+	}
+	return result, nil
+}

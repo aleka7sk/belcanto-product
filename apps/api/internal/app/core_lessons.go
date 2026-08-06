@@ -217,6 +217,51 @@ func (s *Service) GenerateSeriesOccurrences(ctx context.Context, principal core.
 	return result, nil
 }
 
+type ChangeSeriesStatusInput struct {
+	SeriesID        string
+	Status          string
+	ExpectedVersion int64
+	IdempotencyKey  string
+}
+
+// ChangeCoreLessonSeriesStatus pauses, resumes or ends a weekly series.
+// The change gates future occurrence generation only; already-scheduled
+// Lessons stay and are changed through the explicit Lesson operations.
+func (s *Service) ChangeCoreLessonSeriesStatus(ctx context.Context, principal core.Principal, input ChangeSeriesStatusInput) (core.CoreLessonSeries, error) {
+	normalizedID, err := security.ValidateIdentifier("seriesId", input.SeriesID, 128)
+	if err != nil {
+		return core.CoreLessonSeries{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	switch input.Status {
+	case "active", "paused", "ended":
+	default:
+		return core.CoreLessonSeries{}, core.E(core.CodeInvalidInput, "status must be active, paused or ended", nil)
+	}
+	if input.ExpectedVersion < 0 {
+		return core.CoreLessonSeries{}, core.E(core.CodeInvalidInput, "expectedVersion must be at least 0", nil)
+	}
+	normalizedKey, err := security.ValidateIdempotencyKey(input.IdempotencyKey)
+	if err != nil {
+		return core.CoreLessonSeries{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	fingerprint, err := security.Fingerprint(struct {
+		SeriesID, Status string
+		ExpectedVersion  int64
+	}{normalizedID, input.Status, input.ExpectedVersion})
+	if err != nil {
+		return core.CoreLessonSeries{}, core.E(core.CodeInternal, "could not fingerprint the request", err)
+	}
+	series, err := s.store.ChangeCoreLessonSeriesStatus(ctx, core.ChangeCoreLessonSeriesStatusCommand{
+		TenantID: principal.TenantID, ActorAccountID: principal.AccountID,
+		SeriesID: normalizedID, Status: input.Status, ExpectedVersion: input.ExpectedVersion,
+		IdempotencyKey: normalizedKey, PayloadFingerprint: fingerprint, Now: s.clock.Now(),
+	})
+	if err != nil {
+		return core.CoreLessonSeries{}, normalizeStoreError("change series status", err)
+	}
+	return series, nil
+}
+
 func planWeeklyOccurrences(series core.CoreLessonSeries, now time.Time, weeks int) ([]core.PlannedOccurrence, error) {
 	zone, err := time.LoadLocation(schoolTimeZone)
 	if err != nil {

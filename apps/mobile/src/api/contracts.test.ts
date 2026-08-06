@@ -176,6 +176,20 @@ describe("API contract decoders", () => {
     };
     expect(decodeLesson(lesson)).toEqual(lesson);
     expect(decodeLessons([lesson])).toHaveLength(1);
+    // Core format is optional (legacy Lessons) but never contradicts
+    // the visible participant count (DEC-002).
+    expect(decodeLesson({ ...lesson, format: "individual" }).format).toBe("individual");
+    expect(() => decodeLesson({ ...lesson, format: "solo" })).toThrow(ContractDecodeError);
+    expect(() =>
+      decodeLesson({
+        ...lesson,
+        format: "individual",
+        students: [
+          { studentId: "student_1", fullName: "Алина Соколова" },
+          { studentId: "student_2", fullName: "Дана Мусина" },
+        ],
+      }),
+    ).toThrow(ContractDecodeError);
     expect(
       decodeStudentDirectory([
         {

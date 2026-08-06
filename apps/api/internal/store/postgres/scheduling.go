@@ -686,17 +686,21 @@ func readLesson(ctx context.Context, reader lessonReader, tenantID, lessonID str
 	var status string
 	var location *string
 	err := reader.QueryRow(ctx, `
-		SELECT l.id, l.title, l.starts_at, l.duration_minutes, l.location_note,
+		SELECT l.id, l.title, l.format, l.starts_at, l.duration_minutes,
+		       COALESCE(NULLIF(l.location_note, ''), room.name),
 		       l.teacher_account_id, teacher_person.full_name, l.status, l.version
 		FROM core_lesson_occurrences l
 		JOIN accounts teacher_account
 		  ON teacher_account.tenant_id = l.tenant_id AND teacher_account.id = l.teacher_account_id
 		JOIN people teacher_person
 		  ON teacher_person.tenant_id = teacher_account.tenant_id AND teacher_person.id = teacher_account.person_id
+		LEFT JOIN rooms room
+		  ON room.tenant_id = l.tenant_id AND room.id = l.room_id
 		WHERE l.tenant_id = $1 AND l.id = $2
 	`, tenantID, lessonID).Scan(
 		&result.ID,
 		&result.Title,
+		&result.Format,
 		&result.StartsAt,
 		&result.DurationMinutes,
 		&location,

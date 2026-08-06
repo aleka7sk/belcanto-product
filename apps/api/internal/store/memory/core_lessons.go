@@ -283,9 +283,16 @@ func (s *Store) GenerateSeriesOccurrences(_ context.Context, command core.Genera
 		if s.lessonScheduleConflict(command.TenantID, planned.StartsAt, stored.DurationMinutes, stored.TeacherAccountID, stored.StudentIDs, nil) {
 			return core.SeriesOccurrenceGenerationResult{}, core.E(core.CodeConflict, "generated occurrence overlaps an existing Lesson", nil)
 		}
+		roomName := ""
+		if stored.RoomID != "" {
+			if seriesRoom := s.rooms[stored.RoomID]; seriesRoom != nil {
+				roomName = seriesRoom.Name
+			}
+		}
 		s.lessons[planned.OccurrenceID] = &lesson{
 			ID: planned.OccurrenceID, TenantID: command.TenantID, SeriesID: command.SeriesID,
-			Title: stored.Title, StartsAt: planned.StartsAt, DurationMinutes: stored.DurationMinutes,
+			Title: stored.Title, Format: stored.Format, StartsAt: planned.StartsAt,
+			DurationMinutes: stored.DurationMinutes, Location: roomName,
 			TeacherAccountID: stored.TeacherAccountID,
 			StudentIDs:       append([]string(nil), stored.StudentIDs...),
 			Status:           core.LessonScheduled, Version: 0,
@@ -303,5 +310,58 @@ func (s *Store) GenerateSeriesOccurrences(_ context.Context, command core.Genera
 		"createdCount": len(created),
 	})
 	s.appendOutbox(command.TenantID, "SeriesOccurrencesGenerated", command.SeriesID, command.Now)
+	return result, nil
+}
+
+// ChangeCoreLessonSeriesStatus mirrors PostgreSQL: active ⇄ paused and
+// the terminal ended; generation-only effect, scheduled Lessons stay.
+func (s *Store) ChangeCoreLessonSeriesStatus(_ context.Context, command core.ChangeCoreLessonSeriesStatusCommand) (core.CoreLessonSeries, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	actor := s.activeAccount(command.ActorAccountID, command.TenantID)
+	manager := actor != nil && (actor.Roles[core.RoleOwner] != "" || actor.Roles[core.RoleAdministrator] != "")
+	if !manager {
+		return core.CoreLessonSeries{}, core.E(core.CodeForbidden, "series management permission is required", nil)
+	}
+	if response, ok, err := s.replay("change_series_status", command.TenantID, command.ActorAccountID, command.IdempotencyKey, command.PayloadFingerprint); ok || err != nil {
+		if err != nil {
+			return core.CoreLessonSeries{}, err
+		}
+		var result core.CoreLessonSeries
+		if err := json.Unmarshal(response, &result); err != nil {
+			return core.CoreLessonSeries{}, core.E(core.CodeInternal, "decode idempotent series status result", err)
+		}
+		return result, nil
+	}
+	stored := s.lessonSeries[command.SeriesID]
+	if stored == nil || stored.TenantID != command.TenantID {
+		return core.CoreLessonSeries{}, core.E(core.CodeNotFound, "series not found", nil)
+	}
+	if stored.Version != command.ExpectedVersion {
+		return core.CoreLessonSeries{}, core.E(core.CodeConflict, "series was changed by someone else", nil)
+	}
+	allowed := map[string][]string{
+		"active": {"paused", "ended"},
+		"paused": {"active", "ended"},
+	}
+	permitted := false
+	for _, next := range allowed[stored.Status] {
+		if next == command.Status {
+			permitted = true
+		}
+	}
+	if !permitted {
+		return core.CoreLessonSeries{}, core.E(core.CodeInvalidState, "series cannot move to this status", nil)
+	}
+	previous := stored.Status
+	stored.Status = command.Status
+	stored.Version++
+	result := s.seriesView(stored)
+	if err := s.completeIdempotency("change_series_status", command.TenantID, command.ActorAccountID, command.IdempotencyKey, command.PayloadFingerprint, result); err != nil {
+		return core.CoreLessonSeries{}, err
+	}
+	s.appendAuditMetadata(command.TenantID, command.ActorAccountID, "LessonSeriesStatusChanged", command.SeriesID, "allow", "", command.Now, map[string]any{
+		"previousStatus": previous, "newStatus": command.Status,
+	})
 	return result, nil
 }

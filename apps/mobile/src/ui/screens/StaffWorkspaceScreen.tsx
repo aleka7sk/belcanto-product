@@ -172,6 +172,14 @@ export function StaffWorkspaceScreen({
             />
           </View>
         ) : null}
+        {changeTeacherAllowed ? (
+          <View style={styles.actionGrow}>
+            <SecondaryButton
+              label="Серии и кабинеты"
+              onPress={() => router.push("/(protected)/series")}
+            />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.quickActions}>
