@@ -15,7 +15,6 @@ import {
 } from "../../patterns/accountPatterns";
 import { ScreenList } from "../../screen";
 import { SegmentedControl } from "../../segmentedControl";
-import { domainAccent } from "../../domainAccent";
 import { semantic, space } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
@@ -108,14 +107,12 @@ export function TeacherStudentsScreen() {
   const header = (
     <View style={styles.header}>
       <ScreenHeading
-        accent={domainAccent("teacher")}
         eyebrow={message("asmt.roster.eyebrow")}
         subtitle={message("asmt.roster.subtitle")}
         title={message("asmt.roster.title")}
       />
       <SegmentedControl<Segment>
         accessibilityLabel={message("asmt.roster.title")}
-        activeColor={domainAccent("teacher")}
         active={segment}
         items={[
           { key: "students", label: message("asmt.segment.students") },

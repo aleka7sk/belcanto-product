@@ -14,7 +14,6 @@ import {
   StatusCard,
   StatusRow,
 } from "../patterns/accountPatterns";
-import { domainAccent } from "../domainAccent";
 import { semantic, typeStyles } from "../tokens";
 import { apiErrorMessage } from "../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "./account/shared";
@@ -145,7 +144,6 @@ export function SeriesManagementScreen() {
       testID="series-management"
     >
       <ScreenHeading
-        accent={domainAccent("schedule")}
         eyebrow={message("ser.eyebrow")}
         subtitle={message("ser.subtitle")}
         title={message("ser.title")}
@@ -192,7 +190,6 @@ export function SeriesManagementScreen() {
             />
           ))}
           <ScreenHeading
-            accent={domainAccent("schedule")}
             eyebrow={message("ser.rooms.eyebrow")}
             subtitle={message("ser.rooms.subtitle")}
             title={message("ser.rooms.title")}

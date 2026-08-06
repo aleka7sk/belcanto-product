@@ -2,7 +2,6 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { CommunityComment, CommunityPost } from "@/api/contracts";
 import type { MessageFormatter } from "@/i18n";
-import { personAccent } from "../domainAccent";
 import { radius, semantic, sizes, space, strokes, typeStyles } from "../tokens";
 
 import { formatBelcantoDate } from "../viewModels";
@@ -62,7 +61,7 @@ export function communityRoleKey(
 
 function AuthorAvatar({ name }: { name: string }) {
   return (
-    <View style={[avatarStyles.circle, { backgroundColor: personAccent(name) }]}>
+    <View style={avatarStyles.circle}>
       <Text style={avatarStyles.initials}>{communityInitials(name)}</Text>
     </View>
   );

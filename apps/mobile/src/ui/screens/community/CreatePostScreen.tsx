@@ -15,7 +15,6 @@ import {
   ToggleRow,
 } from "../../patterns/accountPatterns";
 import { AreaChip } from "../../patterns/journalPatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useWorkingRole } from "../account/shared";
@@ -83,7 +82,6 @@ export function CreatePostScreen() {
   return (
     <AccountScreenShell navigation={<AccountNav active="community" />} testID="community-create">
       <ScreenHeading
-        accent={domainAccent("community")}
         eyebrow={message("com.create.eyebrow")}
         subtitle={message("com.create.subtitle")}
         title={message("com.create.title")}

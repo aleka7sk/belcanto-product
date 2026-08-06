@@ -23,7 +23,6 @@ import {
   UploadProgressCard,
   uploadAccent,
 } from "../../patterns/practicePatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -136,7 +135,6 @@ export function HomeworkDetailScreen() {
       testID="homework-detail"
     >
       <ScreenHeading
-        accent={domainAccent("practice")}
         eyebrow={
           isTeacher
             ? message("prac.detail.eyebrow.teacher")

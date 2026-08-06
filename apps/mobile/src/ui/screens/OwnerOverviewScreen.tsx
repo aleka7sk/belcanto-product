@@ -10,7 +10,6 @@ import {
   StatusRow,
 } from "../patterns/accountPatterns";
 import { PremiumContextHero } from "../patterns/premiumContextHero";
-import { domainAccent } from "../domainAccent";
 import { SegmentedControl } from "../segmentedControl";
 import { semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
@@ -79,7 +78,6 @@ export function OwnerOverviewScreen() {
         title={message("own.hero.title")}
       />
       <SegmentedControl<Segment>
-        activeColor={domainAccent("overview")}
         accessibilityLabel={message("own.hero.title")}
         active={segment}
         items={[
@@ -220,7 +218,7 @@ const styles = StyleSheet.create({
     gap: space.s1,
     padding: space.s4,
   },
-  metricValue: { color: semantic.textPrimary, ...typeStyles.metricXl },
+  metricValue: { color: semantic.textPrimary, ...typeStyles.headingL },
   metricLabel: { color: semantic.textSecondary, ...typeStyles.labelM },
   muted: { color: semantic.textSecondary, ...typeStyles.bodyS },
 });

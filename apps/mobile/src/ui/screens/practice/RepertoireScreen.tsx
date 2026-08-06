@@ -17,7 +17,6 @@ import {
   StatusRow,
 } from "../../patterns/accountPatterns";
 import { AreaChip } from "../../patterns/journalPatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -185,7 +184,6 @@ export function RepertoireScreen() {
       testID="repertoire"
     >
       <ScreenHeading
-        accent={domainAccent("practice")}
         eyebrow={message("rep.eyebrow")}
         subtitle={
           empty

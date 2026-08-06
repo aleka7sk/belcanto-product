@@ -159,17 +159,10 @@ export const semanticByMode = {
   },
 } as const;
 
-/** Mode-agnostic role map: same keys in both projections, string values. */
-export type SemanticColors = Record<keyof (typeof semanticByMode)["dark"], string>;
+export type SemanticColors = (typeof semanticByMode)["dark"];
 
-/**
- * Default projection used by production components. Light-first by the
- * owner's decision of 2026-08-06 («дизайн очень строгий, не хватает
- * красок»): both modes ship in the Figma token contract, the light
- * aliases are the documented counterpart — no value is invented here.
- * The dark projection stays available for a future theme switch.
- */
-export const semantic: SemanticColors = semanticByMode.light;
+/** Dark-first default used by production components. */
+export const semantic: SemanticColors = semanticByMode.dark;
 
 /** Scale — collection «Belcanto · Scale». */
 export const space = {

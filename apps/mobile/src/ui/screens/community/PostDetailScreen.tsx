@@ -19,7 +19,6 @@ import {
   CommunityPostCard,
   postKickerKey,
 } from "../../patterns/communityPatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -139,7 +138,6 @@ export function PostDetailScreen() {
       ) : tombstone ? (
         <>
           <ScreenHeading
-            accent={domainAccent("community")}
             eyebrow={message("com.tombstone.kicker")}
             subtitle={message("com.tombstone.subtitle")}
             title={message("com.tombstone.title")}
@@ -165,7 +163,6 @@ export function PostDetailScreen() {
       ) : (
         <>
           <ScreenHeading
-            accent={domainAccent("community")}
             eyebrow={message(postKickerKey(view))}
             subtitle={`${view.author.fullName} · ${formatBelcantoDate(view.createdAt)} · ${message(
               view.audience === "staff" ? "com.audience.staff" : "com.audience.school",

@@ -20,7 +20,6 @@ import {
   StatusCard,
 } from "../../patterns/accountPatterns";
 import { AreaChip } from "../../patterns/journalPatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav } from "../account/shared";
@@ -179,7 +178,6 @@ export function AssessmentComposeScreen() {
   return (
     <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-compose">
       <ScreenHeading
-        accent={domainAccent("teacher")}
         eyebrow={message(supersedeId !== "" ? "asmt.compose.supersedeEyebrow" : "asmt.compose.eyebrow")}
         subtitle={message("asmt.compose.subtitle")}
         title={message(supersedeId !== "" ? "asmt.compose.supersedeTitle" : "asmt.compose.title")}

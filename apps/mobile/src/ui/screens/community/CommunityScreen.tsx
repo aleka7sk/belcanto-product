@@ -18,7 +18,6 @@ import { CommunityPostCard } from "../../patterns/communityPatterns";
 import { PremiumContextHero } from "../../patterns/premiumContextHero";
 import { ScreenList } from "../../screen";
 import { SegmentedControl } from "../../segmentedControl";
-import { domainAccent } from "../../domainAccent";
 import { radius, semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
@@ -86,7 +85,6 @@ function GuidelinesGate({
   return (
     <>
       <ScreenHeading
-        accent={domainAccent("community")}
         eyebrow={message("com.gate.eyebrow")}
         subtitle={message("com.gate.subtitle", { version: policy.version })}
         title={policy.title}

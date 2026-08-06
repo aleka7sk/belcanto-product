@@ -16,7 +16,6 @@ import {
   StatusRow,
   type StatusTone,
 } from "../../patterns/accountPatterns";
-import { domainAccent } from "../../domainAccent";
 import { semantic, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -152,7 +151,6 @@ export function AssessmentDetailScreen() {
       ) : (
         <>
           <ScreenHeading
-            accent={domainAccent("teacher")}
             eyebrow={message(`asmt.context.${view.contextType}`)}
             subtitle={`${view.author.fullName} · ${view.assessmentDate} · ${message(
               `asmt.visibility.${view.visibility}`,

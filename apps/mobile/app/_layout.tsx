@@ -48,7 +48,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <LocaleProvider>
         <ApiClientProvider client={api}>
           <ActivationLinkProvider policy={config.activationLinkPolicy}>

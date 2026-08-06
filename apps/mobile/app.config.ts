@@ -157,7 +157,7 @@ export function buildExpoConfig(
     },
     androidStatusBar: {
       backgroundColor: "rgba(0,0,0,0)",
-      barStyle: "dark-content",
+      barStyle: "light-content",
       translucent: true,
     },
     backgroundColor: semantic.bgCanvas,
