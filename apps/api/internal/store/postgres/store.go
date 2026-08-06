@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/core"
+	"github.com/aleka7sk/belcanto-product/apps/api/internal/media"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/security"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -18,11 +19,24 @@ import (
 )
 
 type Store struct {
-	pool *pgxpool.Pool
+	pool  *pgxpool.Pool
+	media media.Storage
 }
 
 func New(pool *pgxpool.Pool) *Store {
-	return &Store{pool: pool}
+	return &Store{pool: pool, media: media.NewMemoryStorage()}
+}
+
+// NewWithMedia wires the production media storage adapter; media bytes
+// never live in PostgreSQL, only their opaque storage keys do.
+func NewWithMedia(pool *pgxpool.Pool, storage media.Storage) *Store {
+	return &Store{pool: pool, media: storage}
+}
+
+// UseMediaStorage swaps the media adapter on an opened store; wiring
+// call for cmd/api, before the store serves requests.
+func (s *Store) UseMediaStorage(storage media.Storage) {
+	s.media = storage
 }
 
 func Open(ctx context.Context, databaseURL string) (*Store, error) {

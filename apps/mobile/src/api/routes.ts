@@ -31,6 +31,10 @@ import {
   decodeLessonJournal,
   decodeLessonJournals,
   decodeProgressEvidence,
+  decodeMediaObject,
+  decodeMediaAccess,
+  decodeHomeworkAssignment,
+  decodeHomeworkAssignments,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -98,6 +102,15 @@ import {
   type LessonJournal,
   type ProgressEvidence,
   type PublishJournalRequest,
+  type MediaObject,
+  type MediaAccess,
+  type CreateMediaRequest,
+  type HomeworkAssignment,
+  type CreateHomeworkRequest,
+  type CancelHomeworkRequest,
+  type MarkHomeworkTaskRequest,
+  type SubmitHomeworkRequest,
+  type ReviewHomeworkRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -785,6 +798,121 @@ export const routes = {
       [401, 403, 422, 500],
       decodeProgressEvidence,
     ),
+  createMedia: route<MediaObject>(
+    "POST",
+    "/v1/media",
+    "required",
+    201,
+    [401, 403, 422, 500],
+    decodeMediaObject,
+  ),
+  appendMediaChunk: (mediaId: string) =>
+    route<MediaObject>(
+      "POST",
+      `/v1/media/${pathPart(mediaId, "mediaId")}/chunks`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeMediaObject,
+    ),
+  getMedia: (mediaId: string) =>
+    route<MediaObject>(
+      "GET",
+      `/v1/media/${pathPart(mediaId, "mediaId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeMediaObject,
+    ),
+  signMediaAccess: (mediaId: string) =>
+    route<MediaAccess>(
+      "POST",
+      `/v1/media/${pathPart(mediaId, "mediaId")}/access`,
+      "required",
+      200,
+      [401, 404, 409, 422, 500],
+      decodeMediaAccess,
+    ),
+  createHomework: route<HomeworkAssignment>(
+    "POST",
+    "/v1/homework",
+    "required",
+    201,
+    [401, 403, 404, 422, 500],
+    decodeHomeworkAssignment,
+  ),
+  getHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "GET",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  assignHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "POST",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/assign`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  startHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "POST",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/start`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  cancelHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "POST",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/cancel`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  markHomeworkTask: (homeworkId: string, taskId: string) =>
+    route<HomeworkAssignment>(
+      "PUT",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/tasks/${pathPart(taskId, "taskId")}`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  submitHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "POST",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/submissions`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  reviewHomework: (homeworkId: string) =>
+    route<HomeworkAssignment>(
+      "POST",
+      `/v1/homework/${pathPart(homeworkId, "homeworkId")}/review`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeHomeworkAssignment,
+    ),
+  listStudentHomework: (studentId: string) =>
+    route<HomeworkAssignment[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/homework`,
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeHomeworkAssignments,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -920,6 +1048,12 @@ export type RouteRequestBodies = {
   createRescheduleRequest: CreateRescheduleRequestRequest;
   saveJournalDraft: JournalDraftRequest;
   publishJournal: PublishJournalRequest;
+  createMedia: CreateMediaRequest;
+  createHomework: CreateHomeworkRequest;
+  cancelHomework: CancelHomeworkRequest;
+  markHomeworkTask: MarkHomeworkTaskRequest;
+  submitHomework: SubmitHomeworkRequest;
+  reviewHomework: ReviewHomeworkRequest;
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;

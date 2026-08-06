@@ -1139,3 +1139,181 @@ type ProgressEvidence struct {
 	SourceID   string    `json:"sourceId"`
 	RecordedAt time.Time `json:"recordedAt"`
 }
+
+// ---- L.3 homework and practice (domain/homework.md Approved 1.0.0) ----
+
+// HomeworkStatus values follow the approved lifecycle: draft → assigned →
+// in_progress → submitted → reviewed → completed, with cancelled (reason
+// preserved) and expired (deadline passed, kept in history) on the side.
+const (
+	HomeworkStatusDraft      = "draft"
+	HomeworkStatusAssigned   = "assigned"
+	HomeworkStatusInProgress = "in_progress"
+	HomeworkStatusSubmitted  = "submitted"
+	HomeworkStatusReviewed   = "reviewed"
+	HomeworkStatusCompleted  = "completed"
+	HomeworkStatusCancelled  = "cancelled"
+	HomeworkStatusExpired    = "expired"
+)
+
+const (
+	MediaStatusPending   = "pending"
+	MediaStatusUploading = "uploading"
+	MediaStatusReady     = "ready"
+	MediaStatusFailed    = "failed"
+)
+
+const (
+	FeedbackDecisionNeedsRevision = "needs_revision"
+	FeedbackDecisionAccepted      = "accepted"
+)
+
+type MediaObject struct {
+	ID            string    `json:"id"`
+	Kind          string    `json:"kind"`
+	ContentType   string    `json:"contentType"`
+	ByteSize      int64     `json:"byteSize"`
+	UploadedBytes int64     `json:"uploadedBytes"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+type CreateMediaCommand struct {
+	Principal          Principal
+	MediaID            string
+	Kind               string
+	ContentType        string
+	ByteSize           int64
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type AppendMediaChunkCommand struct {
+	Principal Principal
+	MediaID   string
+	Offset    int64
+	Data      []byte
+	Now       time.Time
+}
+
+type HomeworkTaskInput struct {
+	Title              string `json:"title"`
+	Description        string `json:"description,omitempty"`
+	RecommendedMinutes int    `json:"recommendedMinutes,omitempty"`
+	SkillArea          string `json:"skillArea,omitempty"`
+	SongTitle          string `json:"songTitle,omitempty"`
+}
+
+type HomeworkTask struct {
+	ID                 string `json:"id"`
+	Position           int    `json:"position"`
+	Title              string `json:"title"`
+	Description        string `json:"description,omitempty"`
+	RecommendedMinutes int    `json:"recommendedMinutes,omitempty"`
+	SkillArea          string `json:"skillArea,omitempty"`
+	SongTitle          string `json:"songTitle,omitempty"`
+	Status             string `json:"status"`
+}
+
+type PracticeSubmission struct {
+	ID          string        `json:"id"`
+	Attempt     int           `json:"attempt"`
+	Note        string        `json:"note,omitempty"`
+	Media       []MediaObject `json:"media"`
+	SubmittedAt time.Time     `json:"submittedAt"`
+}
+
+type PracticeFeedback struct {
+	ID           string         `json:"id"`
+	SubmissionID string         `json:"submissionId"`
+	Teacher      TeacherSummary `json:"teacher"`
+	Decision     string         `json:"decision"`
+	Body         string         `json:"body"`
+	NextStep     string         `json:"nextStep,omitempty"`
+	EvidenceArea string         `json:"evidenceArea,omitempty"`
+	EvidenceNote string         `json:"evidenceNote,omitempty"`
+	CreatedAt    time.Time      `json:"createdAt"`
+}
+
+type HomeworkAssignment struct {
+	ID                string               `json:"id"`
+	OccurrenceID      string               `json:"occurrenceId"`
+	StudentID         string               `json:"studentId"`
+	Teacher           TeacherSummary       `json:"teacher"`
+	Status            string               `json:"status"`
+	Goal              string               `json:"goal"`
+	ReadinessCriteria string               `json:"readinessCriteria,omitempty"`
+	DueAt             *time.Time           `json:"dueAt,omitempty"`
+	CancelReason      string               `json:"cancelReason,omitempty"`
+	Tasks             []HomeworkTask       `json:"tasks"`
+	Attachments       []MediaObject        `json:"attachments"`
+	Submissions       []PracticeSubmission `json:"submissions"`
+	Feedback          []PracticeFeedback   `json:"feedback"`
+	Version           int                  `json:"version"`
+	CreatedAt         time.Time            `json:"createdAt"`
+	UpdatedAt         time.Time            `json:"updatedAt"`
+}
+
+type CreateHomeworkCommand struct {
+	Principal          Principal
+	HomeworkID         string
+	TaskIDs            []string
+	OccurrenceID       string
+	StudentID          string
+	Goal               string
+	ReadinessCriteria  string
+	DueAt              *time.Time
+	Tasks              []HomeworkTaskInput
+	AttachmentMediaIDs []string
+	Assign             bool
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type HomeworkTransitionCommand struct {
+	Principal          Principal
+	HomeworkID         string
+	Reason             string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type MarkHomeworkTaskCommand struct {
+	Principal  Principal
+	HomeworkID string
+	TaskID     string
+	Done       bool
+	Now        time.Time
+}
+
+type SubmitHomeworkCommand struct {
+	Principal          Principal
+	SubmissionID       string
+	HomeworkID         string
+	Note               string
+	MediaIDs           []string
+	ExpectedVersion    int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type ReviewHomeworkCommand struct {
+	Principal          Principal
+	FeedbackID         string
+	EvidenceID         string
+	HomeworkID         string
+	Decision           string
+	Body               string
+	NextStep           string
+	EvidenceArea       string
+	EvidenceNote       string
+	ExpectedVersion    int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}

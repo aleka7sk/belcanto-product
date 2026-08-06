@@ -35,7 +35,11 @@ type Service struct {
 	contactCodeTTL    time.Duration
 	twofaChallengeTTL time.Duration
 	spotOfferTTL      time.Duration
+	mediaAccessTTL    time.Duration
+	maxMediaBytes     int64
+	maxMediaChunk     int64
 	twofaBox          *security.SecretBox
+	mediaBox          *security.SecretBox
 }
 
 type PasswordService interface {
@@ -54,6 +58,9 @@ type Options struct {
 	ContactCodeTTL    time.Duration
 	TwofaChallengeTTL time.Duration
 	SpotOfferTTL      time.Duration
+	MediaAccessTTL    time.Duration
+	MaxMediaBytes     int64
+	MaxMediaChunk     int64
 	Clock             Clock
 }
 
@@ -80,7 +87,22 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 	if spotOfferTTL <= 0 {
 		spotOfferTTL = 24 * time.Hour
 	}
+	// Upload limits and the access-link window are deployment
+	// configuration, not product truth.
+	mediaAccessTTL := options.MediaAccessTTL
+	if mediaAccessTTL <= 0 {
+		mediaAccessTTL = 10 * time.Minute
+	}
+	maxMediaBytes := options.MaxMediaBytes
+	if maxMediaBytes <= 0 {
+		maxMediaBytes = 200 << 20
+	}
+	maxMediaChunk := options.MaxMediaChunk
+	if maxMediaChunk <= 0 {
+		maxMediaChunk = 4 << 20
+	}
 	twofaBox, _ := tokens.SecretBox("belcanto-totp-secret-v1")
+	mediaBox, _ := tokens.SecretBox("belcanto-media-access-v1")
 	return &Service{
 		store:             store,
 		tokens:            tokens,
@@ -94,7 +116,11 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 		contactCodeTTL:    contactCodeTTL,
 		twofaChallengeTTL: twofaChallengeTTL,
 		spotOfferTTL:      spotOfferTTL,
+		mediaAccessTTL:    mediaAccessTTL,
+		maxMediaBytes:     maxMediaBytes,
+		maxMediaChunk:     maxMediaChunk,
 		twofaBox:          twofaBox,
+		mediaBox:          mediaBox,
 	}
 }
 

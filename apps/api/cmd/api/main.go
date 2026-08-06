@@ -15,6 +15,7 @@ import (
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/app"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/config"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/httpapi"
+	"github.com/aleka7sk/belcanto-product/apps/api/internal/media"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/security"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/store/postgres"
 	"github.com/aleka7sk/belcanto-product/apps/api/migrations"
@@ -43,6 +44,11 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	defer store.Close()
+	mediaStorage, err := media.NewFSStorage(configuration.MediaDir)
+	if err != nil {
+		return err
+	}
+	store.UseMediaStorage(mediaStorage)
 	if configuration.AutoMigrate {
 		if err := migrations.Up(ctx, store.Pool()); err != nil {
 			return err

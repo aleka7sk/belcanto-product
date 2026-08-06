@@ -89,6 +89,21 @@ type Store interface {
 	ListStudentJournals(context.Context, core.Principal, string) ([]core.LessonJournal, error)
 	ListProgressEvidence(context.Context, core.Principal, string) ([]core.ProgressEvidence, error)
 
+	CreateMediaObject(context.Context, core.CreateMediaCommand) (core.MediaObject, error)
+	AppendMediaChunk(context.Context, core.AppendMediaChunkCommand) (core.MediaObject, error)
+	GetMediaObject(context.Context, core.Principal, string) (core.MediaObject, error)
+	MediaContent(context.Context, string, string) ([]byte, string, error)
+
+	CreateHomework(context.Context, core.CreateHomeworkCommand) (core.HomeworkAssignment, error)
+	AssignHomework(context.Context, core.HomeworkTransitionCommand) (core.HomeworkAssignment, error)
+	StartHomework(context.Context, core.HomeworkTransitionCommand) (core.HomeworkAssignment, error)
+	CancelHomework(context.Context, core.HomeworkTransitionCommand) (core.HomeworkAssignment, error)
+	MarkHomeworkTask(context.Context, core.MarkHomeworkTaskCommand) (core.HomeworkAssignment, error)
+	SubmitHomework(context.Context, core.SubmitHomeworkCommand) (core.HomeworkAssignment, error)
+	ReviewHomework(context.Context, core.ReviewHomeworkCommand) (core.HomeworkAssignment, error)
+	GetHomework(context.Context, core.Principal, string, time.Time) (core.HomeworkAssignment, error)
+	ListStudentHomework(context.Context, core.Principal, string, time.Time) ([]core.HomeworkAssignment, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

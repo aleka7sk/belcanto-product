@@ -20,6 +20,7 @@ type Config struct {
 	RefreshTTL              time.Duration
 	InvitationTTL           time.Duration
 	AutoMigrate             bool
+	MediaDir                string
 }
 
 func Load() (Config, error) {
@@ -62,6 +63,7 @@ func Load() (Config, error) {
 		RefreshTTL:              30 * 24 * time.Hour,
 		InvitationTTL:           7 * 24 * time.Hour,
 		AutoMigrate:             autoMigrate,
+		MediaDir:                envOr("MEDIA_DIR", "./var/media"),
 	}, nil
 }
 

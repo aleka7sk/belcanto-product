@@ -57,6 +57,15 @@ import {
   type LessonJournal,
   type ProgressEvidence,
   type PublishJournalRequest,
+  type MediaObject,
+  type MediaAccess,
+  type CreateMediaRequest,
+  type HomeworkAssignment,
+  type CreateHomeworkRequest,
+  type CancelHomeworkRequest,
+  type MarkHomeworkTaskRequest,
+  type SubmitHomeworkRequest,
+  type ReviewHomeworkRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -114,6 +123,8 @@ export interface ApiClientOptions {
 export interface RequestOptions {
   accessToken?: string | undefined;
   body?: unknown;
+  binaryBody?: Uint8Array | undefined;
+  extraHeaders?: Record<string, string> | undefined;
   idempotencyKey?: string | undefined;
   signal?: AbortSignal | undefined;
 }
@@ -804,6 +815,169 @@ export class ApiClient {
     });
   }
 
+  createMedia(
+    accessToken: string,
+    body: CreateMediaRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<MediaObject> {
+    return this.request(routes.createMedia, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  uploadMediaChunk(
+    accessToken: string,
+    mediaId: string,
+    offset: number,
+    chunk: Uint8Array,
+    signal?: AbortSignal,
+  ): Promise<MediaObject> {
+    return this.request(routes.appendMediaChunk(mediaId), {
+      accessToken,
+      binaryBody: chunk,
+      extraHeaders: { "Upload-Offset": String(offset) },
+      signal,
+    });
+  }
+
+  getMedia(
+    accessToken: string,
+    mediaId: string,
+    signal?: AbortSignal,
+  ): Promise<MediaObject> {
+    return this.request(routes.getMedia(mediaId), { accessToken, signal });
+  }
+
+  signMediaAccess(
+    accessToken: string,
+    mediaId: string,
+    signal?: AbortSignal,
+  ): Promise<MediaAccess> {
+    return this.request(routes.signMediaAccess(mediaId), { accessToken, signal });
+  }
+
+  createHomework(
+    accessToken: string,
+    body: CreateHomeworkRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.createHomework, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  getHomework(
+    accessToken: string,
+    homeworkId: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.getHomework(homeworkId), { accessToken, signal });
+  }
+
+  assignHomework(
+    accessToken: string,
+    homeworkId: string,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.assignHomework(homeworkId), {
+      accessToken,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  startHomework(
+    accessToken: string,
+    homeworkId: string,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.startHomework(homeworkId), {
+      accessToken,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  cancelHomework(
+    accessToken: string,
+    homeworkId: string,
+    body: CancelHomeworkRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.cancelHomework(homeworkId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  markHomeworkTask(
+    accessToken: string,
+    homeworkId: string,
+    taskId: string,
+    body: MarkHomeworkTaskRequest,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.markHomeworkTask(homeworkId, taskId), {
+      accessToken,
+      body,
+      signal,
+    });
+  }
+
+  submitHomework(
+    accessToken: string,
+    homeworkId: string,
+    body: SubmitHomeworkRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.submitHomework(homeworkId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  reviewHomework(
+    accessToken: string,
+    homeworkId: string,
+    body: ReviewHomeworkRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment> {
+    return this.request(routes.reviewHomework(homeworkId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listStudentHomework(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<HomeworkAssignment[]> {
+    return this.request(routes.listStudentHomework(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
   createLesson(
     accessToken: string,
     body: CreateLessonRequest,
@@ -973,12 +1147,16 @@ export class ApiClient {
     if (options.body !== undefined) {
       headers["Content-Type"] = "application/json";
     }
+    if (options.binaryBody !== undefined) {
+      headers["Content-Type"] = "application/octet-stream";
+    }
     if (options.accessToken) {
       headers.Authorization = `Bearer ${options.accessToken}`;
     }
     if (options.idempotencyKey) {
       headers["Idempotency-Key"] = options.idempotencyKey;
     }
+    Object.assign(headers, options.extraHeaders ?? {});
 
     const controller = new AbortController();
     const abort = () => controller.abort(options.signal?.reason);
@@ -995,6 +1173,11 @@ export class ApiClient {
       };
       if (options.body !== undefined) {
         init.body = JSON.stringify(options.body);
+      }
+      if (options.binaryBody !== undefined) {
+        // React Native's fetch accepts typed arrays; lib.dom's BodyInit
+        // predates Uint8Array<ArrayBufferLike> and needs the assertion.
+        init.body = options.binaryBody as unknown as BodyInit;
       }
       response = await this.fetch(`${this.baseUrl}${route.path}`, init);
     } catch (error) {

@@ -2665,3 +2665,350 @@ export const decodeProgressEvidence: Decoder<ProgressEvidence[]> = (value) => {
   );
   return entries;
 };
+
+// ---- L.3 homework, practice and media (domain/homework.md) ----
+
+export const MEDIA_KINDS = ["audio", "video", "image", "pdf"] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+export const MEDIA_STATUSES = ["pending", "uploading", "ready", "failed"] as const;
+export type MediaStatus = (typeof MEDIA_STATUSES)[number];
+
+export interface MediaObject {
+  id: string;
+  kind: MediaKind;
+  contentType: string;
+  byteSize: number;
+  uploadedBytes: number;
+  status: MediaStatus;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface CreateMediaRequest {
+  kind: MediaKind;
+  contentType: string;
+  byteSize: number;
+}
+
+export interface MediaAccess {
+  url: string;
+  expiresAt: IsoDateTime;
+}
+
+export const HOMEWORK_STATUSES = [
+  "draft",
+  "assigned",
+  "in_progress",
+  "submitted",
+  "reviewed",
+  "completed",
+  "cancelled",
+  "expired",
+] as const;
+export type HomeworkStatus = (typeof HOMEWORK_STATUSES)[number];
+
+export interface HomeworkTask {
+  id: string;
+  position: number;
+  title: string;
+  description?: string;
+  recommendedMinutes?: number;
+  skillArea?: string;
+  songTitle?: string;
+  status: "pending" | "done";
+}
+
+export interface PracticeSubmission {
+  id: string;
+  attempt: number;
+  note?: string;
+  media: MediaObject[];
+  submittedAt: IsoDateTime;
+}
+
+export interface PracticeFeedback {
+  id: string;
+  submissionId: string;
+  teacher: LessonTeacher;
+  decision: "needs_revision" | "accepted";
+  body: string;
+  nextStep?: string;
+  evidenceArea?: string;
+  evidenceNote?: string;
+  createdAt: IsoDateTime;
+}
+
+export interface HomeworkAssignment {
+  id: string;
+  occurrenceId: string;
+  studentId: string;
+  teacher: LessonTeacher;
+  status: HomeworkStatus;
+  goal: string;
+  readinessCriteria?: string;
+  dueAt?: IsoDateTime;
+  cancelReason?: string;
+  tasks: HomeworkTask[];
+  attachments: MediaObject[];
+  submissions: PracticeSubmission[];
+  feedback: PracticeFeedback[];
+  version: number;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface HomeworkTaskInput {
+  title: string;
+  description?: string;
+  recommendedMinutes?: number;
+  skillArea?: string;
+  songTitle?: string;
+}
+
+export interface CreateHomeworkRequest {
+  occurrenceId: string;
+  studentId: string;
+  goal: string;
+  readinessCriteria?: string;
+  dueAt?: IsoDateTime;
+  tasks?: HomeworkTaskInput[];
+  attachmentMediaIds?: string[];
+  assign?: boolean;
+}
+
+export interface CancelHomeworkRequest {
+  reason: string;
+}
+
+export interface MarkHomeworkTaskRequest {
+  done: boolean;
+}
+
+export interface SubmitHomeworkRequest {
+  note?: string;
+  mediaIds?: string[];
+  expectedVersion: number;
+}
+
+export interface ReviewHomeworkRequest {
+  decision: "needs_revision" | "accepted";
+  body: string;
+  nextStep?: string;
+  evidenceArea?: string;
+  evidenceNote?: string;
+  expectedVersion: number;
+}
+
+export const decodeMediaObject: Decoder<MediaObject> = (value) => {
+  const contract = "MediaObject";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    ["id", "kind", "contentType", "byteSize", "uploadedBytes", "status", "createdAt", "updatedAt"],
+    contract,
+  );
+  const object: MediaObject = {
+    id: identifierField(source, "id", contract)!,
+    kind: oneOf(source.kind, MEDIA_KINDS, contract, "$.kind"),
+    contentType: stringField(source, "contentType", contract)!,
+    byteSize: numberField(source, "byteSize", contract, 1),
+    uploadedBytes: numberField(source, "uploadedBytes", contract, 0),
+    status: oneOf(source.status, MEDIA_STATUSES, contract, "$.status"),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    updatedAt: isoDateField(source, "updatedAt", contract)!,
+  };
+  if (object.uploadedBytes > object.byteSize) {
+    throw new ContractDecodeError(contract, "$.uploadedBytes");
+  }
+  if (object.status === "ready" && object.uploadedBytes !== object.byteSize) {
+    throw new ContractDecodeError(contract, "$.status");
+  }
+  return object;
+};
+
+export const decodeMediaAccess: Decoder<MediaAccess> = (value) => {
+  const contract = "MediaAccess";
+  const source = record(value, contract);
+  exactKeys(source, ["url", "expiresAt"], contract);
+  const url = stringField(source, "url", contract)!;
+  if (!url.includes("/v1/media/") || !url.includes("token=")) {
+    throw new ContractDecodeError(contract, "$.url");
+  }
+  return { url, expiresAt: isoDateField(source, "expiresAt", contract)! };
+};
+
+export const decodeHomeworkAssignment: Decoder<HomeworkAssignment> = (value) => {
+  const contract = "HomeworkAssignment";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "occurrenceId",
+      "studentId",
+      "teacher",
+      "status",
+      "goal",
+      "readinessCriteria",
+      "dueAt",
+      "cancelReason",
+      "tasks",
+      "attachments",
+      "submissions",
+      "feedback",
+      "version",
+      "createdAt",
+      "updatedAt",
+    ],
+    contract,
+  );
+  const teacherSource = record(source.teacher, contract, "$.teacher");
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, "$.teacher");
+  if (!Array.isArray(source.tasks) || !Array.isArray(source.attachments) ||
+      !Array.isArray(source.submissions) || !Array.isArray(source.feedback)) {
+    throw new ContractDecodeError(contract, "$.tasks");
+  }
+  const tasks = source.tasks.map((entry, index) => {
+    const path = `$.tasks[${index}]`;
+    const taskSource = record(entry, contract, path);
+    exactKeys(
+      taskSource,
+      ["id", "position", "title", "description", "recommendedMinutes", "skillArea", "songTitle", "status"],
+      contract,
+      path,
+    );
+    const task: HomeworkTask = {
+      id: identifierField(taskSource, "id", contract)!,
+      position: numberField(taskSource, "position", contract, 1),
+      title: stringField(taskSource, "title", contract)!,
+      status: oneOf(taskSource.status, ["pending", "done"] as const, contract, `${path}.status`),
+    };
+    const description = stringField(taskSource, "description", contract, true);
+    if (description !== undefined) task.description = description;
+    if (taskSource.recommendedMinutes !== undefined) {
+      task.recommendedMinutes = numberField(taskSource, "recommendedMinutes", contract, 1);
+    }
+    const skillArea = stringField(taskSource, "skillArea", contract, true);
+    if (skillArea !== undefined) task.skillArea = skillArea;
+    const songTitle = stringField(taskSource, "songTitle", contract, true);
+    if (songTitle !== undefined) task.songTitle = songTitle;
+    return task;
+  });
+  for (let index = 1; index < tasks.length; index += 1) {
+    if (tasks[index]!.position <= tasks[index - 1]!.position) {
+      throw new ContractDecodeError(contract, `$.tasks[${index}].position`);
+    }
+  }
+  const submissions = source.submissions.map((entry, index) => {
+    const path = `$.submissions[${index}]`;
+    const submissionSource = record(entry, contract, path);
+    exactKeys(submissionSource, ["id", "attempt", "note", "media", "submittedAt"], contract, path);
+    if (!Array.isArray(submissionSource.media)) {
+      throw new ContractDecodeError(contract, `${path}.media`);
+    }
+    const submission: PracticeSubmission = {
+      id: identifierField(submissionSource, "id", contract)!,
+      attempt: numberField(submissionSource, "attempt", contract, 1),
+      media: submissionSource.media.map((mediaEntry) => decodeMediaObject(mediaEntry)),
+      submittedAt: isoDateField(submissionSource, "submittedAt", contract)!,
+    };
+    const note = stringField(submissionSource, "note", contract, true);
+    if (note !== undefined) submission.note = note;
+    return submission;
+  });
+  for (let index = 1; index < submissions.length; index += 1) {
+    if (submissions[index]!.attempt >= submissions[index - 1]!.attempt) {
+      throw new ContractDecodeError(contract, `$.submissions[${index}].attempt`);
+    }
+  }
+  const feedback = source.feedback.map((entry, index) => {
+    const path = `$.feedback[${index}]`;
+    const feedbackSource = record(entry, contract, path);
+    exactKeys(
+      feedbackSource,
+      ["id", "submissionId", "teacher", "decision", "body", "nextStep", "evidenceArea", "evidenceNote", "createdAt"],
+      contract,
+      path,
+    );
+    const feedbackTeacher = record(feedbackSource.teacher, contract, `${path}.teacher`);
+    exactKeys(feedbackTeacher, ["accountId", "fullName"], contract, `${path}.teacher`);
+    const item: PracticeFeedback = {
+      id: identifierField(feedbackSource, "id", contract)!,
+      submissionId: identifierField(feedbackSource, "submissionId", contract)!,
+      teacher: {
+        accountId: identifierField(feedbackTeacher, "accountId", contract)!,
+        fullName: stringField(feedbackTeacher, "fullName", contract)!,
+      },
+      decision: oneOf(
+        feedbackSource.decision,
+        ["needs_revision", "accepted"] as const,
+        contract,
+        `${path}.decision`,
+      ),
+      body: stringField(feedbackSource, "body", contract)!,
+      createdAt: isoDateField(feedbackSource, "createdAt", contract)!,
+    };
+    const nextStep = stringField(feedbackSource, "nextStep", contract, true);
+    if (nextStep !== undefined) item.nextStep = nextStep;
+    const evidenceArea = stringField(feedbackSource, "evidenceArea", contract, true);
+    if (evidenceArea !== undefined) item.evidenceArea = evidenceArea;
+    const evidenceNote = stringField(feedbackSource, "evidenceNote", contract, true);
+    if (evidenceNote !== undefined) item.evidenceNote = evidenceNote;
+    if ((item.evidenceArea === undefined) !== (item.evidenceNote === undefined)) {
+      throw new ContractDecodeError(contract, `${path}.evidenceArea`);
+    }
+    if (item.decision === "needs_revision" && item.evidenceArea !== undefined) {
+      throw new ContractDecodeError(contract, `${path}.evidenceArea`);
+    }
+    return item;
+  });
+  const homework: HomeworkAssignment = {
+    id: identifierField(source, "id", contract)!,
+    occurrenceId: identifierField(source, "occurrenceId", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    teacher: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    status: oneOf(source.status, HOMEWORK_STATUSES, contract, "$.status"),
+    goal: stringField(source, "goal", contract)!,
+    tasks,
+    attachments: source.attachments.map((entry) => decodeMediaObject(entry)),
+    submissions,
+    feedback,
+    version: numberField(source, "version", contract, 1),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    updatedAt: isoDateField(source, "updatedAt", contract)!,
+  };
+  const readiness = stringField(source, "readinessCriteria", contract, true);
+  if (readiness !== undefined) homework.readinessCriteria = readiness;
+  const dueAt = isoDateField(source, "dueAt", contract, true);
+  if (dueAt !== undefined) homework.dueAt = dueAt;
+  const cancelReason = stringField(source, "cancelReason", contract, true);
+  if (cancelReason !== undefined) homework.cancelReason = cancelReason;
+  if (homework.status === "cancelled" && homework.cancelReason === undefined) {
+    throw new ContractDecodeError(contract, "$.cancelReason");
+  }
+  if (
+    homework.status === "completed" &&
+    !homework.feedback.some((entry) => entry.decision === "accepted")
+  ) {
+    throw new ContractDecodeError(contract, "$.feedback");
+  }
+  return homework;
+};
+
+export const decodeHomeworkAssignments: Decoder<HomeworkAssignment[]> = (value) => {
+  const contract = "HomeworkAssignmentList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const items = value.map((entry) => decodeHomeworkAssignment(entry));
+  unique(
+    items.map((item) => item.id),
+    contract,
+    "$[].id",
+  );
+  return items;
+};

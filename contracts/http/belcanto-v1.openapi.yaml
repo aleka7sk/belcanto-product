@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.9.0
+  version: 0.10.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -2294,6 +2294,487 @@ paths:
         "500":
           $ref: "#/components/responses/Internal"
 
+  /v1/media:
+    post:
+      summary: Declare a media upload
+      operationId: createMedia
+      tags: [Practice]
+      description: >-
+        Declares kind, content type and size before any bytes move. Rows
+        keep only opaque storage keys; content is reachable exclusively
+        through short-lived sealed access links.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMediaRequest"
+      responses:
+        "201":
+          description: Declared media object in the pending state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaObject"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/media/{mediaId}/chunks:
+    post:
+      summary: Append an upload chunk
+      operationId: appendMediaChunk
+      tags: [Practice]
+      description: >-
+        Resumable by exact offset: a fully replayed chunk returns the
+        current state, a mismatched offset returns a conflict so the
+        client resynchronizes from the recorded progress.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaId"
+        - name: Upload-Offset
+          in: header
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Media state after the chunk.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaObject"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/media/{mediaId}:
+    get:
+      summary: Read media metadata
+      operationId: getMedia
+      tags: [Practice]
+      description: Visible to the owner, managers and homework participants.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaId"
+      responses:
+        "200":
+          description: Media object.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaObject"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/media/{mediaId}/access:
+    post:
+      summary: Issue a short-lived access link
+      operationId: signMediaAccess
+      tags: [Practice]
+      description: >-
+        Re-checks visibility, then seals tenant, media and expiry into an
+        opaque token. Links never enter audit or outbox records.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaId"
+      responses:
+        "200":
+          description: Sealed access link.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAccess"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/media/{mediaId}/content:
+    get:
+      summary: Serve media content by sealed link
+      operationId: mediaContent
+      tags: [Practice]
+      description: The token in the query string is the sole credential.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/MediaId"
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Media bytes.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework:
+    post:
+      summary: Create homework
+      operationId: createHomework
+      tags: [Practice]
+      description: >-
+        The Lesson's Teacher creates homework for one participating
+        Student (domain/homework.md). With assign=true the assignment is
+        visible to the Student immediately; otherwise it stays a
+        teacher-only draft.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHomeworkRequest"
+      responses:
+        "201":
+          description: Created homework.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}:
+    get:
+      summary: Read homework
+      operationId: getHomework
+      tags: [Practice]
+      description: >-
+        Full view for the Teacher and managers; the Student sees every
+        state except the teacher-only draft.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+      responses:
+        "200":
+          description: Homework with tasks, submissions and feedback.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/assign:
+    post:
+      summary: Assign a draft homework
+      operationId: assignHomework
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Assigned homework.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/start:
+    post:
+      summary: Start homework
+      operationId: startHomework
+      tags: [Practice]
+      description: The assigned Student moves the homework into practice.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Homework in progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/cancel:
+    post:
+      summary: Cancel homework
+      operationId: cancelHomework
+      tags: [Practice]
+      description: Teacher-only; the reason is preserved in history.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelHomeworkRequest"
+      responses:
+        "200":
+          description: Cancelled homework.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/tasks/{taskId}:
+    put:
+      summary: Mark a task done or pending
+      operationId: markHomeworkTask
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/HomeworkTaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkHomeworkTaskRequest"
+      responses:
+        "200":
+          description: Homework after the task change.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/submissions:
+    post:
+      summary: Submit a practice attempt
+      operationId: submitHomework
+      tags: [Practice]
+      description: >-
+        Appends the next immutable attempt with optional ready media. A
+        resubmission is possible only after teacher feedback.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitHomeworkRequest"
+      responses:
+        "200":
+          description: Homework after the submission.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/homework/{homeworkId}/review:
+    post:
+      summary: Review the latest submission
+      operationId: reviewHomework
+      tags: [Practice]
+      description: >-
+        needs_revision keeps the loop open; accepted completes the
+        homework and may append one named-area progress evidence
+        (DEC-006 — no score anywhere).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/HomeworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewHomeworkRequest"
+      responses:
+        "200":
+          description: Homework after the review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/homework:
+    get:
+      summary: List Student homework
+      operationId: listStudentHomework
+      tags: [Practice]
+      description: >-
+        Newest first. The Student sees everything except drafts; teachers
+        see their own assignments; managers see all.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Homework list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HomeworkAssignment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+
   /v1/lessons:
     get:
       summary: List role-scoped Lessons
@@ -2605,6 +3086,30 @@ components:
         maxLength: 128
     SpotOfferId:
       name: offerId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    MediaId:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    HomeworkId:
+      name: homeworkId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    HomeworkTaskId:
+      name: taskId
       in: path
       required: true
       schema:
@@ -4888,3 +5393,289 @@ components:
         Canonical one-time activation link. The custom scheme is permitted only
         for local development. A production client additionally requires the
         HTTPS origin to equal its build-time verified app-link origin.
+
+    MediaObject:
+      type: object
+      additionalProperties: false
+      required: [id, kind, contentType, byteSize, uploadedBytes, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [audio, video, image, pdf]
+        contentType:
+          type: string
+        byteSize:
+          type: integer
+          format: int64
+          minimum: 1
+        uploadedBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        status:
+          type: string
+          enum: [pending, uploading, ready, failed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateMediaRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, contentType, byteSize]
+      properties:
+        kind:
+          type: string
+          enum: [audio, video, image, pdf]
+        contentType:
+          type: string
+          minLength: 3
+          maxLength: 120
+        byteSize:
+          type: integer
+          format: int64
+          minimum: 1
+    MediaAccess:
+      type: object
+      additionalProperties: false
+      required: [url, expiresAt]
+      properties:
+        url:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    HomeworkTaskInput:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        recommendedMinutes:
+          type: integer
+          minimum: 1
+          maximum: 600
+        skillArea:
+          type: string
+          maxLength: 100
+        songTitle:
+          type: string
+          maxLength: 200
+    HomeworkTask:
+      type: object
+      additionalProperties: false
+      required: [id, position, title, status]
+      properties:
+        id:
+          type: string
+        position:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        description:
+          type: string
+        recommendedMinutes:
+          type: integer
+        skillArea:
+          type: string
+        songTitle:
+          type: string
+        status:
+          type: string
+          enum: [pending, done]
+    PracticeSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, attempt, media, submittedAt]
+      properties:
+        id:
+          type: string
+        attempt:
+          type: integer
+          minimum: 1
+        note:
+          type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaObject"
+        submittedAt:
+          type: string
+          format: date-time
+    PracticeFeedback:
+      type: object
+      additionalProperties: false
+      required: [id, submissionId, teacher, decision, body, createdAt]
+      properties:
+        id:
+          type: string
+        submissionId:
+          type: string
+        teacher:
+          $ref: "#/components/schemas/TeacherSummary"
+        decision:
+          type: string
+          enum: [needs_revision, accepted]
+        body:
+          type: string
+        nextStep:
+          type: string
+        evidenceArea:
+          type: string
+        evidenceNote:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    HomeworkAssignment:
+      type: object
+      additionalProperties: false
+      required:
+        [id, occurrenceId, studentId, teacher, status, goal, tasks,
+         attachments, submissions, feedback, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        occurrenceId:
+          type: string
+        studentId:
+          type: string
+        teacher:
+          $ref: "#/components/schemas/TeacherSummary"
+        status:
+          type: string
+          enum:
+            [draft, assigned, in_progress, submitted, reviewed, completed,
+             cancelled, expired]
+        goal:
+          type: string
+        readinessCriteria:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        cancelReason:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/HomeworkTask"
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaObject"
+        submissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PracticeSubmission"
+        feedback:
+          type: array
+          items:
+            $ref: "#/components/schemas/PracticeFeedback"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateHomeworkRequest:
+      type: object
+      additionalProperties: false
+      required: [occurrenceId, studentId, goal]
+      properties:
+        occurrenceId:
+          type: string
+        studentId:
+          type: string
+        goal:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        readinessCriteria:
+          type: string
+          maxLength: 1000
+        dueAt:
+          type: string
+          format: date-time
+        tasks:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/HomeworkTaskInput"
+        attachmentMediaIds:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+        assign:
+          type: boolean
+    CancelHomeworkRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    MarkHomeworkTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [done]
+      properties:
+        done:
+          type: boolean
+    SubmitHomeworkRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        note:
+          type: string
+          maxLength: 1000
+        mediaIds:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+        expectedVersion:
+          type: integer
+          minimum: 1
+    ReviewHomeworkRequest:
+      type: object
+      additionalProperties: false
+      required: [decision, body, expectedVersion]
+      properties:
+        decision:
+          type: string
+          enum: [needs_revision, accepted]
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        nextStep:
+          type: string
+          maxLength: 1000
+        evidenceArea:
+          type: string
+          maxLength: 100
+        evidenceNote:
+          type: string
+          maxLength: 1000
+        expectedVersion:
+          type: integer
+          minimum: 1

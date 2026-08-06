@@ -77,6 +77,12 @@ var journalProgressUp string
 //go:embed 000009_journal_progress.down.sql
 var journalProgressDown string
 
+//go:embed 000010_homework_practice.up.sql
+var homeworkPracticeUp string
+
+//go:embed 000010_homework_practice.down.sql
+var homeworkPracticeDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -95,6 +101,7 @@ func registeredMigrations() []migration {
 		{version: 7, description: "Belcanto L.2 events and RSVP", up: eventsRsvpUp, down: eventsRsvpDown},
 		{version: 8, description: "Belcanto L.2 reschedule requests", up: rescheduleRequestsUp, down: rescheduleRequestsDown},
 		{version: 9, description: "Belcanto L.3 journals and progress", up: journalProgressUp, down: journalProgressDown},
+		{version: 10, description: "Belcanto L.3 homework and practice", up: homeworkPracticeUp, down: homeworkPracticeDown},
 	}
 }
 
