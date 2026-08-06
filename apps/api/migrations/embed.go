@@ -113,6 +113,12 @@ var communityUp string
 //go:embed 000015_community.down.sql
 var communityDown string
 
+//go:embed 000016_assessments.up.sql
+var assessmentsUp string
+
+//go:embed 000016_assessments.down.sql
+var assessmentsDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -137,6 +143,7 @@ func registeredMigrations() []migration {
 		{version: 13, description: "Belcanto L.3 goals and achievements", up: goalsAchievementsUp, down: goalsAchievementsDown},
 		{version: 14, description: "Belcanto L.5 notifications and activity", up: notificationsUp, down: notificationsDown},
 		{version: 15, description: "Belcanto L.5 community and safety", up: communityUp, down: communityDown},
+		{version: 16, description: "Belcanto L.4 assessments", up: assessmentsUp, down: assessmentsDown},
 	}
 }
 

@@ -164,6 +164,7 @@ type Store struct {
 	communityComments  map[string]*communityComment
 	communityReports   map[string]*communityReport
 	blocks             map[blockKey]time.Time
+	assessments        map[string]*assessmentRecord
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -222,6 +223,7 @@ func New() *Store {
 		communityComments:  make(map[string]*communityComment),
 		communityReports:   make(map[string]*communityReport),
 		blocks:             make(map[blockKey]time.Time),
+		assessments:        make(map[string]*assessmentRecord),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),

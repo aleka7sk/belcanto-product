@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.16.0
+  version: 0.17.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -3385,6 +3385,338 @@ paths:
           $ref: "#/components/responses/Internal"
 
 
+  /v1/students/{studentId}/assessments:
+    post:
+      summary: Create an assessment draft
+      operationId: createAssessment
+      tags: [Practice]
+      description: >-
+        A professional observation by the Student's assigned Teacher in
+        an explicit context — never a rating or a characterisation of
+        the person. Starts as a draft.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentContentRequest"
+      responses:
+        "201":
+          description: Draft assessment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    get:
+      summary: Student assessment history
+      operationId: listStudentAssessments
+      tags: [Practice]
+      description: >-
+        Visibility-scoped: the Student sees published student_visible
+        entries; drafts belong to the author and administrators;
+        teacher_only notes stay with the assigned Teacher.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Assessments, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}:
+    get:
+      summary: One assessment
+      operationId: getAssessment
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      responses:
+        "200":
+          description: Assessment with its evidence.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    put:
+      summary: Update a draft
+      operationId: updateAssessmentDraft
+      tags: [Practice]
+      description: Author only; published content is immutable.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssessmentRequest"
+      responses:
+        "200":
+          description: Updated draft.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}/evidence:
+    post:
+      summary: Add draft evidence
+      operationId: addAssessmentEvidence
+      tags: [Practice]
+      description: >-
+        Every significant conclusion has a source; a text observation is
+        evidence too. Editable while the assessment is a draft.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentEvidenceRequest"
+      responses:
+        "201":
+          description: Assessment after the addition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}/evidence/{evidenceId}:
+    delete:
+      summary: Remove draft evidence
+      operationId: removeAssessmentEvidence
+      tags: [Practice]
+      description: Draft only — published evidence freezes with the assessment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Assessment after the removal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}/publish:
+    post:
+      summary: Publish an assessment
+      operationId: publishAssessment
+      tags: [Practice]
+      description: >-
+        A published assessment carries substance: a summary plus at
+        least one strength, development area, recommendation or evidence
+        row. student_visible publications reach the Student's activity.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishAssessmentRequest"
+      responses:
+        "200":
+          description: Published assessment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}/supersede:
+    post:
+      summary: Correct with a new version
+      operationId: supersedeAssessment
+      tags: [Practice]
+      description: >-
+        Published content never rewrites: the correction is a new
+        immediately-published version linked from the old one, with the
+        evidence carried forward. Returns the [replaced, replacement]
+        pair.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentContentRequest"
+      responses:
+        "200":
+          description: The superseded original and its replacement.
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 2
+                maxItems: 2
+                items:
+                  $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/assessments/{assessmentId}/withdraw:
+    post:
+      summary: Withdraw an assessment
+      operationId: withdrawAssessment
+      tags: [Practice]
+      description: >-
+        For a mistake, a wrong context or a rule violation — with a
+        mandatory reason. The record stays; nothing deletes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawAssessmentRequest"
+      responses:
+        "200":
+          description: Withdrawn assessment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
   /v1/me/activity:
     get:
       summary: My activity feed
@@ -4224,6 +4556,15 @@ components:
         pattern: '^[\u0021-\u007E]+$'
     StudentId:
       name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    AssessmentId:
+      name: assessmentId
       in: path
       required: true
       schema:
@@ -7378,3 +7719,220 @@ components:
           items:
             type: string
             maxLength: 128
+
+    AssessmentType:
+      type: string
+      enum: [observation, diagnostic, formative, summative, self]
+    AssessmentContext:
+      type: string
+      enum:
+        - lesson
+        - homework_review
+        - repertoire_practice
+        - concert_preparation
+        - concert_performance
+        - diagnostic_session
+        - periodic_review
+        - teacher_observation
+    AssessmentVisibility:
+      type: string
+      enum: [teacher_only, student_visible, staff_visible, owner_analytics]
+    AssessmentEvidence:
+      type: object
+      additionalProperties: false
+      required: [id, kind, note, addedAt]
+      properties:
+        id:
+          type: string
+          maxLength: 128
+        kind:
+          type: string
+          enum: [observation, media, journal, homework, prior_assessment, self_assessment]
+        note:
+          type: string
+          maxLength: 1000
+        referenceId:
+          type: string
+          maxLength: 128
+        addedAt:
+          type: string
+          format: date-time
+    Assessment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - studentId
+        - author
+        - authorRole
+        - type
+        - contextType
+        - assessmentDate
+        - visibility
+        - status
+        - evidence
+        - version
+        - createdAt
+      properties:
+        id:
+          type: string
+          maxLength: 128
+        studentId:
+          type: string
+          maxLength: 128
+        author:
+          $ref: "#/components/schemas/TeacherSummary"
+        authorRole:
+          type: string
+          enum: [Teacher, Administrator, Owner, Student]
+        type:
+          $ref: "#/components/schemas/AssessmentType"
+        contextType:
+          $ref: "#/components/schemas/AssessmentContext"
+        contextId:
+          type: string
+          maxLength: 128
+        assessmentDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        summary:
+          type: string
+          maxLength: 2000
+        strengths:
+          type: string
+          maxLength: 2000
+        developmentAreas:
+          type: string
+          maxLength: 2000
+        recommendations:
+          type: string
+          maxLength: 2000
+        confidence:
+          type: string
+          enum: [low, medium, high]
+          description: Reliability of the conclusion, never the student's level.
+        visibility:
+          $ref: "#/components/schemas/AssessmentVisibility"
+        relatedSongId:
+          type: string
+          maxLength: 128
+        relatedGoalId:
+          type: string
+          maxLength: 128
+        areas:
+          type: string
+          maxLength: 500
+          description: Free-form development areas; areas are data, not an enum.
+        status:
+          type: string
+          enum: [draft, published, superseded, withdrawn]
+        supersededById:
+          type: string
+          maxLength: 128
+        withdrawalReason:
+          type: string
+          maxLength: 500
+        publishedAt:
+          type: string
+          format: date-time
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssessmentEvidence"
+        version:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+    AssessmentContentRequest:
+      type: object
+      additionalProperties: false
+      required: [type, contextType, assessmentDate, visibility]
+      properties:
+        type:
+          $ref: "#/components/schemas/AssessmentType"
+        contextType:
+          $ref: "#/components/schemas/AssessmentContext"
+        contextId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        assessmentDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        strengths:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        developmentAreas:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        recommendations:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        visibility:
+          $ref: "#/components/schemas/AssessmentVisibility"
+        relatedSongId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        relatedGoalId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        areas:
+          type: string
+          minLength: 1
+          maxLength: 500
+    UpdateAssessmentRequest:
+      allOf:
+        - $ref: "#/components/schemas/AssessmentContentRequest"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 0
+    AssessmentEvidenceRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, note]
+      properties:
+        kind:
+          type: string
+          enum: [observation, media, journal, homework, prior_assessment, self_assessment]
+        note:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        referenceId:
+          type: string
+          minLength: 1
+          maxLength: 128
+    PublishAssessmentRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+    WithdrawAssessmentRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500

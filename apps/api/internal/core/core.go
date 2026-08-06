@@ -1743,3 +1743,171 @@ type BlockMemberCommand struct {
 	Blocked          bool
 	Now              time.Time
 }
+
+// ---- L.4 assessments (domain/assessment.md, Approved; Page 27) ----
+
+// AssessmentTypes per domain/assessment.md: observation, diagnostic,
+// formative, summative and the student's own self assessment.
+var AssessmentTypes = []string{"observation", "diagnostic", "formative", "summative", "self"}
+
+// AssessmentContexts: an assessment without a context is forbidden.
+var AssessmentContexts = []string{
+	"lesson", "homework_review", "repertoire_practice", "concert_preparation",
+	"concert_performance", "diagnostic_session", "periodic_review", "teacher_observation",
+}
+
+// AssessmentVisibilities: teacher_only internal notes, student_visible,
+// staff_visible working scope, owner_analytics aggregates.
+var AssessmentVisibilities = []string{
+	"teacher_only", "student_visible", "staff_visible", "owner_analytics",
+}
+
+type AssessmentEvidence struct {
+	ID          string    `json:"id"`
+	Kind        string    `json:"kind"`
+	Note        string    `json:"note"`
+	ReferenceID string    `json:"referenceId,omitempty"`
+	AddedAt     time.Time `json:"addedAt"`
+}
+
+type Assessment struct {
+	ID               string               `json:"id"`
+	StudentID        string               `json:"studentId"`
+	Author           TeacherSummary       `json:"author"`
+	AuthorRole       string               `json:"authorRole"`
+	Type             string               `json:"type"`
+	ContextType      string               `json:"contextType"`
+	ContextID        string               `json:"contextId,omitempty"`
+	AssessmentDate   string               `json:"assessmentDate"`
+	Summary          string               `json:"summary,omitempty"`
+	Strengths        string               `json:"strengths,omitempty"`
+	DevelopmentAreas string               `json:"developmentAreas,omitempty"`
+	Recommendations  string               `json:"recommendations,omitempty"`
+	Confidence       string               `json:"confidence,omitempty"`
+	Visibility       string               `json:"visibility"`
+	RelatedSongID    string               `json:"relatedSongId,omitempty"`
+	RelatedGoalID    string               `json:"relatedGoalId,omitempty"`
+	Areas            string               `json:"areas,omitempty"`
+	Status           string               `json:"status"`
+	SupersededByID   string               `json:"supersededById,omitempty"`
+	WithdrawalReason string               `json:"withdrawalReason,omitempty"`
+	PublishedAt      *time.Time           `json:"publishedAt,omitempty"`
+	Evidence         []AssessmentEvidence `json:"evidence"`
+	Version          int64                `json:"version"`
+	CreatedAt        time.Time            `json:"createdAt"`
+}
+
+// AssessmentContent carries the mutable draft fields shared by create,
+// draft update and supersede.
+type AssessmentContent struct {
+	Type             string
+	ContextType      string
+	ContextID        string
+	AssessmentDate   string
+	Summary          string
+	Strengths        string
+	DevelopmentAreas string
+	Recommendations  string
+	Confidence       string
+	Visibility       string
+	RelatedSongID    string
+	RelatedGoalID    string
+	Areas            string
+}
+
+type CreateAssessmentCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	StudentID          string
+	Content            AssessmentContent
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type UpdateAssessmentDraftCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	Content            AssessmentContent
+	ExpectedVersion    int64
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type AddAssessmentEvidenceCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	EvidenceID         string
+	Kind               string
+	Note               string
+	ReferenceID        string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type RemoveAssessmentEvidenceCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	EvidenceID         string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type PublishAssessmentCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	ExpectedVersion    int64
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+// SupersedeAssessmentCommand corrects a published assessment with a new
+// immediately-published version; the old one becomes superseded with a
+// link and its evidence rows are carried onto the replacement.
+type SupersedeAssessmentCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	NewAssessmentID    string
+	Content            AssessmentContent
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type WithdrawAssessmentCommand struct {
+	Principal          Principal
+	AssessmentID       string
+	Reason             string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+// AssessmentVisible applies the visibility contract from
+// domain/assessment.md for a viewer who may not be the author.
+func AssessmentVisible(view Assessment, isAuthor, isAssignedTeacher, isManager, isSelf bool) bool {
+	if isAuthor {
+		return true
+	}
+	switch view.Status {
+	case "draft":
+		// Drafts are the author's plus administrative permission.
+		return isManager
+	case "withdrawn":
+		return isManager || isAssignedTeacher
+	}
+	// Published or superseded: visibility decides.
+	switch view.Visibility {
+	case "teacher_only":
+		return isAssignedTeacher
+	case "student_visible":
+		return isAssignedTeacher || isManager || isSelf
+	case "staff_visible", "owner_analytics":
+		return isAssignedTeacher || isManager
+	}
+	return false
+}

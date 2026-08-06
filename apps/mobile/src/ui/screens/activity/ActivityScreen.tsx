@@ -46,6 +46,7 @@ const KIND_KEYS: Record<string, MessageKey> = {
   CommunityPostPublished: "act.kind.CommunityPostPublished",
   CommunityAnnouncementPublished: "act.kind.CommunityAnnouncementPublished",
   CommunityReportFiled: "act.kind.CommunityReportFiled",
+  AssessmentPublished: "act.kind.AssessmentPublished",
 };
 
 export function activityKindTitle(kind: string, message: MessageFormatter): string {
@@ -119,6 +120,17 @@ export function openActivityTarget(entry: ActivityEntry): boolean {
     case "CommunityReportFiled":
       router.push("/(protected)/community/moderation");
       return true;
+    case "AssessmentPublished": {
+      const assessmentId = payloadString(entry, "assessmentId");
+      if (assessmentId !== null) {
+        router.push({
+          pathname: "/(protected)/assessment/[assessmentId]",
+          params: { assessmentId },
+        });
+        return true;
+      }
+      return false;
+    }
     default:
       return false;
   }

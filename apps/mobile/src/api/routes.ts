@@ -52,6 +52,9 @@ import {
   decodeCommunityReport,
   decodeCommunityReports,
   decodeBlockedMembers,
+  decodeAssessment,
+  decodeAssessments,
+  decodeAssessmentChain,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -157,6 +160,12 @@ import {
   type ReportCommunityContentRequest,
   type DecideCommunityReportRequest,
   type BlockCommunityMemberRequest,
+  type Assessment,
+  type AssessmentContentRequest,
+  type UpdateAssessmentRequest,
+  type AssessmentEvidenceRequest,
+  type PublishAssessmentRequest,
+  type WithdrawAssessmentRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -1309,6 +1318,87 @@ export const routes = {
     [401, 422, 500],
     decodeBlockedMembers,
   ),
+  createAssessment: (studentId: string) =>
+    route<Assessment>(
+      "POST",
+      `/v1/students/${pathPart(studentId, "studentId")}/assessments`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
+  listStudentAssessments: (studentId: string) =>
+    route<Assessment[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/assessments`,
+      "required",
+      200,
+      [401, 403, 404, 422, 500],
+      decodeAssessments,
+    ),
+  getAssessment: (assessmentId: string) =>
+    route<Assessment>(
+      "GET",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeAssessment,
+    ),
+  updateAssessmentDraft: (assessmentId: string) =>
+    route<Assessment>(
+      "PUT",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
+  addAssessmentEvidence: (assessmentId: string) =>
+    route<Assessment>(
+      "POST",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}/evidence`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
+  removeAssessmentEvidence: (assessmentId: string, evidenceId: string) =>
+    route<Assessment>(
+      "DELETE",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}/evidence/${pathPart(evidenceId, "evidenceId")}`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
+  publishAssessment: (assessmentId: string) =>
+    route<Assessment>(
+      "POST",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}/publish`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
+  supersedeAssessment: (assessmentId: string) =>
+    route<Assessment[]>(
+      "POST",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}/supersede`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessmentChain,
+    ),
+  withdrawAssessment: (assessmentId: string) =>
+    route<Assessment>(
+      "POST",
+      `/v1/assessments/${pathPart(assessmentId, "assessmentId")}/withdraw`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAssessment,
+    ),
 } as const;
 
 export type RouteRequestBodies = {
@@ -1380,4 +1470,10 @@ export type RouteRequestBodies = {
   reportCommunityContent: ReportCommunityContentRequest;
   decideCommunityReport: DecideCommunityReportRequest;
   blockCommunityMember: BlockCommunityMemberRequest;
+  createAssessment: AssessmentContentRequest;
+  updateAssessmentDraft: UpdateAssessmentRequest;
+  addAssessmentEvidence: AssessmentEvidenceRequest;
+  publishAssessment: PublishAssessmentRequest;
+  supersedeAssessment: AssessmentContentRequest;
+  withdrawAssessment: WithdrawAssessmentRequest;
 };

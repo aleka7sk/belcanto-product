@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -522,4 +523,62 @@ const styles = StyleSheet.create({
   sectionHint: { color: semantic.textSecondary, ...typeStyles.caption },
   awardBlock: { gap: space.s3 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s2 },
+});
+
+/**
+ * Published assessment history (domain/assessment.md; TCH-REVIEW-06
+ * «Что увидит ученица»). The server already scopes visibility — the
+ * Student receives student_visible publications only.
+ */
+export function AssessmentsSection({ studentId }: { studentId: string }) {
+  const message = useMessage();
+  const api = useApiClient();
+  const assessments = useAccountResource((accessToken) =>
+    api.listStudentAssessments(accessToken, studentId),
+  );
+  const list = (assessments.value ?? []).filter(
+    (assessment) => assessment.status === "published" || assessment.status === "superseded",
+  );
+  if (assessments.value !== null && list.length === 0) return null;
+  return (
+    <View style={assessmentStyles.block}>
+      <Text style={assessmentStyles.title}>
+        {message("asmt.section.title").toUpperCase()}
+      </Text>
+      {assessments.error !== null ? (
+        <InlineNotice
+          body={apiErrorMessage(assessments.error)}
+          title={message("common.retry")}
+          tone="error"
+        />
+      ) : null}
+      {list.map((assessment) => (
+        <StatusRow
+          key={assessment.id}
+          onPress={() =>
+            router.push({
+              pathname: "/(protected)/assessment/[assessmentId]",
+              params: { assessmentId: assessment.id },
+            })
+          }
+          status={
+            assessment.status === "superseded"
+              ? message("asmt.status.superseded")
+              : message("asmt.section.published", {
+                  date: assessment.assessmentDate,
+                })
+          }
+          subtitle={assessment.summary ?? ""}
+          testID={`assessment-row-${assessment.id}`}
+          title={`${message(`asmt.context.${assessment.contextType}`)} · ${assessment.author.fullName}`}
+          tone={assessment.status === "superseded" ? "muted" : "success"}
+        />
+      ))}
+    </View>
+  );
+}
+
+const assessmentStyles = StyleSheet.create({
+  block: { gap: space.s3 },
+  title: { color: semantic.textGold, ...typeStyles.labelM },
 });

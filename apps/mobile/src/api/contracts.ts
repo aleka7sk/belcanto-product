@@ -3981,6 +3981,307 @@ export const decodeCommunityReports: Decoder<CommunityReport[]> = (value) => {
   return reports;
 };
 
+// ---- L.4 assessments (domain/assessment.md; Page 27 TCH-REVIEW-*) ----
+
+export const ASSESSMENT_TYPES = [
+  "observation",
+  "diagnostic",
+  "formative",
+  "summative",
+  "self",
+] as const;
+export type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
+
+export const ASSESSMENT_CONTEXTS = [
+  "lesson",
+  "homework_review",
+  "repertoire_practice",
+  "concert_preparation",
+  "concert_performance",
+  "diagnostic_session",
+  "periodic_review",
+  "teacher_observation",
+] as const;
+export type AssessmentContext = (typeof ASSESSMENT_CONTEXTS)[number];
+
+export const ASSESSMENT_VISIBILITIES = [
+  "teacher_only",
+  "student_visible",
+  "staff_visible",
+  "owner_analytics",
+] as const;
+export type AssessmentVisibility = (typeof ASSESSMENT_VISIBILITIES)[number];
+
+export const ASSESSMENT_STATUSES = [
+  "draft",
+  "published",
+  "superseded",
+  "withdrawn",
+] as const;
+export type AssessmentStatus = (typeof ASSESSMENT_STATUSES)[number];
+
+export const ASSESSMENT_EVIDENCE_KINDS = [
+  "observation",
+  "media",
+  "journal",
+  "homework",
+  "prior_assessment",
+  "self_assessment",
+] as const;
+export type AssessmentEvidenceKind = (typeof ASSESSMENT_EVIDENCE_KINDS)[number];
+
+export interface AssessmentEvidence {
+  id: string;
+  kind: AssessmentEvidenceKind;
+  note: string;
+  referenceId?: string | undefined;
+  addedAt: IsoDateTime;
+}
+
+export interface Assessment {
+  id: string;
+  studentId: string;
+  author: LessonTeacher;
+  authorRole: "Teacher" | "Administrator" | "Owner" | "Student";
+  type: AssessmentType;
+  contextType: AssessmentContext;
+  contextId?: string | undefined;
+  assessmentDate: string;
+  summary?: string | undefined;
+  strengths?: string | undefined;
+  developmentAreas?: string | undefined;
+  recommendations?: string | undefined;
+  confidence?: "low" | "medium" | "high" | undefined;
+  visibility: AssessmentVisibility;
+  relatedSongId?: string | undefined;
+  relatedGoalId?: string | undefined;
+  areas?: string | undefined;
+  status: AssessmentStatus;
+  supersededById?: string | undefined;
+  withdrawalReason?: string | undefined;
+  publishedAt?: IsoDateTime | undefined;
+  evidence: AssessmentEvidence[];
+  version: number;
+  createdAt: IsoDateTime;
+}
+
+export interface AssessmentContentRequest {
+  type: AssessmentType;
+  contextType: AssessmentContext;
+  contextId?: string;
+  assessmentDate: string;
+  summary?: string;
+  strengths?: string;
+  developmentAreas?: string;
+  recommendations?: string;
+  confidence?: "low" | "medium" | "high";
+  visibility: AssessmentVisibility;
+  relatedSongId?: string;
+  relatedGoalId?: string;
+  areas?: string;
+}
+
+export interface UpdateAssessmentRequest extends AssessmentContentRequest {
+  expectedVersion: number;
+}
+
+export interface AssessmentEvidenceRequest {
+  kind: AssessmentEvidenceKind;
+  note: string;
+  referenceId?: string;
+}
+
+export interface PublishAssessmentRequest {
+  expectedVersion: number;
+}
+
+export interface WithdrawAssessmentRequest {
+  reason: string;
+}
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+
+function decodeAssessmentShape(
+  value: unknown,
+  contract: string,
+  path: string,
+): Assessment {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "studentId",
+      "author",
+      "authorRole",
+      "type",
+      "contextType",
+      "contextId",
+      "assessmentDate",
+      "summary",
+      "strengths",
+      "developmentAreas",
+      "recommendations",
+      "confidence",
+      "visibility",
+      "relatedSongId",
+      "relatedGoalId",
+      "areas",
+      "status",
+      "supersededById",
+      "withdrawalReason",
+      "publishedAt",
+      "evidence",
+      "version",
+      "createdAt",
+    ],
+    contract,
+    path,
+  );
+  const status = oneOf(source.status, ASSESSMENT_STATUSES, contract, `${path}.status`);
+  const assessmentDate = stringField(source, "assessmentDate", contract)!;
+  if (!DATE_ONLY_PATTERN.test(assessmentDate)) {
+    throw new ContractDecodeError(contract, `${path}.assessmentDate`);
+  }
+  if (!Array.isArray(source.evidence)) {
+    throw new ContractDecodeError(contract, `${path}.evidence`);
+  }
+  const evidence = source.evidence.map((entry, index) => {
+    const entryPath = `${path}.evidence[${index}]`;
+    const entrySource = record(entry, contract, entryPath);
+    exactKeys(entrySource, ["id", "kind", "note", "referenceId", "addedAt"], contract, entryPath);
+    const item: AssessmentEvidence = {
+      id: identifierField(entrySource, "id", contract)!,
+      kind: oneOf(entrySource.kind, ASSESSMENT_EVIDENCE_KINDS, contract, `${entryPath}.kind`),
+      note: stringField(entrySource, "note", contract)!,
+      addedAt: isoDateField(entrySource, "addedAt", contract)!,
+    };
+    const referenceId = stringField(entrySource, "referenceId", contract, true);
+    if (referenceId !== undefined) item.referenceId = referenceId;
+    return item;
+  });
+  unique(
+    evidence.map((entry) => entry.id),
+    contract,
+    `${path}.evidence[].id`,
+  );
+  const assessment: Assessment = {
+    id: identifierField(source, "id", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    author: decodeLessonTeacher(source.author, contract, `${path}.author`),
+    authorRole: oneOf(
+      source.authorRole,
+      ["Teacher", "Administrator", "Owner", "Student"] as const,
+      contract,
+      `${path}.authorRole`,
+    ),
+    type: oneOf(source.type, ASSESSMENT_TYPES, contract, `${path}.type`),
+    contextType: oneOf(source.contextType, ASSESSMENT_CONTEXTS, contract, `${path}.contextType`),
+    assessmentDate,
+    visibility: oneOf(source.visibility, ASSESSMENT_VISIBILITIES, contract, `${path}.visibility`),
+    status,
+    evidence,
+    version: numberField(source, "version", contract),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+  };
+  const optionalString = (key: keyof Assessment & string) => {
+    const parsed = stringField(source, key, contract, true);
+    if (parsed !== undefined) {
+      (assessment as unknown as Record<string, string>)[key] = parsed;
+    }
+    return parsed;
+  };
+  optionalString("contextId");
+  const summary = optionalString("summary");
+  const strengths = optionalString("strengths");
+  const developmentAreas = optionalString("developmentAreas");
+  const recommendations = optionalString("recommendations");
+  optionalString("relatedSongId");
+  optionalString("relatedGoalId");
+  optionalString("areas");
+  const supersededById = optionalString("supersededById");
+  const withdrawalReason = optionalString("withdrawalReason");
+  if (source.confidence !== undefined) {
+    assessment.confidence = oneOf(
+      source.confidence,
+      ["low", "medium", "high"] as const,
+      contract,
+      `${path}.confidence`,
+    );
+  }
+  const publishedAt = isoDateField(source, "publishedAt", contract, true);
+  if (publishedAt !== undefined) assessment.publishedAt = publishedAt;
+  // Lifecycle pairing (domain/assessment.md): superseded links its
+  // replacement; withdrawn carries its reason; published substance —
+  // a summary plus at least one block or evidence row.
+  if (status === "superseded" && supersededById === undefined) {
+    throw new ContractDecodeError(contract, `${path}.supersededById`);
+  }
+  if (status !== "superseded" && status !== "withdrawn" && supersededById !== undefined) {
+    throw new ContractDecodeError(contract, `${path}.supersededById`);
+  }
+  if ((status === "withdrawn") !== (withdrawalReason !== undefined)) {
+    throw new ContractDecodeError(contract, `${path}.withdrawalReason`);
+  }
+  if ((status === "published" || status === "superseded") && publishedAt === undefined) {
+    throw new ContractDecodeError(contract, `${path}.publishedAt`);
+  }
+  if (status === "published" || status === "superseded") {
+    const hasBlock =
+      strengths !== undefined ||
+      developmentAreas !== undefined ||
+      recommendations !== undefined ||
+      evidence.length > 0;
+    if (summary === undefined || !hasBlock) {
+      throw new ContractDecodeError(contract, `${path}.summary`);
+    }
+  }
+  return assessment;
+}
+
+export const decodeAssessment: Decoder<Assessment> = (value) =>
+  decodeAssessmentShape(value, "Assessment", "$");
+
+export const decodeAssessments: Decoder<Assessment[]> = (value) => {
+  const contract = "AssessmentList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const assessments = value.map((entry, index) =>
+    decodeAssessmentShape(entry, contract, `$[${index}]`),
+  );
+  unique(
+    assessments.map((assessment) => assessment.id),
+    contract,
+    "$[].id",
+  );
+  for (let index = 1; index < assessments.length; index += 1) {
+    if (assessments[index]!.assessmentDate > assessments[index - 1]!.assessmentDate) {
+      throw new ContractDecodeError(contract, `$[${index}].assessmentDate`);
+    }
+  }
+  return assessments;
+};
+
+export const decodeAssessmentChain: Decoder<Assessment[]> = (value) => {
+  const contract = "AssessmentChain";
+  if (!Array.isArray(value) || value.length !== 2) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const chain = value.map((entry, index) =>
+    decodeAssessmentShape(entry, contract, `$[${index}]`),
+  );
+  const [replaced, replacement] = chain;
+  if (
+    replaced!.status !== "superseded" ||
+    replaced!.supersededById !== replacement!.id ||
+    replacement!.status !== "published"
+  ) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  return chain;
+};
+
 export const decodeBlockedMembers: Decoder<BlockedMembers> = (value) => {
   const contract = "BlockedMembers";
   const source = record(value, contract);

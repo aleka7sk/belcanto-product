@@ -20,7 +20,7 @@ import {
   GrowthSignal,
   groupEvidenceByArea,
 } from "../../patterns/journalPatterns";
-import { AchievementsSection, GoalSection } from "./GrowthSections";
+import { AchievementsSection, AssessmentsSection, GoalSection } from "./GrowthSections";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -219,6 +219,7 @@ export function StudentProgressScreen() {
           ) : null}
         </>
       )}
+      <AssessmentsSection studentId={studentId} />
       <GoalSection canLead={canLead} studentId={studentId} />
       <AchievementsSection
         canLead={canLead}

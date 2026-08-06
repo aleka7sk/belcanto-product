@@ -95,6 +95,12 @@ import {
   type ReportCommunityContentRequest,
   type DecideCommunityReportRequest,
   type BlockCommunityMemberRequest,
+  type Assessment,
+  type AssessmentContentRequest,
+  type UpdateAssessmentRequest,
+  type AssessmentEvidenceRequest,
+  type PublishAssessmentRequest,
+  type WithdrawAssessmentRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -1353,6 +1359,129 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<BlockedMembers> {
     return this.request(routes.blockedCommunityMembers, { accessToken, signal });
+  }
+
+  createAssessment(
+    accessToken: string,
+    studentId: string,
+    body: AssessmentContentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.createAssessment(studentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listStudentAssessments(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment[]> {
+    return this.request(routes.listStudentAssessments(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  getAssessment(
+    accessToken: string,
+    assessmentId: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.getAssessment(assessmentId), { accessToken, signal });
+  }
+
+  updateAssessmentDraft(
+    accessToken: string,
+    assessmentId: string,
+    body: UpdateAssessmentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.updateAssessmentDraft(assessmentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  addAssessmentEvidence(
+    accessToken: string,
+    assessmentId: string,
+    body: AssessmentEvidenceRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.addAssessmentEvidence(assessmentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  removeAssessmentEvidence(
+    accessToken: string,
+    assessmentId: string,
+    evidenceId: string,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.removeAssessmentEvidence(assessmentId, evidenceId), {
+      accessToken,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  publishAssessment(
+    accessToken: string,
+    assessmentId: string,
+    body: PublishAssessmentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.publishAssessment(assessmentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  supersedeAssessment(
+    accessToken: string,
+    assessmentId: string,
+    body: AssessmentContentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment[]> {
+    return this.request(routes.supersedeAssessment(assessmentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  withdrawAssessment(
+    accessToken: string,
+    assessmentId: string,
+    body: WithdrawAssessmentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Assessment> {
+    return this.request(routes.withdrawAssessment(assessmentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
   }
 
   createLesson(
