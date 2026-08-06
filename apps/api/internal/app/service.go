@@ -862,8 +862,8 @@ func (s *Service) ScheduleLesson(ctx context.Context, principal core.Principal, 
 	if err != nil {
 		return core.Lesson{}, err
 	}
-	if len(input.StudentIDs) > 100 {
-		return core.Lesson{}, core.E(core.CodeInvalidInput, "at most 100 Students are allowed", nil)
+	if len(input.StudentIDs) > 3 {
+		return core.Lesson{}, core.E(core.CodeInvalidInput, "a core lesson holds at most three Students (individual holds one)", nil)
 	}
 	input.IdempotencyKey, err = security.ValidateIdempotencyKey(input.IdempotencyKey)
 	if err != nil {

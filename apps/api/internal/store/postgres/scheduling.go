@@ -222,18 +222,18 @@ func (s *Store) ScheduleLesson(ctx context.Context, command core.ScheduleLessonC
 			return core.E(core.CodeConflict, "Teacher or Student has an overlapping Lesson", nil)
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO lessons (
-				id, tenant_id, title, starts_at, duration_minutes, location,
+			INSERT INTO core_lesson_occurrences (
+				id, tenant_id, format, title, starts_at, duration_minutes, location_note,
 				teacher_account_id, status, version, created_by_account_id, created_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7, 'scheduled', 0, $8, $9, $9)
-		`, command.LessonID, command.TenantID, command.Title, command.StartsAt,
+			) VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, 'scheduled', 0, $9, $10, $10)
+		`, command.LessonID, command.TenantID, lessonFormatFor(studentIDs), command.Title, command.StartsAt,
 			command.DurationMinutes, command.Location, command.TeacherAccountID,
 			command.ActorAccountID, command.Now); err != nil {
 			return mapSchedulingWriteError(err, "Lesson conflicts with existing data")
 		}
 		for _, studentID := range studentIDs {
 			if _, err := tx.Exec(ctx, `
-				INSERT INTO lesson_participants (tenant_id, lesson_id, student_id, added_at)
+				INSERT INTO core_lesson_occurrence_participants (tenant_id, occurrence_id, student_id, added_at)
 				VALUES ($1, $2, $3, $4)
 			`, command.TenantID, command.LessonID, studentID, command.Now); err != nil {
 				return mapSchedulingWriteError(err, "Lesson participant conflicts with existing data")
@@ -276,13 +276,13 @@ func (s *Store) ListLessons(ctx context.Context, principal core.Principal, query
 	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT l.id
-		FROM lessons l
+		FROM core_lesson_occurrences l
 		WHERE l.tenant_id = $1 AND l.starts_at >= $2 AND l.starts_at < $3
 		  AND ($4 = '' OR l.teacher_account_id = $4)
 		  AND ($5 = '' OR EXISTS (
-			SELECT 1 FROM lesson_participants filtered_participant
+			SELECT 1 FROM core_lesson_occurrence_participants filtered_participant
 			WHERE filtered_participant.tenant_id = l.tenant_id
-			  AND filtered_participant.lesson_id = l.id
+			  AND filtered_participant.occurrence_id = l.id
 			  AND filtered_participant.student_id = $5
 		  ))
 		  AND (
@@ -290,9 +290,9 @@ func (s *Store) ListLessons(ctx context.Context, principal core.Principal, query
 			OR ($7 <> '' AND l.teacher_account_id = $7)
 			OR ($8 <> '' AND EXISTS (
 				SELECT 1
-				FROM lesson_participants scoped_participant
+				FROM core_lesson_occurrence_participants scoped_participant
 				WHERE scoped_participant.tenant_id = l.tenant_id
-				  AND scoped_participant.lesson_id = l.id
+				  AND scoped_participant.occurrence_id = l.id
 				  AND scoped_participant.student_id = $8
 			))
 		  )
@@ -387,7 +387,7 @@ func (s *Store) ReplaceLessonTeachers(ctx context.Context, command core.ReplaceL
 			plan.lessonID = target.LessonID
 			err := tx.QueryRow(ctx, `
 				SELECT teacher_account_id, starts_at, duration_minutes, status, version
-				FROM lessons
+				FROM core_lesson_occurrences
 				WHERE tenant_id = $1 AND id = $2
 				FOR UPDATE
 			`, command.TenantID, target.LessonID).Scan(&plan.previousTeacherID, &plan.startsAt, &plan.durationMinutes, &plan.status, &plan.version)
@@ -432,7 +432,7 @@ func (s *Store) ReplaceLessonTeachers(ctx context.Context, command core.ReplaceL
 		result = core.LessonTeacherReplacementResult{UpdatedCount: len(plans), Lessons: make([]core.Lesson, 0, len(plans))}
 		for _, plan := range plans {
 			if _, err := tx.Exec(ctx, `
-				UPDATE lessons
+				UPDATE core_lesson_occurrences
 				SET teacher_account_id = $3, version = version + 1, updated_at = $4
 				WHERE tenant_id = $1 AND id = $2
 			`, command.TenantID, plan.lessonID, command.NewTeacherAccountID, command.Now); err != nil {
@@ -686,9 +686,9 @@ func readLesson(ctx context.Context, reader lessonReader, tenantID, lessonID str
 	var status string
 	var location *string
 	err := reader.QueryRow(ctx, `
-		SELECT l.id, l.title, l.starts_at, l.duration_minutes, l.location,
+		SELECT l.id, l.title, l.starts_at, l.duration_minutes, l.location_note,
 		       l.teacher_account_id, teacher_person.full_name, l.status, l.version
-		FROM lessons l
+		FROM core_lesson_occurrences l
 		JOIN accounts teacher_account
 		  ON teacher_account.tenant_id = l.tenant_id AND teacher_account.id = l.teacher_account_id
 		JOIN people teacher_person
@@ -722,10 +722,10 @@ func readLesson(ctx context.Context, reader lessonReader, tenantID, lessonID str
 	result.Students = make([]core.LessonStudent, 0)
 	rows, err := reader.Query(ctx, `
 		SELECT s.id, p.full_name
-		FROM lesson_participants lp
+		FROM core_lesson_occurrence_participants lp
 		JOIN students s ON s.tenant_id = lp.tenant_id AND s.id = lp.student_id
 		JOIN people p ON p.tenant_id = s.tenant_id AND p.id = s.person_id
-		WHERE lp.tenant_id = $1 AND lp.lesson_id = $2
+		WHERE lp.tenant_id = $1 AND lp.occurrence_id = $2
 		ORDER BY p.full_name, s.id
 	`, tenantID, lessonID)
 	if err != nil {
@@ -901,7 +901,7 @@ func lessonScheduleConflict(ctx context.Context, tx pgx.Tx, tenantID string, sta
 	err := tx.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1
-			FROM lessons l
+			FROM core_lesson_occurrences l
 			WHERE l.tenant_id = $1 AND l.status = 'scheduled'
 			  AND l.starts_at < $3
 			  AND l.starts_at + l.duration_minutes * interval '1 minute' > $2
@@ -910,8 +910,8 @@ func lessonScheduleConflict(ctx context.Context, tx pgx.Tx, tenantID string, sta
 				l.teacher_account_id = $4
 				OR EXISTS (
 					SELECT 1
-					FROM lesson_participants lp
-					WHERE lp.tenant_id = l.tenant_id AND lp.lesson_id = l.id
+					FROM core_lesson_occurrence_participants lp
+					WHERE lp.tenant_id = l.tenant_id AND lp.occurrence_id = l.id
 					  AND lp.student_id = ANY($5::text[])
 				)
 			  )
@@ -945,4 +945,13 @@ func mapSchedulingWriteError(err error, conflictMessage string) error {
 		return core.E(core.CodeConflict, conflictMessage, err)
 	}
 	return err
+}
+
+// lessonFormatFor classifies an ad-hoc occurrence under DEC-002: one
+// student is an individual lesson, two or three are a group.
+func lessonFormatFor(studentIDs []string) string {
+	if len(studentIDs) > 1 {
+		return "group"
+	}
+	return "individual"
 }

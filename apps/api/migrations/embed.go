@@ -53,6 +53,12 @@ var policiesPrivacyUp string
 //go:embed 000005_policies_privacy.down.sql
 var policiesPrivacyDown string
 
+//go:embed 000006_rooms_core_lessons.up.sql
+var roomsCoreLessonsUp string
+
+//go:embed 000006_rooms_core_lessons.down.sql
+var roomsCoreLessonsDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -67,6 +73,7 @@ func registeredMigrations() []migration {
 		{version: 3, description: "Belcanto P.1 session security", up: sessionSecurityUp, down: sessionSecurityDown},
 		{version: 4, description: "Belcanto P.1 contacts and two-factor authentication", up: contactTwofaUp, down: contactTwofaDown},
 		{version: 5, description: "Belcanto P.1 policies, privacy and data rights", up: policiesPrivacyUp, down: policiesPrivacyDown},
+		{version: 6, description: "Belcanto L.2 rooms and core lessons", up: roomsCoreLessonsUp, down: roomsCoreLessonsDown},
 	}
 }
 

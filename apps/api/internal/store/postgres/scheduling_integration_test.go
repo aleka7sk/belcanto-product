@@ -231,7 +231,7 @@ func TestPostgreSQLInternalSchedulingAndTeacherContinuity(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(replacedReplay, replaced) {
 		t.Fatalf("replacement replay = %#v, %v", replacedReplay, err)
 	}
-	if _, err := pool.Exec(ctx, `UPDATE lessons SET starts_at = $2 WHERE id = $1`, secondLesson.ID, time.Now().UTC().Add(-time.Hour)); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE core_lesson_occurrences SET starts_at = $2 WHERE id = $1`, secondLesson.ID, time.Now().UTC().Add(-time.Hour)); err != nil {
 		t.Fatalf("prepare past Lesson fixture: %v", err)
 	}
 	_, err = service.ReplaceLessonTeachers(ctx, administrator, app.ReplaceLessonTeachersInput{
@@ -725,7 +725,7 @@ func assertPostgreSQLLessonTeacher(t *testing.T, ctx context.Context, pool *pgxp
 	t.Helper()
 	var storedTeacherID string
 	var storedVersion int64
-	if err := pool.QueryRow(ctx, `SELECT teacher_account_id, version FROM lessons WHERE id = $1`, lessonID).Scan(&storedTeacherID, &storedVersion); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT teacher_account_id, version FROM core_lesson_occurrences WHERE id = $1`, lessonID).Scan(&storedTeacherID, &storedVersion); err != nil {
 		t.Fatalf("read stored Lesson Teacher: %v", err)
 	}
 	if storedTeacherID != teacherAccountID || storedVersion != version {
