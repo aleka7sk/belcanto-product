@@ -4,8 +4,8 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T00:00:00+05:00",
-  "phase": "phase3",
+  "updatedAt": "2026-08-06T12:00:00+05:00",
+  "phase": "ux-overhaul",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
     "rootNodeName": "Document",
@@ -172,6 +172,14 @@
       "evidence": "verification pass (cf9704f): reliability idioms shipped and tested across all verticals — idempotency intents (createIntentIdempotency key/complete/abandon), stale-response guard (latestRequest), session recovery screen, honest error+retry surfaces on every resource screen, outbox worker with retry/backoff/dead_letter; accessibility — src/accessibility/policy.ts (48pt minimum targets, motion policy for reduced-motion, feedback intents) with tests, every production-v2 screen carries accessibilityRole/Label/State (DateChip announces full date + activity count, chips/toggles/rows labelled); localization — typed two-language catalog (ru verbatim from Figma where honest, kk implementation translation flagged for human review) covering all production-v2 surfaces. REMAINING (recorded, needs device or native modules — not honest to claim headless): voice recorder + file picker (expo-av/expo-document-picker) for practice media capture; push channel + quiet hours + permission screens + push privacy (ACT-05..08); Face ID/biometric unlock; offline draft persistence (COM-POST-03, journal offline drafts); RU->i18n sweep of 15 legacy B.0/L.1 screens (inventory: TeacherChange 55, OnboardingDetail 40, CreateLesson 36, AccessDelegation 26, CreateStudent 25, StaffWorkspace 22, SignIn 22, StaffLessons 18, StudentHome 17, Schedule 16, Activation 16, LessonDetail 12, Welcome 5, SessionRecovery 5, + weekday labels in seriesTimeLabel) — new production-v2 screens are fully catalogued; motion design tokens beyond reduced-motion policy."
     },
     {
+      "id": "ux1-foundation",
+      "phase": "ux-overhaul",
+      "status": "completed",
+      "summary": "one Screen scaffold, pinned role navigation with a single tab->route map, 48pt targets, one Button/SegmentedControl/Chip, shared modules on semantic tokens",
+      "evidence": "commit 1973ad3; audit+target in .claude/implementation/ux-overhaul-audit.md; findings closed: NAV-01..08 (floating tab bars pinned via Screen host with Figma 310:20542 geometry tokens; staff schedule tab -> /lessons; teacher today tab -> /teacher cockpit; StaffWorkspace/AccessDelegation/StaffLessons/Create*/Onboarding/TeacherChange host RoleNav), NAV-09..14 (active-tab fallback profile->more, URL-driven segments, replace-semantics, one route map, nav height token), SC-01..03 (PremiumScrollScreen delegates to Screen: navigation slot, no minHeight:viewport; AccountScreenShell delegates with refreshControl/scrollProps passthrough), TT-01..09 (report action 24->48, TaskRow 32->48, chips 34+hitSlop, segments 38+hitSlop with tablist/tab roles, PrimaryButton minHeight, DateChip/rows minHeight floors, one touchMin source), TK-01..02 (components.tsx/lessonComponents.tsx semantic; dead DateStrip deleted - 0 consumers; success color fixed cyan->feedbackSuccess green per Figma tokens), A11Y-01/02 partially (tablist everywhere, announcements toggle switch+checked), LST-03/05 partially (ErrorNotice + refreshing in useAccountResource; wired on Community/TeacherStudents/OwnerOverview/StudentHome/Schedule/LessonDetail; rest per contour). BEHAVIOR CHANGES recorded: tab press replaces navigation stack instead of pushing; teacher today tab now opens /teacher (was staff hub); staff schedule tab opens /lessons (was student-only guard); admin people tab opens staff workspace explicitly; SecondaryButton label textAccent->textPrimary; notice success border green. Gates: mobile:check 43 suites / 230 tests (was 40/214), eslint 0 warnings, tsc strict, validate.py 0/99 baseline.",
+      "deferred": "ErrorNotice sweep + pull-to-refresh + FlatList + IA decomposition ride with slices ux2 (student contour) and ux3 (staff contours) per audit plan; legacy token layer removal blocked until 13 legacy screens migrate; B.0 auth decoration dims stay on metrics until the Page-32 auth re-skin"
+    },
+    {
       "id": "p8-e2e-release",
       "phase": 8,
       "status": "completed",
@@ -180,6 +188,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "5acee917ee754bbb2c9a4c167d24cb91c37c6fe6",
-  "nextSafeAction": "IMPLEMENTATION COMPLETE FOR UNBLOCKED SCOPE. Release remains blocked by open P0 decisions DEC-102 (late cancellation consequences — zero-consequence configured), DEC-103 (guardian consent — community/practice media disabled, text-only enforced), DEC-104 (retention SLA — statuses only, no scheduled erasure). Next engineering work after decisions: recorded future slices in each phase's evidence (chat, operational deep flows, metric-definition analytics, device modules, RU->i18n sweep)."
+  "lastGreenCodeSha": "1973ad3",
+  "nextSafeAction": "UX overhaul in progress per .claude/implementation/ux-overhaul-audit.md. Slice ux1 (foundation) is green and committed. Next: slice ux2 — student contour screen by screen (Вход -> Дом -> Расписание -> Урок -> Практика -> Прогресс decomposition IA-02 -> Сообщество decomposition IA-01 -> Активность -> Профиль): legacy->semantic tokens per screen, ErrorNotice retry + pull-to-refresh wiring, ScreenList/FlatList for feeds, density per Figma storyboard, checkpoint after each 2-3 screen cluster. Then slice ux3 (staff contours). Release blockers unchanged: DEC-102/103/104."
 }

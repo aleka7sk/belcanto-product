@@ -178,4 +178,4 @@ API: `children · navigation? · refreshControl? · scrollProps? · keyboardAwar
 
 | Срез | Закрыто | Примечание |
 |---|---|---|
-| — | — | аудит зафиксирован |
+| ux1 (1973ad3) | NAV-01..14, SC-01..03, TT-01..09, TK-01..02, A11Y-01/02 (частично), LST-03/05 (частично) | ErrorNotice/PTR-разводка по экранам, FlatList и IA-декомпозиция — в срезах ux2/ux3; SC-04 умирает вместе с миграцией экранов на Screen |
