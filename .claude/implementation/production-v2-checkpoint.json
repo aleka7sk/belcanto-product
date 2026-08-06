@@ -204,6 +204,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "5c5207f",
-  "nextSafeAction": "visual warmth level 3 on owner demand: generate warm-language proposals in Figma (new page) for owner approval, then token updates through design/011; dynamic light/dark theme switch (semanticByMode is wired for it; default is light per owner decision 2026-08-06). Release still blocked by DEC-102/103/104."
+  "lastGreenCodeSha": "c7d95dc",
+  "nextSafeAction": "visual language stays dark-first (owner reverted the in-code light/accent pass after seeing it on device, c7d95dc). Any visual direction change starts as Figma proposals for owner approval, then flows through design/011 tokens. Release still blocked by DEC-102/103/104."
 }
