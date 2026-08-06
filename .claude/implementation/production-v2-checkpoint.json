@@ -188,6 +188,14 @@
       "deferred": "slice ux3: staff contours (TeacherToday/TeacherStudents/Assessment*/Operations/OwnerOverview/Series/StaffLessons/StaffWorkspace/Create*/TeacherChange/Onboarding token migration + density + staff feeds virtualization + remaining active-tab checks), then legacy token layer removal from tokens.ts"
     },
     {
+      "id": "ux3-staff-contours",
+      "phase": "ux-overhaul",
+      "status": "completed",
+      "summary": "staff contours on semantic tokens, staff feeds virtualized with retry+PTR, legacy token layer deleted from tokens.ts",
+      "evidence": "commit 231ee5a; TK-03 closed (StaffWorkspace/StaffLessons/CreateLesson/CreateStudent/OnboardingDetail/TeacherChange/AccessDelegation + app.config.ts semantic; sanctioned deltas recorded: workflowEyebrowTop 74->40, homeGutter 18->16, field 18->20, section 30->32, supporting/label->caption/labelM); legacy layer removed - tokens.ts keeps only the semantic projection plus ten B.0 auth/hero decoration dims awaiting the Page-21/32 re-skin; ScreenList on staff lessons (future/journal windows, row builders under test), teacher roster and review queue with PTR; ErrorNotice retry + PTR on TeacherToday/TeacherLesson/AssessmentDetail/Moderation/Series/Operations; LessonCard chevron -> ChevronIcon. Gates: mobile:check 45 suites / 234 tests, eslint 0 warnings, tsc strict, validate.py 0/99.",
+      "deferred": "Moderation queue and Repertoire/EventsCatalog stay ScrollView+map (bounded volumes, recorded); 11 account screens never rendered load errors (pre-existing gap); per-frame visual QA of 242 Figma states and Dynamic Type/VoiceOver passes need a device+human"
+    },
+    {
       "id": "p8-e2e-release",
       "phase": 8,
       "status": "completed",
@@ -196,6 +204,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "3d73209",
-  "nextSafeAction": "UX overhaul per .claude/implementation/ux-overhaul-audit.md: ux1 (foundation) and ux2 (student contour) green and committed. Next: slice ux3 — staff contours (Teacher/Admin/Owner screens: legacy->semantic tokens on StaffLessons/StaffWorkspace/CreateLesson/CreateStudent/OnboardingDetail/TeacherChange/AccessDelegation, retry+PTR on remaining staff screens, roster/lessons feeds to ScreenList, density check), then remove the legacy token layer from tokens.ts once no importers remain. Release blockers unchanged: DEC-102/103/104."
+  "lastGreenCodeSha": "231ee5a",
+  "nextSafeAction": "UX OVERHAUL COMPLETE for the headless scope: ux1 foundation + ux2 student contour + ux3 staff contours are green and pushed (one Screen scaffold with the pinned role navigation, one tab->route map with replace semantics, 48pt targets, one Button/SegmentedControl/Chip, one semantic token system, storyboard IA for community/progress/homework, virtualized activity/community/staff-lessons/roster feeds, retry+pull-to-refresh across resource screens). Device/human steps recorded in ux-overhaul-audit.md register: on-device visual QA against the 242 Figma states, Dynamic Type at large scales, VoiceOver pass, 60fps scroll check on long feeds, kk copy review. Next engineering after that: Page-21/32 re-skin decisions (B.0 hero/auth decoration), 11 account screens without load-error surfaces, chats slice, device modules. Release blockers unchanged: DEC-102/103/104."
 }
