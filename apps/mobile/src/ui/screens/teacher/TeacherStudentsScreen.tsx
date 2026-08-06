@@ -1,19 +1,18 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
 
 import { useApiClient } from "@/api";
 import type { Assessment, StudentDirectoryItem } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountScreenShell,
   ScreenHeading,
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
-import { semantic, typeStyles } from "../../tokens";
+import { SegmentedControl } from "../../segmentedControl";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
 
@@ -22,10 +21,17 @@ import { AccountNav, useAccountResource, useWorkingRole } from "../account/share
  * review queue. Statuses show organisational signals, never «strong»
  * and «weak» students (privacy invariant, verbatim from Page 27).
  * Analytics ships with the administrator workspace — the segment says
- * so honestly instead of pretending.
+ * so honestly instead of pretending. The active segment lives in the
+ * URL, so the «Ревью» tab both opens and switches it.
  */
 
 type Segment = "students" | "review" | "analytics";
+
+export function parseStudentsSegment(raw: string | string[] | undefined): Segment {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "review" || value === "analytics") return value;
+  return "students";
+}
 
 /** Review signal derived from real data only: latest published assessment. */
 export function latestPublished(assessments: readonly Assessment[]): Assessment | null {
@@ -41,31 +47,18 @@ export function TeacherStudentsScreen() {
   const { runAuthenticated } = useSession();
   const workingRole = useWorkingRole();
   const params = useLocalSearchParams<{ segment?: string }>();
-  const [segment, setSegment] = useState<Segment>(
-    params.segment === "review" ? "review" : "students",
-  );
+  const segment = parseStudentsSegment(params.segment);
   const [reviewByStudent, setReviewByStudent] = useState<
     Record<string, Assessment | null>
   >({});
+  const [reviewLoaded, setReviewLoaded] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const students = useAccountResource((accessToken) => api.listStudents(accessToken, {}));
+  const roster = students.value;
 
-  if (workingRole !== "Teacher" && workingRole !== "Owner" && workingRole !== "Administrator") {
-    return (
-      <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-students-guard">
-        <InlineNotice
-          body={message("asmt.guardBody")}
-          title={message("asmt.guardTitle")}
-          tone="error"
-        />
-      </AccountScreenShell>
-    );
-  }
-
-  const roster = students.value ?? [];
-
-  const loadReviewSignals = async () => {
+  const loadReviewSignals = useCallback(async () => {
+    if (roster === null) return;
     setReviewError(null);
     try {
       const entries = await runAuthenticated(async (accessToken) => {
@@ -77,52 +70,64 @@ export function TeacherStudentsScreen() {
         return result;
       });
       setReviewByStudent(entries);
+      setReviewLoaded(true);
     } catch (cause) {
       setReviewError(apiErrorMessage(cause));
     }
-  };
+  }, [api, roster, runAuthenticated]);
 
-  const segments: { key: Segment; label: string }[] = [
-    { key: "students", label: message("asmt.segment.students") },
-    { key: "review", label: message("asmt.segment.review") },
-    { key: "analytics", label: message("asmt.segment.analytics") },
-  ];
+  useEffect(() => {
+    if (segment !== "review" || reviewLoaded || roster === null) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) void loadReviewSignals();
+    });
+    return () => {
+      active = false;
+    };
+  }, [segment, reviewLoaded, roster, loadReviewSignals]);
+
+  if (workingRole !== "Teacher" && workingRole !== "Owner" && workingRole !== "Administrator") {
+    return (
+      <AccountScreenShell navigation={<AccountNav active="students" />} testID="teacher-students-guard">
+        <InlineNotice
+          body={message("asmt.guardBody")}
+          title={message("asmt.guardTitle")}
+          tone="error"
+        />
+      </AccountScreenShell>
+    );
+  }
+
+  const list = roster ?? [];
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-students">
+    <AccountScreenShell
+      navigation={<AccountNav active={segment === "review" ? "review" : "students"} />}
+      testID="teacher-students"
+    >
       <ScreenHeading
         eyebrow={message("asmt.roster.eyebrow")}
         subtitle={message("asmt.roster.subtitle")}
         title={message("asmt.roster.title")}
       />
-      <View style={styles.segments}>
-        {segments.map((entry) => (
-          <Pressable
-            accessibilityLabel={entry.label}
-            accessibilityRole="button"
-            key={entry.key}
-            onPress={() => {
-              setSegment(entry.key);
-              if (entry.key === "review" && Object.keys(reviewByStudent).length === 0) {
-                void loadReviewSignals();
-              }
-            }}
-            style={[styles.segment, segment === entry.key && styles.segmentActive]}
-            testID={`teacher-segment-${entry.key}`}
-          >
-            <Text
-              style={[styles.segmentLabel, segment === entry.key && styles.segmentLabelActive]}
-            >
-              {entry.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SegmentedControl<Segment>
+        accessibilityLabel={message("asmt.roster.title")}
+        active={segment}
+        items={[
+          { key: "students", label: message("asmt.segment.students") },
+          { key: "review", label: message("asmt.segment.review") },
+          { key: "analytics", label: message("asmt.segment.analytics") },
+        ]}
+        onSelect={(key) => router.setParams({ segment: key })}
+        testIDPrefix="teacher-segment"
+      />
       {students.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(students.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void students.reload()}
+          title={message("asmt.roster.title")}
         />
       ) : null}
       {segment === "analytics" ? (
@@ -135,9 +140,14 @@ export function TeacherStudentsScreen() {
       ) : segment === "review" ? (
         <>
           {reviewError !== null ? (
-            <InlineNotice body={reviewError} title={message("common.retry")} tone="error" />
+            <ErrorNotice
+              actionLabel={message("common.retry")}
+              body={reviewError}
+              onAction={() => void loadReviewSignals()}
+              title={message("asmt.segment.review")}
+            />
           ) : null}
-          {roster.map((item: StudentDirectoryItem) => {
+          {list.map((item: StudentDirectoryItem) => {
             const latest = reviewByStudent[item.studentId];
             return (
               <StatusRow
@@ -167,7 +177,7 @@ export function TeacherStudentsScreen() {
         </>
       ) : (
         <>
-          {roster.map((item: StudentDirectoryItem) => (
+          {list.map((item: StudentDirectoryItem) => (
             <StatusRow
               key={item.studentId}
               onPress={() =>
@@ -194,21 +204,3 @@ export function TeacherStudentsScreen() {
     </AccountScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  segments: { flexDirection: "row", gap: 6 },
-  segment: {
-    alignItems: "center",
-    backgroundColor: semantic.bgRaised,
-    borderRadius: 14,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 38,
-  },
-  segmentActive: { backgroundColor: semantic.bgAction },
-  segmentLabel: {
-    color: semantic.textSecondary,
-    ...typeStyles.labelM,
-  },
-  segmentLabelActive: { color: semantic.textOnAction },
-});

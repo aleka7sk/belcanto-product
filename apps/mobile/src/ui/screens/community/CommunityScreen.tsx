@@ -7,7 +7,7 @@ import { useApiClient } from "@/api";
 import type { CommunityPost, PolicyVersion } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -16,6 +16,7 @@ import {
 } from "../../patterns/accountPatterns";
 import { CommunityPostCard } from "../../patterns/communityPatterns";
 import { PremiumContextHero } from "../../patterns/premiumContextHero";
+import { SegmentedControl } from "../../segmentedControl";
 import { radius, semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
@@ -142,17 +143,19 @@ export function CommunityScreen() {
     await Promise.all([policies.reload(), feed.reload()]);
   };
 
-  const tabs: { key: CommunityTab; label: string }[] = [
-    { key: "feed", label: message("com.tab.feed") },
-    { key: "events", label: message("com.tab.events") },
-    { key: "chats", label: message("com.tab.chats") },
-  ];
-
   return (
     <AccountScreenShell
       navigation={<AccountNav active="community" />}
       testID="community-home"
     >
+      {policies.error !== null ? (
+        <ErrorNotice
+          actionLabel={message("common.retry")}
+          body={apiErrorMessage(policies.error)}
+          onAction={() => void policies.reload()}
+          title={message("com.gate.eyebrow")}
+        />
+      ) : null}
       {pendingGuidelines !== null ? (
         <GuidelinesGate onAccepted={reloadAll} policy={pendingGuidelines} />
       ) : (
@@ -166,33 +169,30 @@ export function CommunityScreen() {
             role={workingRole === null ? "Student" : navigationRoleFor(workingRole)}
             title={message("com.hero.title")}
           />
-          <View style={styles.tabs}>
-            {tabs.map((entry) => (
-              <Pressable
-                accessibilityLabel={entry.label}
-                accessibilityRole="button"
-                key={entry.key}
-                onPress={() => {
-                  if (entry.key === "events") {
-                    router.push("/(protected)/events");
-                    return;
-                  }
-                  setTab(entry.key);
-                }}
-                style={[styles.tab, tab === entry.key && styles.tabActive]}
-                testID={`community-tab-${entry.key}`}
-              >
-                <Text style={[styles.tabLabel, tab === entry.key && styles.tabLabelActive]}>
-                  {entry.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <SegmentedControl<CommunityTab>
+            accessibilityLabel={message("com.hero.title")}
+            active={tab}
+            activeColor={semantic.bgCommunity}
+            items={[
+              { key: "feed", label: message("com.tab.feed") },
+              { key: "events", label: message("com.tab.events"), role: "link" },
+              { key: "chats", label: message("com.tab.chats") },
+            ]}
+            onSelect={(key) => {
+              if (key === "events") {
+                router.push("/(protected)/events");
+                return;
+              }
+              setTab(key);
+            }}
+            testIDPrefix="community-tab"
+          />
           {feed.error !== null ? (
-            <InlineNotice
+            <ErrorNotice
+              actionLabel={message("common.retry")}
               body={apiErrorMessage(feed.error)}
-              title={message("common.retry")}
-              tone="error"
+              onAction={() => void feed.reload()}
+              title={message("com.hero.title")}
             />
           ) : null}
           {tab === "chats" ? (
@@ -209,7 +209,8 @@ export function CommunityScreen() {
             <>
               <Pressable
                 accessibilityLabel={message("com.space.announcements")}
-                accessibilityRole="button"
+                accessibilityRole="switch"
+                accessibilityState={{ checked: announcementsOnly }}
                 onPress={() => setAnnouncementsOnly((current) => !current)}
                 style={[styles.spaceCard, announcementsOnly && styles.spaceCardActive]}
                 testID="community-space-announcements"
@@ -261,21 +262,6 @@ export function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  tabs: { flexDirection: "row", gap: space.s2 },
-  tab: {
-    alignItems: "center",
-    backgroundColor: semantic.bgRaised,
-    borderRadius: 14,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 38,
-  },
-  tabActive: { backgroundColor: semantic.bgCommunity },
-  tabLabel: {
-    color: semantic.textSecondary,
-    ...typeStyles.labelM,
-  },
-  tabLabelActive: { color: semantic.textOnAction },
   spaceCard: {
     backgroundColor: semantic.bgRaised,
     borderColor: semantic.borderGlass,

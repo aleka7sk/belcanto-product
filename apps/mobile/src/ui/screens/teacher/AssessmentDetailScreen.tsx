@@ -66,7 +66,7 @@ export function AssessmentDetailScreen() {
 
   if (assessmentId === "") {
     return (
-      <AccountScreenShell navigation={<AccountNav active="today" />} testID="assessment-guard">
+      <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-guard">
         <InlineNotice
           body={message("asmt.compose.guardBody")}
           title={message("asmt.compose.guardTitle")}
@@ -126,7 +126,7 @@ export function AssessmentDetailScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="today" />} testID="assessment-detail">
+    <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-detail">
       {view === null ? (
         assessment.error !== null ? (
           <InlineNotice

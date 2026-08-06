@@ -92,7 +92,7 @@ export function AssessmentComposeScreen() {
 
   if (studentId === "" && supersedeId === "") {
     return (
-      <AccountScreenShell navigation={<AccountNav active="today" />} testID="assessment-compose-guard">
+      <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-compose-guard">
         <InlineNotice
           body={message("asmt.compose.guardBody")}
           title={message("asmt.compose.guardTitle")}
@@ -176,7 +176,7 @@ export function AssessmentComposeScreen() {
       evidenceNote.trim() === "");
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="today" />} testID="assessment-compose">
+    <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-compose">
       <ScreenHeading
         eyebrow={message(supersedeId !== "" ? "asmt.compose.supersedeEyebrow" : "asmt.compose.eyebrow")}
         subtitle={message("asmt.compose.subtitle")}

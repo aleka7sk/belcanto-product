@@ -34,6 +34,7 @@ import {
   typeScale,
 } from "../tokens";
 import { apiErrorMessage, formIssueMap, formatBelcantoDate } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 type DelegationFieldErrors = Partial<
   Record<"reason" | "currentPassword", string | undefined>
@@ -94,7 +95,7 @@ export function AccessDelegationScreen() {
   if (bootstrap === null) return null;
   if (!canDelegateStudentOnboarding(bootstrap)) {
     return (
-      <PremiumScrollScreen contentStyle={styles.centered}>
+      <PremiumScrollScreen contentStyle={styles.centered} navigation={<RoleNav active="team" />}>
         <InlineNotice
           body="Выдавать и отзывать доступ суперадминистратора может только владелец."
           title="Нет разрешения"
@@ -192,7 +193,7 @@ export function AccessDelegationScreen() {
   };
 
   return (
-    <PremiumScrollScreen keyboardAware contentStyle={styles.content}>
+    <PremiumScrollScreen keyboardAware contentStyle={styles.content} navigation={<RoleNav active="team" />}>
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>ДОСТУП ВЛАДЕЛЬЦА</Text>

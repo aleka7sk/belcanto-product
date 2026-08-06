@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { NavigationRole, TabDefinition, TabKey } from "../navigation/tabs";
 import { tabsForRole } from "../navigation/tabs";
 import { Icon } from "./icons";
-import { opacities, radius, semantic, space, strokes } from "./tokens";
+import { navigation, opacities, radius, semantic, space, strokes } from "./tokens";
 
 /**
  * RoleBottomNav — implementation of «Bottom Navigation · Production»
@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.s1,
     justifyContent: "center",
-    maxWidth: 366,
-    minHeight: 68,
+    maxWidth: navigation.maxWidth,
+    minHeight: navigation.height,
     padding: space.s1,
     width: "100%",
   },
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: space.s1,
     justifyContent: "center",
-    minHeight: 56,
+    minHeight: navigation.itemMinHeight,
     paddingHorizontal: space.s1,
     paddingVertical: space.s2,
   },

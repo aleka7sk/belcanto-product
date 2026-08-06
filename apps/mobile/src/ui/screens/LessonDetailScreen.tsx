@@ -8,17 +8,17 @@ import { useApiClient, type FirstMinute, type Lesson } from "@/api";
 import { useSession } from "@/session";
 import {
   AmbientGlow,
+  ErrorNotice,
   InlineNotice,
   PremiumCard,
   PremiumScrollScreen,
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { useMessage } from "@/i18n";
 import { InitialsAvatar } from "../lessonComponents";
-import { RoleBottomNav } from "../roleNavigation";
 import { colors, fonts, gradients, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 function lessonStarted(lesson: Lesson): boolean {
   return new Date(lesson.startsAt).getTime() <= Date.now();
@@ -32,7 +32,6 @@ export function LessonDetailScreen({
   firstMinute: FirstMinute;
 }) {
   const api = useApiClient();
-  const message = useMessage();
   const { state, runAuthenticated } = useSession();
   const bootstrap = state.bootstrap;
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -62,7 +61,7 @@ export function LessonDetailScreen({
   const selfStudentId = bootstrap.studentId;
   if (!bootstrap.roles.includes("Student") || !canReadLessons(bootstrap)) {
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <InlineNotice title="Урок недоступен" body="У этой учётной записи нет ученического доступа к уроку." tone="error" />
         <SecondaryButton label="Вернуться" onPress={() => router.replace("/(protected)")} />
       </PremiumScrollScreen>
@@ -70,15 +69,21 @@ export function LessonDetailScreen({
   }
 
   return (
-    <PremiumScrollScreen gutter={metrics.homeGutter}>
+    <PremiumScrollScreen
+      gutter={metrics.homeGutter}
+      navigation={<RoleNav active="schedule" />}
+      testID="lesson-detail"
+    >
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       {loading ? <PremiumCard><Text style={uiStyles.body}>Открываем урок…</Text></PremiumCard> : null}
       {error ? (
-        <View style={styles.stack}>
-          <InlineNotice title="Урок не открылся" body={error} tone="error" />
-          <SecondaryButton label="Повторить" onPress={() => void load()} />
-        </View>
+        <ErrorNotice
+          actionLabel="Повторить"
+          body={error}
+          onAction={() => void load()}
+          title="Урок не открылся"
+        />
       ) : null}
       {lesson ? (
         <>
@@ -136,28 +141,6 @@ export function LessonDetailScreen({
           ) : null}
         </>
       ) : null}
-      <RoleBottomNav
-        active="schedule"
-        isTabEnabled={(tab) =>
-          tab.key === "today" ||
-          tab.key === "schedule" ||
-          tab.key === "practice" ||
-          tab.key === "profile"
-        }
-        label={(key) => message(`nav.${key}`)}
-        onSelectTab={(tab) => {
-          if (tab.key === "today") {
-            router.replace("/(protected)");
-          } else if (tab.key === "schedule") {
-            router.replace("/(protected)/schedule");
-          } else if (tab.key === "practice") {
-            router.push("/(protected)/practice");
-          } else if (tab.key === "profile") {
-            router.push("/(protected)/account");
-          }
-        }}
-        role="Student"
-      />
     </PremiumScrollScreen>
   );
 }

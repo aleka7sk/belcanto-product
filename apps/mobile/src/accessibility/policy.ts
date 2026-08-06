@@ -1,4 +1,7 @@
-export const MINIMUM_INTERACTIVE_TARGET = 48;
+import { sizes } from "../ui/tokens";
+
+/** The one minimum interactive target — sourced from the token layer. */
+export const MINIMUM_INTERACTIVE_TARGET: number = sizes.touchMin;
 
 export function meetsMinimumInteractiveTarget(width: number, height: number): boolean {
   return width >= MINIMUM_INTERACTIVE_TARGET && height >= MINIMUM_INTERACTIVE_TARGET;

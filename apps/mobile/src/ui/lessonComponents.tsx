@@ -1,27 +1,17 @@
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { Lesson } from "@/api";
 
-import { colors, fonts, gradients, metrics, radii, spacing, typeScale } from "./tokens";
-import {
-  dateKey,
-  formatLessonDay,
-  formatLessonTime,
-  initials,
-} from "./viewModels";
+import { gradients, radius, semantic, sizes, space, strokes, typeStyles } from "./tokens";
+import { formatLessonDay, formatLessonTime, initials } from "./viewModels";
 
-export function InitialsAvatar({ name, size = 48 }: { name: string; size?: number }) {
+export function InitialsAvatar({ name, size = sizes.avatarMd }: { name: string; size?: number }) {
   return (
     <LinearGradient
-      accessibilityLabel={`Педагог ${name}`}
+      accessibilityElementsHidden
       colors={gradients.badge}
+      importantForAccessibility="no-hide-descendants"
       style={[styles.avatar, { borderRadius: size / 2, height: size, width: size }]}
     >
       <Text style={styles.avatarText}>{initials(name)}</Text>
@@ -77,53 +67,6 @@ export function LessonCard({
   );
 }
 
-export function DateStrip({
-  dates,
-  selected,
-  onSelect,
-}: {
-  dates: readonly Date[];
-  selected: string;
-  onSelect(value: string): void;
-}) {
-  const weekday = new Intl.DateTimeFormat("ru-RU", {
-    weekday: "short",
-    timeZone: "Asia/Almaty",
-  });
-  return (
-    <ScrollView
-      accessibilityLabel="Выбор дня"
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.dateStrip}
-    >
-      {dates.map((date) => {
-        const key = dateKey(date);
-        const active = key === selected;
-        return (
-          <Pressable
-            accessibilityLabel={`${weekday.format(date)}, ${date.getDate()}`}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            key={key}
-            onPress={() => onSelect(key)}
-            style={styles.dateTarget}
-          >
-            <View style={[styles.datePill, active && styles.datePillActive]}>
-              <Text style={[styles.dateWeekday, active && styles.dateTextActive]}>
-                {weekday.format(date).replace(".", "").toUpperCase()}
-              </Text>
-              <Text style={[styles.dateNumber, active && styles.dateTextActive]}>
-                {date.getDate()}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
 export function SelectableRow({
   label,
   supporting,
@@ -142,7 +85,7 @@ export function SelectableRow({
       accessibilityHint={supporting}
       accessibilityLabel={label}
       accessibilityRole={kind}
-      accessibilityState={kind === "radio" ? { checked: selected } : { checked: selected }}
+      accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={({ pressed }) => [
         styles.selectionRow,
@@ -150,7 +93,13 @@ export function SelectableRow({
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.selectionMark, kind === "radio" && styles.radioMark, selected && styles.selectionMarkSelected]}>
+      <View
+        style={[
+          styles.selectionMark,
+          kind === "radio" && styles.radioMark,
+          selected && styles.selectionMarkSelected,
+        ]}
+      >
         <Text style={styles.selectionCheck}>{selected ? "✓" : ""}</Text>
       </View>
       <View style={styles.selectionCopy}>
@@ -164,101 +113,81 @@ export function SelectableRow({
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    borderColor: colors.borderGlass,
-    borderWidth: metrics.borderWidth,
+    borderColor: semantic.borderGlass,
+    borderWidth: strokes.hairline,
     justifyContent: "center",
   },
   avatarText: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    ...typeScale.sectionTitle,
+    color: semantic.textPrimary,
+    ...typeStyles.labelL,
   },
-  lessonPressable: { borderRadius: radii.feature, overflow: "hidden" },
+  lessonPressable: { borderRadius: radius.xl, overflow: "hidden" },
   pressed: { opacity: 0.78 },
   lessonCard: {
     alignItems: "center",
-    borderColor: colors.borderGlass,
-    borderRadius: radii.feature,
-    borderWidth: metrics.borderWidth,
+    borderColor: semantic.borderGlass,
+    borderRadius: radius.xl,
+    borderWidth: strokes.hairline,
     flexDirection: "row",
     minHeight: 104,
-    padding: spacing.lg,
+    padding: space.s4,
   },
   lessonDate: {
     alignItems: "center",
-    borderRightColor: colors.borderGlass,
-    borderRightWidth: metrics.borderWidth,
+    borderRightColor: semantic.borderGlass,
+    borderRightWidth: strokes.hairline,
     minWidth: 62,
-    paddingRight: spacing.md,
+    paddingRight: space.s3,
   },
   lessonDay: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
+    color: semantic.textGold,
     textTransform: "uppercase",
-    ...typeScale.micro,
+    ...typeStyles.labelM,
   },
   lessonTime: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    marginTop: spacing.xs,
-    ...typeScale.cardTitle,
+    color: semantic.textPrimary,
+    marginTop: space.s1,
+    ...typeStyles.headingM,
   },
-  lessonCopy: { flex: 1, paddingHorizontal: spacing.md },
-  lessonTitle: { color: colors.textPrimary, fontFamily: fonts.bold, ...typeScale.sectionTitle },
+  lessonCopy: { flex: 1, paddingHorizontal: space.s3 },
+  lessonTitle: { color: semantic.textPrimary, ...typeStyles.labelL },
   lessonSupporting: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: spacing.sm,
-    ...typeScale.supporting,
+    color: semantic.textSecondary,
+    marginTop: space.s2,
+    ...typeStyles.caption,
   },
-  chevron: { color: colors.textAccent, fontFamily: fonts.bold, fontSize: 26 },
-  dateStrip: { gap: spacing.sm },
-  dateTarget: {
-    alignItems: "center",
-    height: metrics.minimumTarget,
-    justifyContent: "center",
-    width: metrics.minimumTarget,
-  },
-  datePill: {
-    alignItems: "center",
-    borderRadius: radii.control,
-    height: 48,
-    justifyContent: "center",
-    width: 42,
-  },
-  datePillActive: { backgroundColor: colors.violet },
-  dateWeekday: { color: colors.textMuted, fontFamily: fonts.semibold, ...typeScale.micro },
-  dateNumber: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    marginTop: spacing.xxs,
-    ...typeScale.body,
-  },
-  dateTextActive: { color: colors.textOnAction },
+  chevron: { color: semantic.textAccent, fontFamily: "Onest_700Bold", fontSize: 26 },
   selectionRow: {
     alignItems: "center",
-    backgroundColor: colors.raised,
-    borderColor: colors.borderGlass,
-    borderRadius: radii.compactCard,
-    borderWidth: metrics.borderWidth,
+    backgroundColor: semantic.bgRaised,
+    borderColor: semantic.borderGlass,
+    borderRadius: 18,
+    borderWidth: strokes.hairline,
     flexDirection: "row",
     minHeight: 68,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: space.s4,
   },
-  selectionRowSelected: { borderColor: colors.violet },
+  selectionRowSelected: { borderColor: semantic.borderAccent },
   selectionMark: {
     alignItems: "center",
-    borderColor: colors.textMuted,
+    borderColor: semantic.textMuted,
     borderRadius: 6,
-    borderWidth: 1,
-    height: 22,
+    borderWidth: strokes.hairline,
     justifyContent: "center",
-    width: 22,
+    minHeight: 22,
+    minWidth: 22,
   },
-  radioMark: { borderRadius: 11 },
-  selectionMarkSelected: { backgroundColor: colors.violet, borderColor: colors.violet },
-  selectionCheck: { color: colors.textOnAction, fontFamily: fonts.bold, fontSize: 14 },
-  selectionCopy: { flex: 1, marginLeft: spacing.md },
-  selectionLabel: { color: colors.textPrimary, fontFamily: fonts.semibold, ...typeScale.body },
-  selectionSupporting: { color: colors.textMuted, fontFamily: fonts.regular, marginTop: spacing.xs, ...typeScale.supporting },
+  radioMark: { borderRadius: radius.pill },
+  selectionMarkSelected: {
+    backgroundColor: semantic.bgAction,
+    borderColor: semantic.borderAccent,
+  },
+  selectionCheck: { color: semantic.textOnAction, ...typeStyles.labelL },
+  selectionCopy: { flex: 1, marginLeft: space.s3 },
+  selectionLabel: { color: semantic.textPrimary, ...typeStyles.labelL },
+  selectionSupporting: {
+    color: semantic.textMuted,
+    marginTop: space.s1,
+    ...typeStyles.caption,
+  },
 });

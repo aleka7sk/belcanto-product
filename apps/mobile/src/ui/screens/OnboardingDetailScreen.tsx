@@ -47,6 +47,7 @@ import {
   formatBelcantoDate,
   onboardingStateCopy,
 } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 type FirstMinuteErrors = Partial<
   Record<keyof FirstMinuteDraft, string | undefined>
@@ -124,7 +125,7 @@ export function OnboardingDetailScreen() {
   }
   if (studentId === undefined) {
     return (
-      <PremiumScrollScreen contentStyle={styles.centered}>
+      <PremiumScrollScreen contentStyle={styles.centered} navigation={<RoleNav active="people" />}>
         <InlineNotice
           body="В адресе экрана отсутствует идентификатор ученика. Вернитесь в очередь и откройте запись заново."
           title="Некорректная ссылка"
@@ -136,7 +137,7 @@ export function OnboardingDetailScreen() {
   }
   if (!canOpenStudentOnboardingQueue(bootstrap)) {
     return (
-      <PremiumScrollScreen contentStyle={styles.centered}>
+      <PremiumScrollScreen contentStyle={styles.centered} navigation={<RoleNav active="people" />}>
         <InlineNotice
           body="У этой учётной записи нет доступа к очереди учеников."
           title="Нет разрешения"
@@ -148,7 +149,7 @@ export function OnboardingDetailScreen() {
   }
   if (error || item === null) {
     return (
-      <PremiumScrollScreen contentStyle={styles.centered}>
+      <PremiumScrollScreen contentStyle={styles.centered} navigation={<RoleNav active="people" />}>
         <InlineNotice
           body={error ?? "Ученик не найден."}
           title="Путь не открылся"
@@ -310,7 +311,7 @@ export function OnboardingDetailScreen() {
   };
 
   return (
-    <PremiumScrollScreen keyboardAware contentStyle={styles.content}>
+    <PremiumScrollScreen keyboardAware contentStyle={styles.content} navigation={<RoleNav active="people" />}>
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>{copy.eyebrow}</Text>

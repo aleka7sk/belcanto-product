@@ -41,6 +41,7 @@ import {
   onboardingStateCopy,
   roleLabel,
 } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 export function StaffWorkspaceScreen({
   onOpenStudent,
@@ -119,6 +120,7 @@ export function StaffWorkspaceScreen({
   return (
     <PremiumScrollScreen
       gutter={metrics.homeGutter}
+      navigation={<RoleNav active="people" />}
       scrollProps={{
         refreshControl: (
           <RefreshControl
@@ -130,6 +132,7 @@ export function StaffWorkspaceScreen({
           />
         ),
       }}
+      testID="staff-workspace"
     >
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>

@@ -22,6 +22,7 @@ import {
 } from "../components";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime, roleLabel } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 function splitLessons(lessons: Lesson[]): { upcoming: Lesson[]; past: Lesson[] } {
   const nowMs = Date.now();
@@ -87,7 +88,7 @@ export function StaffLessonsScreen() {
   if (bootstrap === null) return null;
   if (!canReadLessons(bootstrap)) {
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <InlineNotice title="Раздел недоступен" body="Нет права просматривать занятия." tone="error" />
         <SecondaryButton label="Назад" onPress={() => router.back()} />
       </PremiumScrollScreen>
@@ -100,6 +101,8 @@ export function StaffLessonsScreen() {
   return (
     <PremiumScrollScreen
       gutter={metrics.homeGutter}
+      navigation={<RoleNav active="schedule" />}
+      testID="staff-lessons"
       scrollProps={{
         refreshControl: (
           <RefreshControl

@@ -3,11 +3,9 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ImageBackground,
-  ScrollView,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,15 +14,14 @@ import { useApiClient } from "@/api";
 import { useSession } from "@/session";
 import stageHero from "../../../assets/images/welcome-stage.png";
 import {
-  AppSurface,
+  ErrorNotice,
   FeatureCard,
   PremiumCard,
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { useMessage } from "@/i18n";
 import { LessonCard } from "../lessonComponents";
-import { RoleBottomNav } from "../roleNavigation";
+import { Screen } from "../screen";
 import {
   colors,
   fonts,
@@ -34,6 +31,7 @@ import {
   typeScale,
 } from "../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 export function StudentHomeScreen({
   fullName,
@@ -47,8 +45,6 @@ export function StudentHomeScreen({
   onOpenStaff?: (() => void) | undefined;
 }) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const message = useMessage();
   const api = useApiClient();
   const { signOut, runAuthenticated } = useSession();
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -90,13 +86,15 @@ export function StudentHomeScreen({
     router.replace("/");
   };
   return (
-    <AppSurface>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { minHeight: height }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.column}>
-          <ImageBackground
+    <Screen
+      contentGap={0}
+      gutter={0}
+      navigation={<RoleNav active="today" />}
+      testID="student-home"
+      topInset={false}
+    >
+      <View style={styles.column}>
+        <ImageBackground
             accessibilityIgnoresInvertColors
             accessible={false}
             resizeMode="cover"
@@ -138,11 +136,12 @@ export function StudentHomeScreen({
               <PremiumCard><Text style={uiStyles.body}>Загружаем расписание…</Text></PremiumCard>
             ) : null}
             {lessonError ? (
-              <PremiumCard>
-                <Text style={uiStyles.sectionTitle}>Расписание не загрузилось</Text>
-                <Text style={[uiStyles.body, styles.cardIntro]}>{lessonError}</Text>
-                <SecondaryButton label="Повторить" onPress={() => void loadLessons()} />
-              </PremiumCard>
+              <ErrorNotice
+                actionLabel="Повторить"
+                body={lessonError}
+                onAction={() => void loadLessons()}
+                title="Расписание не загрузилось"
+              />
             ) : null}
             {!loadingLessons && !lessonError && lessons[0] ? (
               <LessonCard
@@ -197,30 +196,9 @@ export function StudentHomeScreen({
               />
             ) : null}
             <SecondaryButton label="Выйти" onPress={() => void leave()} />
-            <RoleBottomNav
-              active="today"
-              isTabEnabled={(tab) =>
-                tab.key === "today" ||
-                tab.key === "schedule" ||
-                tab.key === "practice" ||
-                tab.key === "profile"
-              }
-              label={(key) => message(`nav.${key}`)}
-              onSelectTab={(tab) => {
-                if (tab.key === "schedule") {
-                  router.push("/(protected)/schedule");
-                } else if (tab.key === "practice") {
-                  router.push("/(protected)/practice");
-                } else if (tab.key === "profile") {
-                  router.push("/(protected)/account");
-                }
-              }}
-              role="Student"
-            />
           </View>
-        </View>
-      </ScrollView>
-    </AppSurface>
+      </View>
+    </Screen>
   );
 }
 
@@ -245,7 +223,6 @@ function FocusRow({
 }
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, width: "100%" },
   column: {
     alignSelf: "center",
     flex: 1,

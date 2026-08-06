@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { CommunityComment, CommunityPost } from "@/api/contracts";
 import type { MessageFormatter } from "@/i18n";
 import { radius, semantic, sizes, space, strokes, typeStyles } from "../tokens";
+
 import { formatBelcantoDate } from "../viewModels";
 
 /**
@@ -311,7 +312,7 @@ const bubbleStyles = StyleSheet.create({
   },
   reportAction: {
     justifyContent: "center",
-    minHeight: space.s6,
+    minHeight: sizes.touchMin,
   },
   reportLabel: {
     color: semantic.textMuted,

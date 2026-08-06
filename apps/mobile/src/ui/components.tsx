@@ -2,15 +2,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  useWindowDimensions,
   type KeyboardTypeOptions,
   type ScrollViewProps,
   type TextInputProps,
@@ -23,15 +19,26 @@ import authBadge from "../../assets/images/auth-badge.png";
 import authGlow from "../../assets/images/auth-glow.png";
 import authSuccessBadge from "../../assets/images/auth-success-badge.png";
 
+import { Button } from "./button";
+import { Screen } from "./screen";
 import {
-  colors,
-  fonts,
   gradients,
   metrics,
-  radii,
-  spacing,
-  typeScale,
+  opacities,
+  radius,
+  semantic,
+  sizes,
+  space,
+  strokes,
+  typeStyles,
 } from "./tokens";
+
+/*
+ * Shared building blocks, fully on the semantic token layer. The only
+ * legacy remainder is `metrics` for the B.0 auth decoration dimensions
+ * (BrandBadge, AmbientGlow) — replaced when the Page-32 auth re-skin
+ * lands.
+ */
 
 export function AppSurface({ children }: { children: ReactNode }) {
   return <View style={styles.surface}>{children}</View>;
@@ -43,49 +50,38 @@ export interface PremiumScrollScreenProps {
   gutter?: number;
   contentStyle?: ViewStyle;
   scrollProps?: Omit<ScrollViewProps, "contentContainerStyle">;
+  /** Fixed bottom navigation host (never scrolls with content). */
+  navigation?: ReactNode | undefined;
+  testID?: string | undefined;
 }
 
+/**
+ * @deprecated Thin delegate over the unified Screen scaffold; screens
+ * migrate to Screen directly, contour by contour.
+ */
 export function PremiumScrollScreen({
   children,
   keyboardAware = false,
-  gutter = metrics.authGutter,
+  gutter = space.s5,
   contentStyle,
   scrollProps,
+  navigation,
+  testID,
 }: PremiumScrollScreenProps) {
-  const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const content = (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-      {...scrollProps}
-      contentContainerStyle={[
-        styles.scrollContent,
-        {
-          minHeight: height,
-          paddingTop: insets.top + spacing.lg,
-          paddingBottom: insets.bottom + spacing.xxl,
-          paddingHorizontal: gutter,
-        },
-        contentStyle,
-      ]}
-    >
-      <View style={styles.contentColumn}>{children}</View>
-    </ScrollView>
-  );
+  const { refreshControl, ...restScrollProps } = scrollProps ?? {};
   return (
-    <AppSurface>
-      {keyboardAware ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.flex}
-        >
-          {content}
-        </KeyboardAvoidingView>
-      ) : (
-        content
-      )}
-    </AppSurface>
+    <Screen
+      contentGap={0}
+      contentStyle={contentStyle}
+      gutter={gutter}
+      keyboardAware={keyboardAware}
+      navigation={navigation}
+      refreshControl={refreshControl}
+      scrollProps={restScrollProps}
+      testID={testID}
+    >
+      {children}
+    </Screen>
   );
 }
 
@@ -95,7 +91,7 @@ export function AmbientGlow() {
     <View
       accessible={false}
       pointerEvents="none"
-      style={[styles.ambientGlow, { top: -(insets.top + spacing.lg) }]}
+      style={[styles.ambientGlow, { top: -(insets.top + space.s6) }]}
     >
       <Image
         accessibilityIgnoresInvertColors
@@ -219,10 +215,10 @@ export const PremiumTextField = forwardRef<TextInput, PremiumTextFieldProps>(
               onFocus={() => setFocused(true)}
               onSubmitEditing={onSubmitEditing}
               placeholder={placeholder}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={semantic.textMuted}
               returnKeyType={returnKeyType}
               secureTextEntry={secureTextEntry && !revealed}
-              selectionColor={colors.violet}
+              selectionColor={semantic.accentViolet}
               style={[
                 styles.input,
                 secureTextEntry && styles.inputWithAction,
@@ -236,7 +232,7 @@ export const PremiumTextField = forwardRef<TextInput, PremiumTextFieldProps>(
               <Pressable
                 accessibilityLabel={revealed ? "Скрыть пароль" : "Показать пароль"}
                 accessibilityRole="button"
-                hitSlop={spacing.xs}
+                hitSlop={space.s1}
                 onPress={() => setRevealed((current) => !current)}
                 style={styles.revealAction}
               >
@@ -276,28 +272,17 @@ export function PrimaryButton({
   accessibilityHint,
   testID,
 }: PrimaryButtonProps) {
-  const unavailable = busy || disabled;
   return (
-    <Pressable
+    <Button
       accessibilityHint={accessibilityHint}
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ busy, disabled: unavailable }}
-      disabled={unavailable}
+      busy={busy}
+      disabled={disabled}
+      kind="primary"
+      label={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.primaryButton,
-        pressed && !unavailable && styles.primaryButtonPressed,
-        unavailable && styles.disabledButton,
-      ]}
+      shape="pill"
       testID={testID}
-    >
-      {busy ? (
-        <ActivityIndicator color={colors.textOnAction} />
-      ) : (
-        <Text style={styles.primaryButtonText}>{label}</Text>
-      )}
-    </Pressable>
+    />
   );
 }
 
@@ -313,27 +298,14 @@ export function SecondaryButton({
   tone?: "default" | "danger";
 }) {
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
+    <Button
       disabled={disabled}
+      kind="secondary"
+      label={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.secondaryButton,
-        pressed && styles.secondaryButtonPressed,
-        disabled && styles.disabled,
-      ]}
-    >
-      <Text
-        style={[
-          styles.secondaryButtonText,
-          tone === "danger" && styles.dangerText,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
+      shape="pill"
+      tone={tone}
+    />
   );
 }
 
@@ -347,14 +319,13 @@ export function TextAction({
   align?: "center" | "right";
 }) {
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
+    <Button
+      align={align === "right" ? "right" : "stretch"}
+      kind="text"
+      label={label}
       onPress={onPress}
-      style={[styles.textAction, align === "right" && styles.textActionRight]}
-    >
-      <Text style={styles.textActionText}>{label}</Text>
-    </Pressable>
+      shape="pill"
+    />
   );
 }
 
@@ -411,106 +382,136 @@ export function InlineNotice({
   );
 }
 
+/**
+ * ErrorNotice — a load/action failure the member can actually retry.
+ * Every resource screen renders this instead of a bare InlineNotice, so
+ * «Повторить» is a working control, not a promise in a title.
+ */
+export function ErrorNotice({
+  title,
+  body,
+  actionLabel,
+  onAction,
+  testID,
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string | undefined;
+  onAction?: (() => void) | undefined;
+  testID?: string | undefined;
+}) {
+  return (
+    <View style={styles.errorStack} testID={testID}>
+      <InlineNotice body={body} title={title} tone="error" />
+      {onAction !== undefined && actionLabel !== undefined ? (
+        <Button kind="secondary" label={actionLabel} onPress={onAction} shape="block" />
+      ) : null}
+    </View>
+  );
+}
+
 export function LoadingScreen({ label = "Загружаем пространство Belcanto" }) {
   return (
     <AppSurface>
       <View accessibilityLabel={label} accessibilityRole="progressbar" style={styles.loading}>
         <BrandBadge />
-        <ActivityIndicator color={colors.violet} size="large" />
+        <ActivityIndicator color={semantic.accentViolet} size="large" />
         <Text style={styles.loadingText}>{label}</Text>
       </View>
     </AppSurface>
   );
 }
 
+/**
+ * @deprecated Legacy type helper for the remaining B.0 screens; colors
+ * already semantic, metric literals preserved for visual parity until
+ * each consumer migrates to typeStyles.
+ */
 export const uiStyles = StyleSheet.create({
   brand: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    ...typeScale.brand,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 13,
+    letterSpacing: 2.4,
+    lineHeight: 17,
   },
   eyebrow: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
-    ...typeScale.eyebrow,
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
   },
   screenTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    ...typeScale.screenTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 28,
+    lineHeight: 34,
   },
   sectionTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.semibold,
-    ...typeScale.sectionTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 16,
+    lineHeight: 21,
   },
   cardTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    ...typeScale.cardTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
   },
   body: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    ...typeScale.body,
+    color: semantic.textSecondary,
+    ...typeStyles.bodyS,
   },
   supporting: {
-    color: colors.textMuted,
-    fontFamily: fonts.regular,
-    ...typeScale.supporting,
+    color: semantic.textMuted,
+    ...typeStyles.caption,
   },
 });
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  surface: { backgroundColor: colors.canvas, flex: 1 },
-  scrollContent: { flexGrow: 1, width: "100%" },
-  contentColumn: {
-    alignSelf: "center",
-    maxWidth: metrics.contentMaxWidth,
-    width: "100%",
-  },
+  surface: { backgroundColor: semantic.bgCanvas, flex: 1 },
   ambientGlow: {
     height: metrics.authGlowHeight,
     position: "absolute",
-    right: -metrics.authGutter,
+    right: -space.s5,
     width: metrics.authGlowWidth,
   },
   authGlowImage: { height: "100%", width: "100%" },
   badge: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   badgeImage: { height: "100%", position: "absolute", width: "100%" },
-  fieldStack: { gap: spacing.xxs },
-  fieldStackInvalid: { minHeight: metrics.errorInputMinHeight },
+  fieldStack: { gap: space.s1 },
+  fieldStackInvalid: { minHeight: sizes.inputErrorMin },
   badgeText: {
-    color: colors.textOnAction,
-    fontFamily: fonts.extrabold,
+    color: semantic.textOnAction,
+    fontFamily: "Onest_800ExtraBold",
     fontSize: 34,
     includeFontPadding: false,
     lineHeight: 43,
     textAlign: "center",
   },
-  badgeTextLarge: { fontFamily: fonts.bold, fontSize: 36, lineHeight: 46 },
+  badgeTextLarge: { fontFamily: "Onest_700Bold", fontSize: 36, lineHeight: 46 },
   field: {
-    backgroundColor: colors.raised,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    borderWidth: metrics.borderWidth,
+    backgroundColor: semantic.bgRaised,
+    borderColor: semantic.borderDefault,
+    borderRadius: radius.md,
+    borderWidth: strokes.hairline,
     justifyContent: "center",
-    minHeight: metrics.inputMinHeight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 9,
+    minHeight: sizes.inputMin,
+    paddingHorizontal: space.s3,
+    paddingVertical: space.s2,
   },
   multilineField: { minHeight: 116 },
-  fieldFocused: { borderColor: colors.violet },
-  fieldInvalid: { borderColor: colors.danger },
-  disabled: { opacity: 0.42 },
+  fieldFocused: { borderColor: semantic.borderAccent },
+  fieldInvalid: { borderColor: semantic.feedbackDanger },
+  disabled: { opacity: opacities.disabled },
   fieldLabel: {
-    color: colors.textMuted,
-    fontFamily: fonts.medium,
-    ...typeScale.label,
+    color: semantic.textMuted,
+    ...typeStyles.labelM,
   },
-  fieldLabelFocused: { color: colors.textAccent },
-  fieldLabelInvalid: { color: colors.danger },
+  fieldLabelFocused: { color: semantic.textAccent },
+  fieldLabelInvalid: { color: semantic.feedbackDanger },
   inputRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -518,133 +519,83 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   input: {
-    color: colors.textPrimary,
+    color: semantic.textPrimary,
     flex: 1,
-    fontFamily: fonts.regular,
-    fontSize: typeScale.body.fontSize,
+    fontFamily: typeStyles.bodyS.fontFamily,
+    fontSize: typeStyles.bodyS.fontSize,
     includeFontPadding: false,
-    lineHeight: typeScale.body.lineHeight,
+    lineHeight: typeStyles.bodyS.lineHeight,
     minHeight: 30,
     padding: 0,
   },
-  multilineInput: { minHeight: 72, paddingTop: spacing.xs, textAlignVertical: "top" },
-  inputWithAction: { paddingRight: spacing.sm },
+  multilineInput: { minHeight: 72, paddingTop: space.s1, textAlignVertical: "top" },
+  inputWithAction: { paddingRight: space.s2 },
   revealAction: {
     alignItems: "center",
-    height: metrics.minimumTarget,
     justifyContent: "center",
-    minWidth: metrics.minimumTarget,
+    minHeight: sizes.touchMin,
+    minWidth: sizes.touchMin,
     position: "absolute",
-    right: -spacing.xs,
-    top: -9,
+    right: -space.s1,
+    top: -space.s2,
   },
   revealText: {
-    color: colors.textAccent,
-    fontFamily: fonts.semibold,
-    ...typeScale.label,
+    color: semantic.textAccent,
+    ...typeStyles.labelM,
   },
   fieldError: {
-    color: colors.danger,
-    fontFamily: fonts.regular,
-    ...typeScale.label,
+    color: semantic.feedbackDanger,
+    ...typeStyles.caption,
   },
   fieldHelper: {
-    color: colors.textMuted,
-    fontFamily: fonts.regular,
-    ...typeScale.label,
-  },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.violet,
-    borderRadius: radii.pill,
-    height: metrics.minimumTarget,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  primaryButtonPressed: { backgroundColor: colors.violetPressed },
-  disabledButton: { backgroundColor: colors.surface, opacity: 0.42 },
-  primaryButtonText: {
-    color: colors.textOnAction,
-    fontFamily: fonts.semibold,
-    fontSize: typeScale.body.fontSize,
-    lineHeight: typeScale.body.lineHeight,
-  },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.raised,
-    borderColor: colors.borderGlass,
-    borderRadius: radii.pill,
-    borderWidth: metrics.borderWidth,
-    minHeight: metrics.minimumTarget,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  secondaryButtonPressed: { backgroundColor: colors.surface },
-  secondaryButtonText: {
-    color: colors.textAccent,
-    fontFamily: fonts.semibold,
-    ...typeScale.body,
-  },
-  dangerText: { color: colors.danger },
-  textAction: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: metrics.minimumTarget,
-    paddingHorizontal: spacing.sm,
-  },
-  textActionRight: { alignSelf: "flex-end" },
-  textActionText: {
-    color: colors.textAccent,
-    fontFamily: fonts.semibold,
-    ...typeScale.supporting,
+    color: semantic.textMuted,
+    ...typeStyles.caption,
   },
   card: {
-    backgroundColor: colors.raised,
-    borderColor: colors.borderGlass,
-    borderRadius: radii.card,
-    borderWidth: metrics.borderWidth,
-    padding: spacing.lg,
+    backgroundColor: semantic.bgRaised,
+    borderColor: semantic.borderGlass,
+    borderRadius: 20,
+    borderWidth: strokes.hairline,
+    padding: space.s4,
   },
   featureCard: {
-    borderColor: colors.borderGlass,
-    borderRadius: radii.feature,
-    borderWidth: metrics.borderWidth,
+    borderColor: semantic.borderGlass,
+    borderRadius: radius.xl,
+    borderWidth: strokes.hairline,
     overflow: "hidden",
-    padding: spacing.lg,
+    padding: space.s4,
   },
   notice: {
-    backgroundColor: colors.raised,
-    borderColor: colors.borderGlass,
-    borderLeftColor: colors.violet,
+    backgroundColor: semantic.bgRaised,
+    borderColor: semantic.borderGlass,
+    borderLeftColor: semantic.accentViolet,
     borderLeftWidth: 4,
-    borderRadius: radii.compactCard,
-    borderWidth: metrics.borderWidth,
-    gap: spacing.sm,
-    padding: spacing.lg,
+    borderRadius: 18,
+    borderWidth: strokes.hairline,
+    gap: space.s2,
+    padding: space.s4,
   },
-  noticeError: { borderLeftColor: colors.danger },
-  noticeSuccess: { borderLeftColor: colors.success },
+  noticeError: { borderLeftColor: semantic.feedbackDanger },
+  noticeSuccess: { borderLeftColor: semantic.feedbackSuccess },
   noticeTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.semibold,
-    ...typeScale.body,
+    color: semantic.textPrimary,
+    ...typeStyles.labelL,
   },
   noticeBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    ...typeScale.supporting,
+    color: semantic.textSecondary,
+    ...typeStyles.caption,
   },
+  errorStack: { gap: space.s3 },
   loading: {
     alignItems: "center",
     flex: 1,
-    gap: spacing.xxl,
+    gap: space.s6,
     justifyContent: "center",
-    padding: spacing.xl,
+    padding: space.s5,
   },
   loadingText: {
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
+    color: semantic.textSecondary,
+    ...typeStyles.bodyS,
     textAlign: "center",
-    ...typeScale.body,
   },
 });

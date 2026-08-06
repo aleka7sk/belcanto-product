@@ -1,17 +1,18 @@
 import { LinearGradient } from "expo-linear-gradient";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
-  ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
+  type RefreshControlProps,
+  type ScrollViewProps,
   type ViewStyle,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "../button";
 import { ChevronIcon, Icon, type IconName } from "../icons";
+import { Screen } from "../screen";
 import {
   gradients,
   opacities,
@@ -26,8 +27,8 @@ import {
 /**
  * Account & Security pattern kit (Figma Page 32). One vocabulary for the
  * 31 ACC/AUTH states: screen heading, status card, status row, settings
- * row (List Row 135:147), banner, block actions and the fixed bottom
- * navigation host. Status tones mirror the design's four status colors.
+ * row (List Row 135:147), banner and block actions. The screen frame
+ * itself lives in the unified Screen scaffold.
  */
 
 export type StatusTone = "success" | "warning" | "danger" | "info" | "muted";
@@ -40,39 +41,37 @@ const toneColor: Record<StatusTone, string> = {
   muted: semantic.textMuted,
 };
 
+/**
+ * @deprecated Thin delegate over the unified Screen scaffold — kept so
+ * the account-area screens migrate name-by-name without churn.
+ */
 export function AccountScreenShell({
   children,
   navigation,
+  refreshControl,
+  scrollProps,
+  keyboardAware,
   testID,
 }: {
   children: ReactNode;
   navigation?: ReactNode | undefined;
+  refreshControl?: ReactElement<RefreshControlProps> | undefined;
+  scrollProps?:
+    | Omit<ScrollViewProps, "contentContainerStyle" | "refreshControl">
+    | undefined;
+  keyboardAware?: boolean | undefined;
   testID?: string | undefined;
 }) {
-  const insets = useSafeAreaInsets();
-  const navReserve = navigation ? 68 + space.s3 * 2 : space.s5;
   return (
-    <View style={styles.shell} testID={testID}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom: insets.bottom + navReserve + space.s5,
-            paddingTop: insets.top + space.s6,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
-      {navigation ? (
-        <View
-          style={[styles.navigationHost, { bottom: insets.bottom + space.s3 }]}
-        >
-          {navigation}
-        </View>
-      ) : null}
-    </View>
+    <Screen
+      keyboardAware={keyboardAware}
+      navigation={navigation}
+      refreshControl={refreshControl}
+      scrollProps={scrollProps}
+      testID={testID}
+    >
+      {children}
+    </Screen>
   );
 }
 
@@ -311,7 +310,11 @@ export function AccountBanner({
   );
 }
 
-/** «Action · …» — 52-pt block action (primary fill or raised secondary). */
+/**
+ * «Action · …» — 52-pt block action.
+ * @deprecated Thin delegate over the unified Button; call sites migrate
+ * to Button contour by contour.
+ */
 export function BlockAction({
   label,
   onPress,
@@ -327,37 +330,16 @@ export function BlockAction({
   disabled?: boolean | undefined;
   testID?: string | undefined;
 }) {
-  const unavailable = busy || disabled;
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ busy, disabled: unavailable }}
-      disabled={unavailable}
+    <Button
+      busy={busy}
+      disabled={disabled}
+      kind={kind}
+      label={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        kind === "primary" ? styles.primaryAction : styles.secondaryAction,
-        pressed && !unavailable && styles.pressed,
-        unavailable && styles.disabled,
-      ]}
+      shape="block"
       testID={testID}
-    >
-      {busy ? (
-        <ActivityIndicator
-          color={kind === "primary" ? semantic.textOnAction : semantic.textPrimary}
-        />
-      ) : (
-        <Text
-          style={
-            kind === "primary"
-              ? styles.primaryActionLabel
-              : styles.secondaryActionLabel
-          }
-        >
-          {label}
-        </Text>
-      )}
-    </Pressable>
+    />
   );
 }
 
@@ -407,16 +389,6 @@ export function PatternGap({ style }: { style?: ViewStyle }) {
 }
 
 const styles = StyleSheet.create({
-  shell: { backgroundColor: semantic.bgCanvas, flex: 1 },
-  scrollContent: {
-    gap: space.s3,
-    paddingHorizontal: space.s4,
-  },
-  navigationHost: {
-    left: space.s3,
-    position: "absolute",
-    right: space.s3,
-  },
   heading: { gap: space.s1 },
   eyebrow: { color: semantic.textGold, ...typeStyles.labelM },
   title: { color: semantic.textPrimary, ...typeStyles.headingL },
@@ -444,6 +416,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: strokes.hairline,
     gap: space.s1,
+    justifyContent: "center",
+    minHeight: sizes.touchMin,
     padding: 14,
   },
   statusRowTitle: {
@@ -465,6 +439,7 @@ const styles = StyleSheet.create({
     borderWidth: strokes.hairline,
     flexDirection: "row",
     gap: space.s3,
+    minHeight: sizes.touchMin + space.s5,
     padding: space.s3,
   },
   settingsRowEmphasis: { backgroundColor: semantic.bgRaised },
@@ -494,24 +469,6 @@ const styles = StyleSheet.create({
     ...typeStyles.caption,
     letterSpacing: 0.2,
   },
-  primaryAction: {
-    alignItems: "center",
-    backgroundColor: semantic.bgAction,
-    borderRadius: radius.lg,
-    justifyContent: "center",
-    minHeight: 52,
-  },
-  primaryActionLabel: { color: semantic.textOnAction, ...typeStyles.labelL },
-  secondaryAction: {
-    alignItems: "center",
-    backgroundColor: semantic.bgRaised,
-    borderColor: semantic.borderDefault,
-    borderRadius: radius.lg,
-    borderWidth: strokes.hairline,
-    justifyContent: "center",
-    minHeight: 52,
-  },
-  secondaryActionLabel: { color: semantic.textPrimary, ...typeStyles.labelL },
   hero: {
     alignItems: "center",
     backgroundColor: semantic.bgSurface,

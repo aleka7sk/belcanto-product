@@ -31,7 +31,7 @@ export function OperationsScreen() {
 
   if (!manager) {
     return (
-      <AccountScreenShell navigation={<AccountNav active="today" />} testID="operations-guard">
+      <AccountScreenShell navigation={<AccountNav active="operations" />} testID="operations-guard">
         <InlineNotice
           body={message("adm.guardBody")}
           title={message("adm.guardTitle")}
@@ -51,7 +51,7 @@ export function OperationsScreen() {
 
   return (
     <AccountScreenShell
-      navigation={<AccountNav active={workingRole === "Owner" ? "operations" : "operations"} />}
+      navigation={<AccountNav active="operations" />}
       testID="operations-home"
     >
       <ScreenHeading

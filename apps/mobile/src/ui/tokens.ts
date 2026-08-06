@@ -196,6 +196,23 @@ export const sizes = {
   avatarSm: 32,
   avatarMd: 48,
   avatarLg: 72,
+  /** Text-field shell heights (Page 32 field / 347:213 composer). */
+  inputMin: 64,
+  inputErrorMin: 82,
+} as const;
+
+/**
+ * Bottom-navigation host geometry — projection of the Figma component
+ * «Bottom Navigation · Production» (310:20542) and its fixed host frame
+ * on every production screen (x=12, y=768, 366×68 inside the 390×844
+ * viewport): the bar is pinned outside the scroll, never inside it.
+ */
+export const navigation = {
+  height: 68,
+  itemMinHeight: 56,
+  sideInset: space.s3,
+  bottomGap: space.s2,
+  maxWidth: 366,
 } as const;
 
 export const strokes = {
@@ -287,6 +304,26 @@ export const elevation = {
   },
 } as const;
 
+/**
+ * Gradient fills used by feature cards, hero overlays and the initials
+ * avatar. Values ship with the approved B.0 visual layer and stay until
+ * the Page 21/32 re-skin replaces the surfaces that consume them.
+ */
+export const gradients = {
+  feature: ["#7D3BED", "#211245"] as const,
+  badge: ["#9C70FF", "#5C29BD"] as const,
+  welcomeOverlay: [
+    "rgba(8,5,18,0.05)",
+    "rgba(8,5,18,0.42)",
+    "#080512",
+  ] as const,
+  homeOverlay: [
+    "rgba(8,5,18,0.05)",
+    "rgba(8,5,18,0.25)",
+    "#080512",
+  ] as const,
+} as const;
+
 /*
  * Legacy exports below predate the Pages 19–37 handoff and keep the shipped
  * B.0/L.1 screens compiling. New production components must consume the
@@ -315,21 +352,6 @@ export const colors = {
   success: "#67E8F9",
   transparent: "rgba(0,0,0,0)",
   scrim: "rgba(7,6,17,0.72)",
-} as const;
-
-export const gradients = {
-  feature: ["#7D3BED", "#211245"] as const,
-  badge: ["#9C70FF", "#5C29BD"] as const,
-  welcomeOverlay: [
-    "rgba(8,5,18,0.05)",
-    "rgba(8,5,18,0.42)",
-    "#080512",
-  ] as const,
-  homeOverlay: [
-    "rgba(8,5,18,0.05)",
-    "rgba(8,5,18,0.25)",
-    "#080512",
-  ] as const,
 } as const;
 
 export const radii = {

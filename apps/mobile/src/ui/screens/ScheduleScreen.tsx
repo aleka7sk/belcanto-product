@@ -12,20 +12,20 @@ import {
 import { useSession } from "@/session";
 import {
   AmbientGlow,
+  ErrorNotice,
   InlineNotice,
   PremiumCard,
   PremiumScrollScreen,
   SecondaryButton,
   uiStyles,
 } from "../components";
-import { useMessage } from "@/i18n";
 import {
   AgendaEntry,
   type AgendaEntryState,
 } from "../patterns/agendaEntry";
 import { DateChip } from "../patterns/dateChip";
-import { RoleBottomNav } from "../roleNavigation";
 import { colors, fonts, spacing, metrics, typeScale } from "../tokens";
+import { RoleNav } from "./account/shared";
 import {
   apiErrorMessage,
   dateKey,
@@ -102,7 +102,6 @@ export function dayAgenda(
 
 export function ScheduleScreen() {
   const api = useApiClient();
-  const message = useMessage();
   const { state, runAuthenticated } = useSession();
   const bootstrap = state.bootstrap;
   const dates = useMemo(() => nextScheduleDates(new Date(), 7), []);
@@ -147,7 +146,7 @@ export function ScheduleScreen() {
   if (bootstrap === null) return null;
   if (!bootstrap.roles.includes("Student") || !canReadLessons(bootstrap)) {
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <InlineNotice title="Раздел недоступен" body="Расписание доступно ученику и сотрудникам с правом просмотра уроков." tone="error" />
         <SecondaryButton
           label="Каталог событий"
@@ -174,7 +173,11 @@ export function ScheduleScreen() {
   const agenda = dayAgenda(lessons, registered, selectedDate);
 
   return (
-    <PremiumScrollScreen gutter={metrics.homeGutter}>
+    <PremiumScrollScreen
+      gutter={metrics.homeGutter}
+      navigation={<RoleNav active="schedule" />}
+      testID="student-schedule"
+    >
       <AmbientGlow />
       <Text style={styles.eyebrow}>{MONTH_EYEBROW.format(selected).toUpperCase()}</Text>
       <Text accessibilityRole="header" style={styles.title}>Моё расписание</Text>
@@ -202,10 +205,12 @@ export function ScheduleScreen() {
       </Text>
       {loading ? <PremiumCard><Text style={uiStyles.body}>Загружаем расписание…</Text></PremiumCard> : null}
       {error ? (
-        <View style={styles.stack}>
-          <InlineNotice title="Расписание не загрузилось" body={error} tone="error" />
-          <SecondaryButton label="Повторить" onPress={() => void load()} />
-        </View>
+        <ErrorNotice
+          actionLabel="Повторить"
+          body={error}
+          onAction={() => void load()}
+          title="Расписание не загрузилось"
+        />
       ) : null}
       {!loading && !error && agenda.length === 0 ? (
         <PremiumCard>
@@ -263,29 +268,6 @@ export function ScheduleScreen() {
           ),
         )}
       </View>
-      <RoleBottomNav
-        active="schedule"
-        isTabEnabled={(tab) =>
-          tab.key === "today" ||
-          tab.key === "schedule" ||
-          tab.key === "practice" ||
-          tab.key === "community" ||
-          tab.key === "profile"
-        }
-        label={(key) => message(`nav.${key}`)}
-        onSelectTab={(tab) => {
-          if (tab.key === "today") {
-            router.replace("/(protected)");
-          } else if (tab.key === "practice") {
-            router.push("/(protected)/practice");
-          } else if (tab.key === "community") {
-            router.push("/(protected)/community");
-          } else if (tab.key === "profile") {
-            router.push("/(protected)/account");
-          }
-        }}
-        role="Student"
-      />
     </PremiumScrollScreen>
   );
 }

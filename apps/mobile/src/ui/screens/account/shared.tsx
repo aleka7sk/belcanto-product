@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { navigationRoleFor, resolveActiveRole, useActiveRole } from "@/access/activeRole";
@@ -6,30 +6,17 @@ import type { Role } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
 import type { TabKey } from "@/navigation/tabs";
+import { resolveActiveTab, tabTarget } from "@/navigation/routes";
 
 import { RoleBottomNav } from "../../roleNavigation";
 
 /**
- * Shared scaffolding for the Account & Security area (Page 32). The
- * bottom navigation always reflects the active working role; modules that
- * are not built yet stay visible but inert (HOF-03 — no empty slots).
+ * The one bottom-navigation host of the application. Every screen that
+ * shows the tab bar renders this component inside the Screen scaffold's
+ * navigation slot; where a tab leads is decided once, in
+ * navigation/routes.ts. Tab switches replace the current entry — the
+ * stack never grows from moving between tabs.
  */
-
-const BUILT_TABS: ReadonlySet<TabKey> = new Set([
-  "today",
-  "schedule",
-  "practice",
-  "community",
-  "profile",
-  "students",
-  "review",
-  "operations",
-  "people",
-  "overview",
-  "analytics",
-  "team",
-  "more",
-]);
 
 export function useWorkingRole(): Role | null {
   const { state } = useSession();
@@ -42,40 +29,22 @@ export function AccountNav({ active = "profile" }: { active?: TabKey }) {
   const message = useMessage();
   const workingRole = useWorkingRole();
   if (workingRole === null) return null;
+  const navigationRole = navigationRoleFor(workingRole);
   return (
     <RoleBottomNav
-      active={active}
-      isTabEnabled={(tab) => BUILT_TABS.has(tab.key)}
+      active={resolveActiveTab(navigationRole, active)}
       label={(key) => message(`nav.${key}`)}
       onSelectTab={(tab) => {
-        if (tab.key === "today") router.push("/(protected)");
-        if (tab.key === "schedule") router.push("/(protected)/schedule");
-        if (tab.key === "practice") router.push("/(protected)/practice");
-        if (tab.key === "community") router.push("/(protected)/community");
-        if (tab.key === "profile") router.push("/(protected)/account");
-        if (tab.key === "students") router.push("/(protected)/teacher/students");
-        if (tab.key === "review") {
-          router.push({
-            pathname: "/(protected)/teacher/students",
-            params: { segment: "review" },
-          });
-        }
-        if (tab.key === "operations") router.push("/(protected)/operations");
-        if (tab.key === "people") router.push("/(protected)");
-        if (tab.key === "overview") router.push("/(protected)/overview");
-        if (tab.key === "analytics") {
-          router.push({
-            pathname: "/(protected)/overview",
-            params: { segment: "analytics" },
-          });
-        }
-        if (tab.key === "team") router.push("/(protected)/access");
-        if (tab.key === "more") router.push("/(protected)/account");
+        const target = tabTarget(navigationRole, tab.key);
+        if (target !== null) router.replace(target as Href);
       }}
-      role={navigationRoleFor(workingRole)}
+      role={navigationRole}
     />
   );
 }
+
+/** Readable name outside the account area; the very same host. */
+export const RoleNav = AccountNav;
 
 /**
  * Load an authenticated resource on focus with reload support. Stale
@@ -87,6 +56,8 @@ export function useAccountResource<Value>(
   value: Value | null;
   error: unknown;
   loading: boolean;
+  /** A reload while previous data is still shown — pull-to-refresh state. */
+  refreshing: boolean;
   reload: () => Promise<void>;
 } {
   const { runAuthenticated } = useSession();
@@ -128,7 +99,7 @@ export function useAccountResource<Value>(
     };
   }, [reload]);
 
-  return { value, error, loading, reload };
+  return { value, error, loading, refreshing: loading && value !== null, reload };
 }
 
 export function initialsOf(fullName: string): string {

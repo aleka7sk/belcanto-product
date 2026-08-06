@@ -29,6 +29,7 @@ import { SelectableRow } from "../lessonComponents";
 import { createLatestRequestGuard } from "../latestRequest";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formIssueMap } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 type Errors = Partial<Record<keyof CreateLessonDraft, string | undefined>>;
 
@@ -121,7 +122,7 @@ export function CreateLessonScreen() {
   if (bootstrap === null) return null;
   if (!canCreateLessons(bootstrap)) {
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <InlineNotice title="Нет разрешения" body="Создавать занятия может владелец, администратор или педагог." tone="error" />
         <SecondaryButton label="Назад" onPress={() => router.back()} />
       </PremiumScrollScreen>
@@ -182,7 +183,7 @@ export function CreateLessonScreen() {
   };
 
   return (
-    <PremiumScrollScreen keyboardAware contentStyle={styles.content}>
+    <PremiumScrollScreen keyboardAware contentStyle={styles.content} navigation={<RoleNav active="schedule" />}>
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>НОВОЕ ЗАНЯТИЕ</Text>

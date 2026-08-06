@@ -44,6 +44,7 @@ import {
 } from "../teacherChangeState";
 import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 type Mode = "permanent" | "temporary";
 type Review =
@@ -181,7 +182,7 @@ export function TeacherChangeScreen() {
   if (bootstrap === null) return null;
   if (!allowed) {
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <InlineNotice
           title="Нет разрешения"
           body="Временно заменить или постоянно переназначить педагога может только владелец или администратор."
@@ -375,7 +376,7 @@ export function TeacherChangeScreen() {
         : review.command.body.lessons.length;
     const total = review.mode === "permanent" ? eligibleStudents.length : visibleLessons.length;
     return (
-      <PremiumScrollScreen>
+      <PremiumScrollScreen navigation={<RoleNav active="schedule" />}>
         <AmbientGlow />
         <Text style={styles.brand}>BELCANTO</Text>
         <Text style={styles.eyebrow}>ПРОВЕРКА ИЗМЕНЕНИЯ</Text>
@@ -415,7 +416,7 @@ export function TeacherChangeScreen() {
   }
 
   return (
-    <PremiumScrollScreen keyboardAware contentStyle={styles.content}>
+    <PremiumScrollScreen keyboardAware contentStyle={styles.content} navigation={<RoleNav active="schedule" />}>
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>УПРАВЛЕНИЕ ПЕДАГОГОМ</Text>

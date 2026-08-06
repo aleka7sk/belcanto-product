@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { ProgressEvidence } from "@/api/contracts";
+import { Chip } from "../chip";
 import { radius, semantic, sizes, space, strokes, typeStyles } from "../tokens";
 
 /**
@@ -211,7 +212,10 @@ export function EvidenceTile({
   );
 }
 
-/** Skill-constellation pill adapted as an area filter (STU-GROWTH-01). */
+/**
+ * Skill-constellation pill adapted as an area filter (STU-GROWTH-01).
+ * @deprecated Thin delegate over the unified Chip.
+ */
 export function AreaChip({
   label,
   accent,
@@ -226,24 +230,7 @@ export function AreaChip({
   testID?: string | undefined;
 }) {
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.areaChip,
-        { borderColor: active ? accent : semantic.borderDefault },
-        pressed && styles.pressed,
-      ]}
-      testID={testID}
-    >
-      <Text
-        style={[styles.areaChipLabel, { color: active ? accent : semantic.textMuted }]}
-      >
-        {label}
-      </Text>
-    </Pressable>
+    <Chip accent={accent} active={active} label={label} onPress={onPress} testID={testID} />
   );
 }
 
@@ -355,15 +342,5 @@ const styles = StyleSheet.create({
   evidenceNote: { color: semantic.textSecondary, ...typeStyles.bodyS },
   evidenceStatus: { ...typeStyles.labelM },
   evidenceVisibility: { color: semantic.textMuted, ...typeStyles.caption },
-  areaChip: {
-    alignItems: "center",
-    backgroundColor: semantic.bgSurface,
-    borderRadius: radius.pill,
-    borderWidth: strokes.default,
-    height: 34,
-    justifyContent: "center",
-    paddingHorizontal: space.s3,
-  },
-  areaChipLabel: { ...typeStyles.caption },
   pressed: { opacity: 0.85 },
 });

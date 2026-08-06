@@ -1,16 +1,16 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
-import { InlineNotice } from "../components";
+import { ErrorNotice, InlineNotice } from "../components";
 import {
   AccountScreenShell,
   StatusCard,
   StatusRow,
 } from "../patterns/accountPatterns";
 import { PremiumContextHero } from "../patterns/premiumContextHero";
+import { SegmentedControl } from "../segmentedControl";
 import { semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "./account/shared";
@@ -26,21 +26,25 @@ import { AccountNav, useAccountResource, useWorkingRole } from "./account/shared
 
 type Segment = "overview" | "governance" | "analytics";
 
+export function parseOverviewSegment(raw: string | string[] | undefined): Segment {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "analytics" || value === "governance") return value;
+  return "overview";
+}
+
 export function OwnerOverviewScreen() {
   const message = useMessage();
   const api = useApiClient();
   const workingRole = useWorkingRole();
   const params = useLocalSearchParams<{ segment?: string }>();
-  const [segment, setSegment] = useState<Segment>(
-    params.segment === "analytics" ? "analytics" : "overview",
-  );
+  const segment = parseOverviewSegment(params.segment);
 
   const summary = useAccountResource((accessToken) => api.operationsSummary(accessToken));
   const policies = useAccountResource((accessToken) => api.listPolicies(accessToken));
 
   if (workingRole !== "Owner" && workingRole !== "Administrator") {
     return (
-      <AccountScreenShell navigation={<AccountNav active="today" />} testID="overview-guard">
+      <AccountScreenShell navigation={<AccountNav active="overview" />} testID="overview-guard">
         <InlineNotice
           body={message("own.guardBody")}
           title={message("own.guardTitle")}
@@ -51,14 +55,14 @@ export function OwnerOverviewScreen() {
   }
 
   const view = summary.value;
-  const segments: { key: Segment; label: string }[] = [
-    { key: "overview", label: message("own.segment.overview") },
-    { key: "governance", label: message("own.segment.governance") },
-    { key: "analytics", label: message("own.segment.analytics") },
-  ];
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="overview" />} testID="owner-overview">
+    <AccountScreenShell
+      navigation={
+        <AccountNav active={segment === "analytics" ? "analytics" : "overview"} />
+      }
+      testID="owner-overview"
+    >
       <PremiumContextHero
         body={message("own.hero.body")}
         eyebrow={message("own.hero.eyebrow")}
@@ -73,29 +77,23 @@ export function OwnerOverviewScreen() {
         role="Owner"
         title={message("own.hero.title")}
       />
-      <View style={styles.segments}>
-        {segments.map((entry) => (
-          <Pressable
-            accessibilityLabel={entry.label}
-            accessibilityRole="button"
-            key={entry.key}
-            onPress={() => setSegment(entry.key)}
-            style={[styles.segment, segment === entry.key && styles.segmentActive]}
-            testID={`owner-segment-${entry.key}`}
-          >
-            <Text
-              style={[styles.segmentLabel, segment === entry.key && styles.segmentLabelActive]}
-            >
-              {entry.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SegmentedControl<Segment>
+        accessibilityLabel={message("own.hero.title")}
+        active={segment}
+        items={[
+          { key: "overview", label: message("own.segment.overview") },
+          { key: "governance", label: message("own.segment.governance") },
+          { key: "analytics", label: message("own.segment.analytics") },
+        ]}
+        onSelect={(key) => router.setParams({ segment: key })}
+        testIDPrefix="owner-segment"
+      />
       {summary.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(summary.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void summary.reload()}
+          title={message("own.hero.title")}
         />
       ) : null}
       {segment === "analytics" ? (
@@ -209,18 +207,6 @@ export function OwnerOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  segments: { flexDirection: "row", gap: 6 },
-  segment: {
-    alignItems: "center",
-    backgroundColor: semantic.bgRaised,
-    borderRadius: 14,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 38,
-  },
-  segmentActive: { backgroundColor: semantic.bgAction },
-  segmentLabel: { color: semantic.textSecondary, ...typeStyles.labelM },
-  segmentLabelActive: { color: semantic.textOnAction },
   section: { color: semantic.textGold, ...typeStyles.labelM },
   metricsRow: { flexDirection: "row", gap: space.s3 },
   metric: {

@@ -35,6 +35,7 @@ import {
   typeScale,
 } from "../tokens";
 import { apiErrorMessage, formIssueMap } from "../viewModels";
+import { RoleNav } from "./account/shared";
 
 type CreateStudentErrors = Partial<
   Record<keyof CreateStudentDraft, string | undefined>
@@ -96,7 +97,7 @@ export function CreateStudentScreen() {
   if (bootstrap === null) return null;
   if (!canCreateStudents(bootstrap)) {
     return (
-      <PremiumScrollScreen contentStyle={styles.denied}>
+      <PremiumScrollScreen contentStyle={styles.denied} navigation={<RoleNav active="people" />}>
         <InlineNotice
           body="Создавать учеников может владелец или администратор с действующим доступом суперадминистратора."
           title="Нет разрешения"
@@ -159,7 +160,7 @@ export function CreateStudentScreen() {
   };
 
   return (
-    <PremiumScrollScreen keyboardAware contentStyle={styles.content}>
+    <PremiumScrollScreen keyboardAware contentStyle={styles.content} navigation={<RoleNav active="people" />}>
       <AmbientGlow />
       <Text style={styles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>НОВЫЙ УЧЕНИК</Text>

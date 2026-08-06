@@ -92,9 +92,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     gap: 2,
-    height: 64,
     justifyContent: "center",
-    width: 48,
+    minHeight: 64,
+    minWidth: 48,
   },
   chipToday: {
     backgroundColor: semantic.bgSurface,

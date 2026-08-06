@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { HomeworkStatus, HomeworkTask } from "@/api/contracts";
 import type { StatusTone } from "./accountPatterns";
-import { semantic, space, strokes, typeStyles } from "../tokens";
+import { semantic, sizes, space, strokes, typeStyles } from "../tokens";
 
 /**
  * Practice pattern kit (Figma Page 23, STU-PRACTICE-01..16). Upload
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.s3,
     justifyContent: "space-between",
-    minHeight: 32,
+    minHeight: sizes.touchMin,
   },
   taskLine: { color: semantic.textSecondary, flex: 1, ...typeStyles.bodyS },
   taskLineDone: { color: semantic.textMuted, textDecorationLine: "line-through" },

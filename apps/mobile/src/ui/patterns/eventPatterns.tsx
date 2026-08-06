@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 
+import { Chip } from "../chip";
 import { semantic, space, strokes, typeStyles } from "../tokens";
 
 /**
@@ -163,6 +164,7 @@ export function EventCard({
   );
 }
 
+/** @deprecated Thin delegate over the unified Chip. */
 export function FilterChip({
   label,
   accent,
@@ -177,21 +179,7 @@ export function FilterChip({
   testID?: string | undefined;
 }) {
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={[
-        styles.chip,
-        { borderColor: active ? accent : semantic.borderDefault },
-      ]}
-      testID={testID}
-    >
-      <Text style={[styles.chipLabel, { color: active ? accent : semantic.textMuted }]}>
-        {label}
-      </Text>
-    </Pressable>
+    <Chip accent={accent} active={active} label={label} onPress={onPress} testID={testID} />
   );
 }
 
@@ -259,16 +247,6 @@ const styles = StyleSheet.create({
   },
   eventMeta: { color: semantic.textSecondary, ...typeStyles.bodyS },
   eventSeats: { color: semantic.textSecondary, ...typeStyles.labelM },
-  chip: {
-    alignItems: "center",
-    backgroundColor: semantic.bgRaised,
-    borderRadius: 17,
-    borderWidth: strokes.hairline,
-    height: 34,
-    justifyContent: "center",
-    paddingHorizontal: space.s3,
-  },
-  chipLabel: { ...typeStyles.labelM },
   detailCard: {
     backgroundColor: semantic.bgSurface,
     borderRadius: 20,
