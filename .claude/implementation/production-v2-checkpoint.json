@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T16:40:00Z",
+  "updatedAt": "2026-08-06T18:10:00Z",
   "phase": "phase3",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -141,7 +141,7 @@
       "phase": 3,
       "status": "in_progress",
       "summary": "Today/Home, progress/evidence/goals/achievements, homework/practice/recorder, repertoire, teachers",
-      "evidence": "journal/progress backbone green (33a35e8): migration 000009 (teacher-private drafts, immutable published versions via DB triggers proven by PG UPDATE/DELETE rejection tests, correction requires explicit note per DEC-007, progress = named-area evidence with no score per DEC-006); publish gated to started lessons, up to 10 evidence per publish, visibility scoped (teacher/manager see drafts, student published-only); 5 ops in OpenAPI 0.9.0, mobile decoders with correction-note and ordering invariants; Go full suite + race, mobile 29 suites/167 tests. journal/progress UI green (f30fd42): journalPatterns kit (Growth Signal 302:2, Evidence Card 304:2, Lesson Recap 309:20119 draft/published/offline tones from live extraction); one journal route serving teacher editor (draft->publish->correction with mandatory reason, evidence rows max 10, publish gate on lesson start, idempotent intent), manager read view incl. draft, student published-only recap + version history; student progress screen (evidence by named areas with constellation accents, Growth Signal without stage bar - no invented levels, journal history, empty state without zeroed charts); entry points: account hub row, lesson detail 'Итог урока', staff lessons -14d window with journal links; growth.*/jrnl.* ru/kk catalog; mobile 30 suites/171 tests, validate.py 0 errors. Remaining: homework/practice (migration 000010 + Page 23 UI), repertoire, goals/achievements, teacher today cockpit (Page 26 attendance steps)"
+      "evidence": "journal/progress backbone green (33a35e8): migration 000009 (teacher-private drafts, immutable published versions via DB triggers proven by PG UPDATE/DELETE rejection tests, correction requires explicit note per DEC-007, progress = named-area evidence with no score per DEC-006); publish gated to started lessons, up to 10 evidence per publish, visibility scoped (teacher/manager see drafts, student published-only); 5 ops in OpenAPI 0.9.0, mobile decoders with correction-note and ordering invariants; Go full suite + race, mobile 29 suites/167 tests. journal/progress UI green (f30fd42): journalPatterns kit (Growth Signal 302:2, Evidence Card 304:2, Lesson Recap 309:20119 draft/published/offline tones from live extraction); one journal route serving teacher editor (draft->publish->correction with mandatory reason, evidence rows max 10, publish gate on lesson start, idempotent intent), manager read view incl. draft, student published-only recap + version history; student progress screen (evidence by named areas with constellation accents, Growth Signal without stage bar - no invented levels, journal history, empty state without zeroed charts); entry points: account hub row, lesson detail 'Итог урока', staff lessons -14d window with journal links; growth.*/jrnl.* ru/kk catalog; mobile 30 suites/171 tests, validate.py 0 errors. homework/practice/media backbone green (f8cb8e2): migration 000010 per Approved domain/homework.md (lifecycle draft->assigned->in_progress->submitted->reviewed->completed + cancelled with preserved reason + lazy consequence-free expiry; DB triggers prove completed/submissions/feedback/ready-media immutability and draft-only task edits in PG integration test); versioned submissions with ready media, review needs_revision/accepted under version CAS, acceptance appends named-area practice evidence (DEC-006); media declare->resumable-chunks->ready with internal/media storage adapter boundary (FS via MEDIA_DIR in cmd/api), opaque keys only, sealed SecretBox access links never in audit/outbox; OpenAPI 0.10.0 (+14 ops), mobile contracts with lifecycle invariants + binary chunk client; Go full suite + race on disposable PG, mobile 31 suites/179 tests. Remaining: Page 23 practice UI (STU-PRACTICE-01..16), repertoire, goals/achievements, teacher today cockpit (Page 26 attendance steps)"
     },
     {
       "id": "p4-teacher-ops",
@@ -175,6 +175,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "f30fd42",
-  "nextSafeAction": "continue phase 3: homework/practice vertical — migration 000010 (assignments with goal/materials/readiness criteria, versioned practice_submissions, media_objects + upload sessions), store memory+PG parity, service, HTTP, OpenAPI, TS contracts, then Page 23 practice UI; after that repertoire and goals/achievements"
+  "lastGreenCodeSha": "f8cb8e2",
+  "nextSafeAction": "continue phase 3: practice UI (Page 23 STU-PRACTICE-01..16 — hub, assignment detail, recorder/upload with resumable progress + failure states, submission/feedback/resubmit, accepted evidence) on the homework API; then teacher homework creation UI (TCH-JOURNAL-06) and repertoire"
 }
