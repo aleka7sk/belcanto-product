@@ -43,6 +43,13 @@ import {
   type GenerateOccurrencesRequest,
   type Room,
   type SeriesGenerationResult,
+  type CreateEventCategoryRequest,
+  type CreateEventRequest,
+  type CreateEventSeriesRequest,
+  type EventCategory,
+  type EventListWindow,
+  type EventOccurrence,
+  type EventSeries,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -556,6 +563,129 @@ export class ApiClient {
       idempotencyKey,
       signal,
     });
+  }
+
+  listEventCategories(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<EventCategory[]> {
+    return this.request(routes.listEventCategories, { accessToken, signal });
+  }
+
+  createEventCategory(
+    accessToken: string,
+    body: CreateEventCategoryRequest,
+    signal?: AbortSignal,
+  ): Promise<EventCategory> {
+    return this.request(routes.createEventCategory, { accessToken, body, signal });
+  }
+
+  createEventSeries(
+    accessToken: string,
+    body: CreateEventSeriesRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<EventSeries> {
+    return this.request(routes.createEventSeries, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  generateEventSeriesOccurrences(
+    accessToken: string,
+    seriesId: string,
+    body: GenerateOccurrencesRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<SeriesGenerationResult> {
+    return this.request(routes.generateEventSeriesOccurrences(seriesId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listEvents(
+    accessToken: string,
+    window: EventListWindow,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence[]> {
+    return this.request(routes.listEvents(window), { accessToken, signal });
+  }
+
+  createEvent(
+    accessToken: string,
+    body: CreateEventRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.createEvent, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  rsvpToEvent(
+    accessToken: string,
+    occurrenceId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.rsvpToEvent(occurrenceId), { accessToken, signal });
+  }
+
+  cancelEventRsvp(
+    accessToken: string,
+    occurrenceId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.cancelEventRsvp(occurrenceId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  joinEventWaitlist(
+    accessToken: string,
+    occurrenceId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.joinEventWaitlist(occurrenceId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  leaveEventWaitlist(
+    accessToken: string,
+    occurrenceId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.leaveEventWaitlist(occurrenceId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  confirmSpotOffer(
+    accessToken: string,
+    offerId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.confirmSpotOffer(offerId), { accessToken, signal });
+  }
+
+  declineSpotOffer(
+    accessToken: string,
+    offerId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.declineSpotOffer(offerId), { accessToken, signal });
   }
 
   createLesson(

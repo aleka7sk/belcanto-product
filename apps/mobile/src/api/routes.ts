@@ -21,6 +21,11 @@ import {
   decodeRoom,
   decodeRooms,
   decodeSeriesGenerationResult,
+  decodeEventCategories,
+  decodeEventCategory,
+  decodeEventOccurrence,
+  decodeEventOccurrences,
+  decodeEventSeries,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -74,6 +79,13 @@ import {
   type GenerateOccurrencesRequest,
   type Room,
   type SeriesGenerationResult,
+  type CreateEventCategoryRequest,
+  type CreateEventRequest,
+  type CreateEventSeriesRequest,
+  type EventCategory,
+  type EventListWindow,
+  type EventOccurrence,
+  type EventSeries,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -571,6 +583,110 @@ export const routes = {
       [401, 403, 404, 409, 422, 500],
       decodeSeriesGenerationResult,
     ),
+  listEventCategories: route<EventCategory[]>(
+    "GET",
+    "/v1/event-categories",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeEventCategories,
+  ),
+  createEventCategory: route<EventCategory>(
+    "POST",
+    "/v1/event-categories",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeEventCategory,
+  ),
+  createEventSeries: route<EventSeries>(
+    "POST",
+    "/v1/event-series",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeEventSeries,
+  ),
+  generateEventSeriesOccurrences: (seriesId: string) =>
+    route<SeriesGenerationResult>(
+      "POST",
+      `/v1/event-series/${pathPart(seriesId, "seriesId")}/occurrences`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeSeriesGenerationResult,
+    ),
+  listEvents: (window: EventListWindow) =>
+    route<EventOccurrence[]>(
+      "GET",
+      `/v1/events?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`,
+      "required",
+      200,
+      [401, 422, 500],
+      decodeEventOccurrences,
+    ),
+  createEvent: route<EventOccurrence>(
+    "POST",
+    "/v1/events",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeEventOccurrence,
+  ),
+  rsvpToEvent: (occurrenceId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/events/${pathPart(occurrenceId, "occurrenceId")}/rsvp`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
+  cancelEventRsvp: (occurrenceId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/events/${pathPart(occurrenceId, "occurrenceId")}/rsvp/cancel`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
+  joinEventWaitlist: (occurrenceId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/events/${pathPart(occurrenceId, "occurrenceId")}/waitlist`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
+  leaveEventWaitlist: (occurrenceId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/events/${pathPart(occurrenceId, "occurrenceId")}/waitlist/leave`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
+  confirmSpotOffer: (offerId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/event-offers/${pathPart(offerId, "offerId")}/confirm`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
+  declineSpotOffer: (offerId: string) =>
+    route<EventOccurrence>(
+      "POST",
+      `/v1/event-offers/${pathPart(offerId, "offerId")}/decline`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeEventOccurrence,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -699,6 +815,10 @@ export type RouteRequestBodies = {
   publishFirstMinute: PublishFirstMinuteRequest;
   createLesson: CreateLessonRequest;
   createRoom: CreateRoomRequest;
+  createEventCategory: CreateEventCategoryRequest;
+  createEventSeries: CreateEventSeriesRequest;
+  generateEventSeriesOccurrences: GenerateOccurrencesRequest;
+  createEvent: CreateEventRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;
   reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;

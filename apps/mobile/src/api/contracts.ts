@@ -2049,3 +2049,304 @@ export const decodeSeriesGenerationResult: Decoder<SeriesGenerationResult> = (
     occurrenceIds,
   };
 };
+
+// ---- L.2 events and RSVP (Page 24 catalog; DEC-001/003/101) ----
+
+export interface EventCategory {
+  id: string;
+  name: string;
+  status: "active" | "archived";
+}
+
+export interface CreateEventCategoryRequest {
+  name: string;
+}
+
+export interface EventSeries {
+  id: string;
+  categoryId: string;
+  title: string;
+  description?: string;
+  host: LessonTeacher;
+  roomId?: string;
+  capacity: number;
+  weekday: number;
+  startMinutes: number;
+  durationMinutes: number;
+  effectiveFrom: string;
+  effectiveUntil?: string;
+  status: "active" | "paused" | "ended";
+  version: number;
+}
+
+export interface CreateEventSeriesRequest {
+  categoryId: string;
+  title: string;
+  description?: string;
+  hostAccountId: string;
+  roomId?: string;
+  capacity: number;
+  weekday: number;
+  startMinutes: number;
+  durationMinutes: number;
+  effectiveFrom: string;
+  effectiveUntil?: string;
+}
+
+export interface EventSpotOffer {
+  id: string;
+  occurrenceId: string;
+  status: "pending" | "confirmed" | "declined" | "expired";
+  offeredAt: IsoDateTime;
+  expiresAt: IsoDateTime;
+}
+
+export interface EventOccurrence {
+  id: string;
+  seriesId?: string;
+  categoryId: string;
+  categoryName: string;
+  title: string;
+  description?: string;
+  startsAt: IsoDateTime;
+  durationMinutes: number;
+  host: LessonTeacher;
+  roomId?: string;
+  capacity: number;
+  confirmedCount: number;
+  status: "scheduled" | "completed" | "cancelled";
+  version: number;
+  myRsvp?: "confirmed" | "cancelled";
+  myWaitlistPosition?: number;
+  myOffer?: EventSpotOffer;
+}
+
+export interface CreateEventRequest {
+  categoryId: string;
+  title: string;
+  description?: string;
+  startsAt: IsoDateTime;
+  durationMinutes: number;
+  hostAccountId: string;
+  roomId?: string;
+  capacity: number;
+}
+
+export interface EventListWindow {
+  from: IsoDateTime;
+  to: IsoDateTime;
+}
+
+export const decodeEventCategory: Decoder<EventCategory> = (value) => {
+  const contract = "EventCategory";
+  const source = record(value, contract);
+  exactKeys(source, ["id", "name", "status"], contract);
+  return {
+    id: identifierField(source, "id", contract)!,
+    name: stringField(source, "name", contract)!,
+    status: oneOf(source.status, ["active", "archived"] as const, contract, "$.status"),
+  };
+};
+
+export const decodeEventCategories: Decoder<EventCategory[]> = (value) => {
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError("EventCategoryList", "$");
+  }
+  const categories = value.map((entry) => decodeEventCategory(entry));
+  unique(
+    categories.map((category) => category.id),
+    "EventCategoryList",
+    "$[].id",
+  );
+  return categories;
+};
+
+export const decodeEventSeries: Decoder<EventSeries> = (value) => {
+  const contract = "EventSeries";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "categoryId",
+      "title",
+      "description",
+      "host",
+      "roomId",
+      "capacity",
+      "weekday",
+      "startMinutes",
+      "durationMinutes",
+      "effectiveFrom",
+      "effectiveUntil",
+      "status",
+      "version",
+    ],
+    contract,
+  );
+  const hostSource = record(source.host, contract, "$.host");
+  exactKeys(hostSource, ["accountId", "fullName"], contract, "$.host");
+  const weekday = numberField(source, "weekday", contract, 0);
+  if (weekday > 6) {
+    throw new ContractDecodeError(contract, "$.weekday");
+  }
+  const series: EventSeries = {
+    id: identifierField(source, "id", contract)!,
+    categoryId: identifierField(source, "categoryId", contract)!,
+    title: stringField(source, "title", contract)!,
+    host: {
+      accountId: identifierField(hostSource, "accountId", contract)!,
+      fullName: stringField(hostSource, "fullName", contract)!,
+    },
+    capacity: numberField(source, "capacity", contract, 1),
+    weekday,
+    startMinutes: numberField(source, "startMinutes", contract, 0),
+    durationMinutes: numberField(source, "durationMinutes", contract, 1),
+    effectiveFrom: stringField(source, "effectiveFrom", contract)!,
+    status: oneOf(source.status, ["active", "paused", "ended"] as const, contract, "$.status"),
+    version: numberField(source, "version", contract, 0),
+  };
+  const description = stringField(source, "description", contract, true);
+  if (description !== undefined) {
+    series.description = description;
+  }
+  const roomId = identifierField(source, "roomId", contract, true);
+  if (roomId !== undefined) {
+    series.roomId = roomId;
+  }
+  const effectiveUntil = stringField(source, "effectiveUntil", contract, true);
+  if (effectiveUntil !== undefined) {
+    series.effectiveUntil = effectiveUntil;
+  }
+  return series;
+};
+
+function decodeEventOccurrenceEntry(
+  value: unknown,
+  contract: string,
+  path: string,
+): EventOccurrence {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "seriesId",
+      "categoryId",
+      "categoryName",
+      "title",
+      "description",
+      "startsAt",
+      "durationMinutes",
+      "host",
+      "roomId",
+      "capacity",
+      "confirmedCount",
+      "status",
+      "version",
+      "myRsvp",
+      "myWaitlistPosition",
+      "myOffer",
+    ],
+    contract,
+    path,
+  );
+  const hostSource = record(source.host, contract, `${path}.host`);
+  exactKeys(hostSource, ["accountId", "fullName"], contract, `${path}.host`);
+  const occurrence: EventOccurrence = {
+    id: identifierField(source, "id", contract)!,
+    categoryId: identifierField(source, "categoryId", contract)!,
+    categoryName: stringField(source, "categoryName", contract)!,
+    title: stringField(source, "title", contract)!,
+    startsAt: isoDateField(source, "startsAt", contract)!,
+    durationMinutes: numberField(source, "durationMinutes", contract, 1),
+    host: {
+      accountId: identifierField(hostSource, "accountId", contract)!,
+      fullName: stringField(hostSource, "fullName", contract)!,
+    },
+    capacity: numberField(source, "capacity", contract, 1),
+    confirmedCount: numberField(source, "confirmedCount", contract, 0),
+    status: oneOf(
+      source.status,
+      ["scheduled", "completed", "cancelled"] as const,
+      contract,
+      `${path}.status`,
+    ),
+    version: numberField(source, "version", contract, 0),
+  };
+  if (occurrence.confirmedCount > occurrence.capacity) {
+    throw new ContractDecodeError(contract, `${path}.confirmedCount`);
+  }
+  const seriesId = identifierField(source, "seriesId", contract, true);
+  if (seriesId !== undefined) {
+    occurrence.seriesId = seriesId;
+  }
+  const description = stringField(source, "description", contract, true);
+  if (description !== undefined) {
+    occurrence.description = description;
+  }
+  const roomId = identifierField(source, "roomId", contract, true);
+  if (roomId !== undefined) {
+    occurrence.roomId = roomId;
+  }
+  if (source.myRsvp !== undefined) {
+    occurrence.myRsvp = oneOf(
+      source.myRsvp,
+      ["confirmed", "cancelled"] as const,
+      contract,
+      `${path}.myRsvp`,
+    );
+  }
+  if (source.myWaitlistPosition !== undefined) {
+    const position = numberField(source, "myWaitlistPosition", contract, 1);
+    occurrence.myWaitlistPosition = position;
+  }
+  if (source.myOffer !== undefined) {
+    const offerSource = record(source.myOffer, contract, `${path}.myOffer`);
+    exactKeys(
+      offerSource,
+      ["id", "occurrenceId", "status", "offeredAt", "expiresAt"],
+      contract,
+      `${path}.myOffer`,
+    );
+    const offer: EventSpotOffer = {
+      id: identifierField(offerSource, "id", contract)!,
+      occurrenceId: identifierField(offerSource, "occurrenceId", contract)!,
+      status: oneOf(
+        offerSource.status,
+        ["pending", "confirmed", "declined", "expired"] as const,
+        contract,
+        `${path}.myOffer.status`,
+      ),
+      offeredAt: isoDateField(offerSource, "offeredAt", contract)!,
+      expiresAt: isoDateField(offerSource, "expiresAt", contract)!,
+    };
+    if (offer.occurrenceId !== occurrence.id) {
+      throw new ContractDecodeError(contract, `${path}.myOffer.occurrenceId`);
+    }
+    occurrence.myOffer = offer;
+  }
+  if (occurrence.myOffer !== undefined && occurrence.myWaitlistPosition !== undefined) {
+    throw new ContractDecodeError(contract, `${path}.myWaitlistPosition`);
+  }
+  return occurrence;
+}
+
+export const decodeEventOccurrence: Decoder<EventOccurrence> = (value) =>
+  decodeEventOccurrenceEntry(value, "EventOccurrence", "$");
+
+export const decodeEventOccurrences: Decoder<EventOccurrence[]> = (value) => {
+  const contract = "EventOccurrenceList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const occurrences = value.map((entry, index) =>
+    decodeEventOccurrenceEntry(entry, contract, `$[${index}]`),
+  );
+  unique(
+    occurrences.map((occurrence) => occurrence.id),
+    contract,
+    "$[].id",
+  );
+  return occurrences;
+};

@@ -889,3 +889,135 @@ type SeriesOccurrenceGenerationResult struct {
 	CreatedCount  int      `json:"createdCount"`
 	OccurrenceIDs []string `json:"occurrenceIds"`
 }
+
+// L.2 events and RSVP (DEC-001: events never mix with core lessons;
+// DEC-003: RSVP binds to one occurrence; DEC-101 open: offer TTL is
+// configuration, never a constant).
+
+type EventCategory struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type CreateEventCategoryCommand struct {
+	Principal  Principal
+	CategoryID string
+	Name       string
+	Now        time.Time
+}
+
+type EventSeries struct {
+	ID              string         `json:"id"`
+	CategoryID      string         `json:"categoryId"`
+	Title           string         `json:"title"`
+	Description     string         `json:"description,omitempty"`
+	Host            TeacherSummary `json:"host"`
+	RoomID          string         `json:"roomId,omitempty"`
+	Capacity        int            `json:"capacity"`
+	Weekday         int            `json:"weekday"`
+	StartMinutes    int            `json:"startMinutes"`
+	DurationMinutes int            `json:"durationMinutes"`
+	EffectiveFrom   string         `json:"effectiveFrom"`
+	EffectiveUntil  string         `json:"effectiveUntil,omitempty"`
+	Status          string         `json:"status"`
+	Version         int64          `json:"version"`
+}
+
+type CreateEventSeriesCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	SeriesID           string
+	CategoryID         string
+	Title              string
+	Description        string
+	HostAccountID      string
+	RoomID             string
+	Capacity           int
+	Weekday            int
+	StartMinutes       int
+	DurationMinutes    int
+	EffectiveFrom      string
+	EffectiveUntil     string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type GenerateEventOccurrencesCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	SeriesID           string
+	Occurrences        []PlannedOccurrence
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type SpotOffer struct {
+	ID           string    `json:"id"`
+	OccurrenceID string    `json:"occurrenceId"`
+	Status       string    `json:"status"`
+	OfferedAt    time.Time `json:"offeredAt"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
+
+type EventOccurrence struct {
+	ID                 string         `json:"id"`
+	SeriesID           string         `json:"seriesId,omitempty"`
+	CategoryID         string         `json:"categoryId"`
+	CategoryName       string         `json:"categoryName"`
+	Title              string         `json:"title"`
+	Description        string         `json:"description,omitempty"`
+	StartsAt           time.Time      `json:"startsAt"`
+	DurationMinutes    int            `json:"durationMinutes"`
+	Host               TeacherSummary `json:"host"`
+	RoomID             string         `json:"roomId,omitempty"`
+	Capacity           int            `json:"capacity"`
+	ConfirmedCount     int            `json:"confirmedCount"`
+	Status             string         `json:"status"`
+	Version            int64          `json:"version"`
+	MyRsvp             string         `json:"myRsvp,omitempty"`
+	MyWaitlistPosition int            `json:"myWaitlistPosition,omitempty"`
+	MyOffer            *SpotOffer     `json:"myOffer,omitempty"`
+}
+
+type CreateEventOccurrenceCommand struct {
+	TenantID           string
+	ActorAccountID     string
+	OccurrenceID       string
+	CategoryID         string
+	Title              string
+	Description        string
+	StartsAt           time.Time
+	DurationMinutes    int
+	HostAccountID      string
+	RoomID             string
+	Capacity           int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type EventListQuery struct {
+	From time.Time
+	To   time.Time
+}
+
+// EventSeatCommand is the shared shape of every seat mutation: RSVP,
+// cancellation, waitlist join/leave. OfferTTL travels with each command
+// because any mutation may expire an overdue offer and cascade a fresh
+// one to the next waitlisted student.
+type EventSeatCommand struct {
+	Principal    Principal
+	OccurrenceID string
+	OfferTTL     time.Duration
+	Now          time.Time
+}
+
+type SpotOfferDecisionCommand struct {
+	Principal Principal
+	OfferID   string
+	OfferTTL  time.Duration
+	Now       time.Time
+}

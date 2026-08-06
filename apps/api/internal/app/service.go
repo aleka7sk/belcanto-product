@@ -34,6 +34,7 @@ type Service struct {
 	passwordResetTTL  time.Duration
 	contactCodeTTL    time.Duration
 	twofaChallengeTTL time.Duration
+	spotOfferTTL      time.Duration
 	twofaBox          *security.SecretBox
 }
 
@@ -52,6 +53,7 @@ type Options struct {
 	PasswordResetTTL  time.Duration
 	ContactCodeTTL    time.Duration
 	TwofaChallengeTTL time.Duration
+	SpotOfferTTL      time.Duration
 	Clock             Clock
 }
 
@@ -72,6 +74,12 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 	if twofaChallengeTTL <= 0 {
 		twofaChallengeTTL = 5 * time.Minute
 	}
+	// DEC-101 is open: the offer window ships as configuration with a
+	// deploy-side default, never as product truth.
+	spotOfferTTL := options.SpotOfferTTL
+	if spotOfferTTL <= 0 {
+		spotOfferTTL = 24 * time.Hour
+	}
 	twofaBox, _ := tokens.SecretBox("belcanto-totp-secret-v1")
 	return &Service{
 		store:             store,
@@ -85,6 +93,7 @@ func NewService(store Store, tokens *security.TokenCodec, passwords PasswordServ
 		passwordResetTTL:  passwordResetTTL,
 		contactCodeTTL:    contactCodeTTL,
 		twofaChallengeTTL: twofaChallengeTTL,
+		spotOfferTTL:      spotOfferTTL,
 		twofaBox:          twofaBox,
 	}
 }
