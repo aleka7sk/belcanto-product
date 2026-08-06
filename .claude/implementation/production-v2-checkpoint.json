@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T06:05:00Z",
+  "updatedAt": "2026-08-06T06:50:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -111,9 +111,9 @@
     {
       "id": "p1-identity-account",
       "phase": 1,
-      "status": "in_progress",
+      "status": "completed",
       "summary": "sessions/2FA/biometrics capability, account, contacts, role switch, privacy/consents/export/deletion, Pages 31-32",
-      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f) + p1-privacy-data-rights (f6af36b) + p1-account-area (24f16d7): migrations 000003-000005; profile API GET/PUT /v1/me/profile (ProfileUpdated -> 19 feed actions, OpenAPI 0.4.0); account pattern kit + settings/chevron icons from exact Figma vectors; typed ru/kk catalog ACC-01..20 + AUTH-07..11 (KK flagged for human review); 16 live screens: hub, personal+rename, contact change, role switch + ACC-20 fallback, security center, 2FA enroll/disable with recovery codes, devices + revoke-others, security activity review, privacy center/visibility/community toggles (version CAS), export + DEC-104 banner, deletion request/cancel date-free, policies accept, roles overview, public recovery AUTH-07/08/09; ActiveRoleProvider (HOF-03) + profile tab on student screens; Go full suite + race on disposable PG, mobile 24 suites/151 tests, contract lint OK, validator 0 errors. Remaining in phase 1: AUTH-01..06/10/11 screen refresh (sign-in restyle, resume checklist, no-roles state), ACC-07/13 device capability screens, ACT-01..09 deep-link guard chain"
+      "evidence": "sub-slices green: p1-security (318822a) + p1-contact-twofa (006ae2f) + p1-privacy-data-rights (f6af36b) + p1-account-area (24f16d7) + p1-auth-completion (ed0af18, cb8eaef): migrations 000003-000005; profile API; account pattern kit; typed ru/kk catalog ACC-01..20 + AUTH-01..11; 16 account screens + recovery AUTH-07/08/09 + AUTH-11 no-roles state + activation wizard AUTH-01..05 with AUTH-10 resume over activationProgress; ActiveRoleProvider (HOF-03); Go full suite + race on disposable PG, mobile 24 suites/151 tests. DEFERRED to phase 7 (recorded): ACC-07 Face ID and ACC-13 device permissions need expo-local-authentication/permissions modules — rows shown disabled-with-explanation per List Row contract until then; legacy B.0 screens keep hardcoded RU until the phase-7 l10n sweep"
     },
     {
       "id": "p2-core-lessons",
@@ -171,6 +171,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "ed0af18",
-  "nextSafeAction": "finish p1-identity-account: multi-step activation wizard (AUTH-01..05 + AUTH-10 resume checklist over activationProgress), ACC-07/13 device capability screens, ACT-01..09 deep-link guard chain; then phase 2 core lessons"
+  "lastGreenCodeSha": "cb8eaef",
+  "nextSafeAction": "start phase 2 p2-core-lessons: migration 000006 core lesson series/occurrences (individual=1, group<=3 with >3 RAISE guard on migration from generic Lesson), rooms, occurrence generation, then events/RSVP slice"
 }
