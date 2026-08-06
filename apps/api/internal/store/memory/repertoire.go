@@ -149,7 +149,8 @@ func (s *Store) ChangeSongStage(_ context.Context, command core.ChangeSongStageC
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, "SongStageChanged",
 		"student_song", stored.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, "SongStageChanged", stored.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, "SongStageChanged", "student_song", stored.ID,
+		map[string]any{"songId": stored.ID, "studentId": stored.StudentID, "stage": stored.Stage}, command.Now)
 	return result, nil
 }
 

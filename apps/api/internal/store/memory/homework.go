@@ -201,7 +201,8 @@ func (s *Store) CreateHomework(_ context.Context, command core.CreateHomeworkCom
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, "HomeworkCreated",
 		"homework", record.ID, "allow", "", command.Now, nil)
 	if command.Assign {
-		s.appendOutbox(principal.TenantID, "HomeworkAssigned", record.ID, command.Now)
+		s.appendOutboxPayload(principal.TenantID, "HomeworkAssigned", "homework", record.ID,
+			map[string]any{"homeworkId": record.ID, "studentId": record.StudentID}, command.Now)
 	}
 	return result, nil
 }
@@ -231,7 +232,8 @@ func (s *Store) homeworkTransition(operation string, command core.HomeworkTransi
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, action,
 		"homework", record.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, action, record.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, action, "homework", record.ID,
+		map[string]any{"homeworkId": record.ID, "studentId": record.StudentID}, command.Now)
 	return result, nil
 }
 
@@ -363,7 +365,8 @@ func (s *Store) SubmitHomework(_ context.Context, command core.SubmitHomeworkCom
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, "HomeworkSubmitted",
 		"homework", record.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, "HomeworkSubmitted", record.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, "HomeworkSubmitted", "homework", record.ID,
+		map[string]any{"homeworkId": record.ID, "studentId": record.StudentID, "attempt": attempt}, command.Now)
 	return result, nil
 }
 
@@ -429,7 +432,8 @@ func (s *Store) ReviewHomework(_ context.Context, command core.ReviewHomeworkCom
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, action,
 		"homework", record.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, action, record.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, action, "homework", record.ID,
+		map[string]any{"homeworkId": record.ID, "studentId": record.StudentID, "decision": command.Decision}, command.Now)
 	return result, nil
 }
 

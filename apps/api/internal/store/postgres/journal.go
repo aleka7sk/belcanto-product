@@ -185,7 +185,8 @@ func (s *Store) PublishJournal(ctx context.Context, command core.PublishJournalC
 			return err
 		}
 		return appendOutbox(ctx, tx, principal.TenantID, action, "lesson_journal", journalID,
-			map[string]any{"journalId": journalID, "studentId": command.StudentID, "version": nextVersion}, command.Now)
+			map[string]any{"journalId": journalID, "studentId": command.StudentID,
+				"occurrenceId": command.OccurrenceID, "version": nextVersion}, command.Now)
 	})
 	if err != nil {
 		return core.LessonJournal{}, err

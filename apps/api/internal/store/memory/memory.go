@@ -116,10 +116,17 @@ type AuditRecord struct {
 }
 
 type OutboxRecord struct {
-	TenantID    string
-	EventType   string
-	AggregateID string
-	RecordedAt  time.Time
+	ID            int64
+	TenantID      string
+	EventType     string
+	AggregateType string
+	AggregateID   string
+	Payload       []byte
+	RecordedAt    time.Time
+	Status        string
+	AttemptCount  int
+	NextAttemptAt *time.Time
+	LastError     string
 }
 
 type Store struct {
@@ -150,6 +157,8 @@ type Store struct {
 	goals              map[string]*studentGoal
 	achievementDefs    map[string]*achievementDefinition
 	awards             map[string]*achievementAward
+	activity           []*activityEntry
+	notificationPrefs  map[string]bool
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -203,6 +212,7 @@ func New() *Store {
 		goals:              make(map[string]*studentGoal),
 		achievementDefs:    make(map[string]*achievementDefinition),
 		awards:             make(map[string]*achievementAward),
+		notificationPrefs:  make(map[string]bool),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),
@@ -1633,7 +1643,16 @@ func (s *Store) appendOperatorAudit(tenantID, operatorID, action, targetID, deci
 }
 
 func (s *Store) appendOutbox(tenantID, eventType, aggregateID string, at time.Time) {
-	s.outbox = append(s.outbox, OutboxRecord{TenantID: tenantID, EventType: eventType, AggregateID: aggregateID, RecordedAt: at})
+	s.appendOutboxPayload(tenantID, eventType, "", aggregateID, nil, at)
+}
+
+func (s *Store) appendOutboxPayload(tenantID, eventType, aggregateType, aggregateID string, payload map[string]any, at time.Time) {
+	encoded, _ := json.Marshal(payload)
+	s.outbox = append(s.outbox, OutboxRecord{
+		ID: int64(len(s.outbox) + 1), TenantID: tenantID, EventType: eventType,
+		AggregateType: aggregateType, AggregateID: aggregateID,
+		Payload: encoded, RecordedAt: at, Status: "pending",
+	})
 }
 
 func credentialFromAccount(acct *account) core.CredentialRecord {

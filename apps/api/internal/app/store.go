@@ -122,6 +122,17 @@ type Store interface {
 	RevokeAchievement(context.Context, core.RevokeAchievementCommand) (core.AchievementAward, error)
 	ListStudentAwards(context.Context, core.Principal, string) ([]core.AchievementAward, error)
 
+	PendingOutboxEvents(context.Context, int, time.Time) ([]core.OutboxEvent, error)
+	DeliverOutboxEvent(context.Context, core.DeliverOutboxCommand) error
+	FailOutboxEvent(context.Context, core.FailOutboxCommand) error
+	AccountIDForStudent(context.Context, string, string) (string, error)
+	HomeworkTeacherAccountID(context.Context, string, string) (string, error)
+	AdministratorAccountIDs(context.Context, string) ([]string, error)
+	ActivityFeed(context.Context, core.Principal, int) (core.ActivityFeed, error)
+	MarkActivityRead(context.Context, core.Principal, time.Time, time.Time) (int, error)
+	NotificationPreferences(context.Context, core.Principal) ([]core.NotificationPreference, error)
+	UpdateNotificationPreference(context.Context, core.UpdateNotificationPreferenceCommand) ([]core.NotificationPreference, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

@@ -44,6 +44,9 @@ import {
   decodeAchievementDefinitions,
   decodeAchievementAward,
   decodeAchievementAwards,
+  decodeActivityFeed,
+  decodeMarkActivityReadResult,
+  decodeNotificationPreferences,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -134,6 +137,11 @@ import {
   type AchievementAward,
   type AwardAchievementRequest,
   type RevokeAchievementRequest,
+  type ActivityFeed,
+  type MarkActivityReadRequest,
+  type MarkActivityReadResult,
+  type NotificationPreference,
+  type UpdateNotificationPreferenceRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -1069,6 +1077,38 @@ export const routes = {
       [401, 403, 404, 409, 422, 500],
       decodeAchievementAward,
     ),
+  activityFeed: route<ActivityFeed>(
+    "GET",
+    "/v1/me/activity",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeActivityFeed,
+  ),
+  markActivityRead: route<MarkActivityReadResult>(
+    "POST",
+    "/v1/me/activity/read",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeMarkActivityReadResult,
+  ),
+  notificationPreferences: route<NotificationPreference[]>(
+    "GET",
+    "/v1/me/notification-preferences",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeNotificationPreferences,
+  ),
+  updateNotificationPreference: route<NotificationPreference[]>(
+    "PUT",
+    "/v1/me/notification-preferences",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeNotificationPreferences,
+  ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -1216,6 +1256,8 @@ export type RouteRequestBodies = {
   createGoal: CreateGoalRequest;
   completeGoal: CompleteGoalRequest;
   reframeGoal: ReframeGoalRequest;
+  markActivityRead: MarkActivityReadRequest;
+  updateNotificationPreference: UpdateNotificationPreferenceRequest;
   createAchievementDefinition: CreateAchievementDefinitionRequest;
   awardAchievement: AwardAchievementRequest;
   revokeAchievement: RevokeAchievementRequest;

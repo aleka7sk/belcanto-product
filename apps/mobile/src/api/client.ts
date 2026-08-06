@@ -80,6 +80,11 @@ import {
   type AchievementAward,
   type AwardAchievementRequest,
   type RevokeAchievementRequest,
+  type ActivityFeed,
+  type MarkActivityReadRequest,
+  type MarkActivityReadResult,
+  type NotificationPreference,
+  type UpdateNotificationPreferenceRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -1187,6 +1192,37 @@ export class ApiClient {
       accessToken,
       body,
       idempotencyKey,
+      signal,
+    });
+  }
+
+  activityFeed(accessToken: string, signal?: AbortSignal): Promise<ActivityFeed> {
+    return this.request(routes.activityFeed, { accessToken, signal });
+  }
+
+  markActivityRead(
+    accessToken: string,
+    body: MarkActivityReadRequest,
+    signal?: AbortSignal,
+  ): Promise<MarkActivityReadResult> {
+    return this.request(routes.markActivityRead, { accessToken, body, signal });
+  }
+
+  notificationPreferences(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<NotificationPreference[]> {
+    return this.request(routes.notificationPreferences, { accessToken, signal });
+  }
+
+  updateNotificationPreference(
+    accessToken: string,
+    body: UpdateNotificationPreferenceRequest,
+    signal?: AbortSignal,
+  ): Promise<NotificationPreference[]> {
+    return this.request(routes.updateNotificationPreference, {
+      accessToken,
+      body,
       signal,
     });
   }

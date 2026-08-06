@@ -166,7 +166,9 @@ func (s *Store) PublishJournal(_ context.Context, command core.PublishJournalCom
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, action,
 		"lesson_journal", stored.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, action, stored.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, action, "lesson_journal", stored.ID,
+		map[string]any{"journalId": stored.ID, "studentId": command.StudentID,
+			"occurrenceId": command.OccurrenceID, "version": nextVersion}, command.Now)
 	return result, nil
 }
 

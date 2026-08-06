@@ -3477,3 +3477,122 @@ export const decodeAchievementAwards: Decoder<AchievementAward[]> = (value) => {
   );
   return awards;
 };
+
+// ---- L.5 activity feed and notification preferences ----
+
+export const NOTIFICATION_CATEGORIES = [
+  "important",
+  "learning",
+  "messages",
+  "community",
+] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export interface ActivityEntry {
+  id: string;
+  category: NotificationCategory;
+  kind: string;
+  targetType: string;
+  targetId: string;
+  payload: Record<string, unknown>;
+  occurredAt: IsoDateTime;
+  readAt?: IsoDateTime;
+}
+
+export interface ActivityFeed {
+  unreadCount: number;
+  entries: ActivityEntry[];
+}
+
+export interface MarkActivityReadRequest {
+  upTo: IsoDateTime;
+}
+
+export interface MarkActivityReadResult {
+  marked: number;
+}
+
+export interface NotificationPreference {
+  category: NotificationCategory;
+  pushEnabled: boolean;
+}
+
+export interface UpdateNotificationPreferenceRequest {
+  category: NotificationCategory;
+  pushEnabled: boolean;
+}
+
+export const decodeActivityFeed: Decoder<ActivityFeed> = (value) => {
+  const contract = "ActivityFeed";
+  const source = record(value, contract);
+  exactKeys(source, ["unreadCount", "entries"], contract);
+  if (!Array.isArray(source.entries)) {
+    throw new ContractDecodeError(contract, "$.entries");
+  }
+  const entries = source.entries.map((entry, index) => {
+    const path = `$.entries[${index}]`;
+    const entrySource = record(entry, contract, path);
+    exactKeys(
+      entrySource,
+      ["id", "category", "kind", "targetType", "targetId", "payload", "occurredAt", "readAt"],
+      contract,
+      path,
+    );
+    const payload = record(entrySource.payload, contract, `${path}.payload`);
+    const item: ActivityEntry = {
+      id: identifierField(entrySource, "id", contract)!,
+      category: oneOf(entrySource.category, NOTIFICATION_CATEGORIES, contract, `${path}.category`),
+      kind: stringField(entrySource, "kind", contract)!,
+      targetType: stringField(entrySource, "targetType", contract)!,
+      targetId: stringField(entrySource, "targetId", contract)!,
+      payload,
+      occurredAt: isoDateField(entrySource, "occurredAt", contract)!,
+    };
+    const readAt = isoDateField(entrySource, "readAt", contract, true);
+    if (readAt !== undefined) item.readAt = readAt;
+    return item;
+  });
+  unique(
+    entries.map((entry) => entry.id),
+    contract,
+    "$.entries[].id",
+  );
+  const unreadCount = numberField(source, "unreadCount", contract, 0);
+  const unreadInList = entries.filter((entry) => entry.readAt === undefined).length;
+  if (unreadCount < unreadInList && entries.length < 100) {
+    throw new ContractDecodeError(contract, "$.unreadCount");
+  }
+  return { unreadCount, entries };
+};
+
+export const decodeMarkActivityReadResult: Decoder<MarkActivityReadResult> = (value) => {
+  const contract = "MarkActivityReadResult";
+  const source = record(value, contract);
+  exactKeys(source, ["marked"], contract);
+  return { marked: numberField(source, "marked", contract, 0) };
+};
+
+export const decodeNotificationPreferences: Decoder<NotificationPreference[]> = (value) => {
+  const contract = "NotificationPreferenceList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const preferences = value.map((entry, index) => {
+    const path = `$[${index}]`;
+    const source = record(entry, contract, path);
+    exactKeys(source, ["category", "pushEnabled"], contract, path);
+    if (typeof source.pushEnabled !== "boolean") {
+      throw new ContractDecodeError(contract, `${path}.pushEnabled`);
+    }
+    return {
+      category: oneOf(source.category, NOTIFICATION_CATEGORIES, contract, `${path}.category`),
+      pushEnabled: source.pushEnabled,
+    };
+  });
+  unique(
+    preferences.map((preference) => preference.category),
+    contract,
+    "$[].category",
+  );
+  return preferences;
+};

@@ -66,6 +66,18 @@ export function AccountHubScreen() {
         testID="account-role-row"
         title={message("acc01.roleRow.title", { role: roleLabel })}
       />
+      <SettingsRow
+        onPress={() => router.push("/(protected)/activity")}
+        subtitle={message("act.entry.subtitle")}
+        testID="account-activity-row"
+        title={message("act.entry.title")}
+      />
+      <SettingsRow
+        onPress={() => router.push("/(protected)/activity/preferences")}
+        subtitle={message("act.prefs.subtitle")}
+        testID="account-notifications-row"
+        title={message("act.prefs.title")}
+      />
       {isStudent ? (
         <SettingsRow
           onPress={() => router.push("/(protected)/progress")}

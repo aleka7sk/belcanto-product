@@ -1726,6 +1726,107 @@ const account = {
   "ach.def.description": { ru: "Описание", kk: "Сипаттамасы" },
   "ach.def.category": { ru: "Категория", kk: "Санат" },
   "ach.def.save": { ru: "Опубликовать в каталоге", kk: "Каталогта жариялау" },
+
+  // Activity & notifications (Figma Page 31, ACT-01..03). Kind titles
+  // render the curated worker events; the in-app channel is always on.
+  "act.eyebrow": { ru: "Activity", kk: "Activity" },
+  "act.title": { ru: "Активность", kk: "Белсенділік" },
+  "act.subtitle": {
+    ru: "Важные изменения и следующие действия.",
+    kk: "Маңызды өзгерістер және келесі әрекеттер.",
+  },
+  "act.empty": {
+    ru: "Пока тихо: новые записи появятся после событий школы.",
+    kk: "Әзірге тыныш: жаңа жазбалар мектеп оқиғаларынан кейін пайда болады.",
+  },
+  "act.unread": { ru: "Непрочитанных: {count}", kk: "Оқылмаған: {count}" },
+  "act.markRead": { ru: "Отметить прочитанным", kk: "Оқылды деп белгілеу" },
+  "act.today": { ru: "Сегодня", kk: "Бүгін" },
+  "act.earlier": { ru: "Ранее", kk: "Бұрын" },
+  "act.filter.all": { ru: "Все", kk: "Барлығы" },
+  "act.open": { ru: "Открыть", kk: "Ашу" },
+  "act.new": { ru: "Новое", kk: "Жаңа" },
+  "act.category.important": { ru: "Важное", kk: "Маңызды" },
+  "act.category.learning": { ru: "Обучение", kk: "Оқу" },
+  "act.category.messages": { ru: "Сообщения", kk: "Хабарламалар" },
+  "act.category.community": { ru: "Сообщество", kk: "Қауымдастық" },
+  "act.kind.JournalPublished": {
+    ru: "Опубликован итог урока",
+    kk: "Сабақ қорытындысы жарияланды",
+  },
+  "act.kind.JournalCorrected": {
+    ru: "Итог урока исправлен",
+    kk: "Сабақ қорытындысы түзетілді",
+  },
+  "act.kind.HomeworkAssigned": { ru: "Новое домашнее", kk: "Жаңа үй жұмысы" },
+  "act.kind.HomeworkStarted": {
+    ru: "Ученик начал домашнее",
+    kk: "Оқушы үй жұмысын бастады",
+  },
+  "act.kind.HomeworkSubmitted": {
+    ru: "Работа отправлена на проверку",
+    kk: "Жұмыс тексеруге жіберілді",
+  },
+  "act.kind.HomeworkReviewed": {
+    ru: "Есть обратная связь",
+    kk: "Кері байланыс бар",
+  },
+  "act.kind.HomeworkCompleted": { ru: "Работа принята", kk: "Жұмыс қабылданды" },
+  "act.kind.HomeworkCancelled": {
+    ru: "Домашнее отменено",
+    kk: "Үй жұмысы болдырылмады",
+  },
+  "act.kind.GoalCompleted": { ru: "Цель достигнута", kk: "Мақсатқа жетті" },
+  "act.kind.AchievementAwarded": {
+    ru: "Новое достижение",
+    kk: "Жаңа жетістік",
+  },
+  "act.kind.SongStageChanged": {
+    ru: "Этап произведения обновлён",
+    kk: "Шығарма кезеңі жаңарды",
+  },
+  "act.kind.AttendanceAbsenceRecorded": {
+    ru: "Отмечено отсутствие ученика",
+    kk: "Оқушының келмегені белгіленді",
+  },
+  "act.kind.unknown": { ru: "Обновление", kk: "Жаңарту" },
+  "act.entry.title": { ru: "Активность", kk: "Белсенділік" },
+  "act.entry.subtitle": {
+    ru: "Лента изменений и следующие действия",
+    kk: "Өзгерістер таспасы және келесі әрекеттер",
+  },
+  "act.prefs.title": { ru: "Уведомления", kk: "Хабарламалар" },
+  "act.prefs.subtitle": {
+    ru: "Выберите категории и каналы доставки.",
+    kk: "Санаттар мен жеткізу арналарын таңдаңыз.",
+  },
+  "act.prefs.eyebrow": { ru: "Preferences", kk: "Preferences" },
+  "act.prefs.push.on": { ru: "Push включён", kk: "Push қосулы" },
+  "act.prefs.push.off": { ru: "Push выключен", kk: "Push өшірулі" },
+  "act.prefs.push.pending": {
+    ru: "Push-канал появится с модулем разрешений устройства",
+    kk: "Push арнасы құрылғы рұқсаттары модулімен бірге келеді",
+  },
+  "act.prefs.inApp": {
+    ru: "В приложении · всегда включено",
+    kk: "Қолданбада · әрқашан қосулы",
+  },
+  "act.prefs.category.important.sub": {
+    ru: "Переносы, отмены, безопасность",
+    kk: "Ауыстырулар, болдырмаулар, қауіпсіздік",
+  },
+  "act.prefs.category.learning.sub": {
+    ru: "Задания, feedback, progress",
+    kk: "Тапсырмалар, feedback, progress",
+  },
+  "act.prefs.category.messages.sub": {
+    ru: "Чаты, ответы и упоминания",
+    kk: "Чаттар, жауаптар және аталымдар",
+  },
+  "act.prefs.category.community.sub": {
+    ru: "Публикации и модерация",
+    kk: "Жарияланымдар және модерация",
+  },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

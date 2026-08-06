@@ -113,8 +113,9 @@ func (s *Store) MarkAttendance(_ context.Context, command core.MarkAttendanceCom
 		"lesson_attendance", command.OccurrenceID+":"+command.StudentID,
 		"allow", command.ChangeReason, command.Now, nil)
 	if command.Status == core.AttendanceAbsent {
-		s.appendOutbox(principal.TenantID, "AttendanceAbsenceRecorded",
-			command.OccurrenceID+":"+command.StudentID, command.Now)
+		s.appendOutboxPayload(principal.TenantID, "AttendanceAbsenceRecorded", "lesson_attendance",
+			command.OccurrenceID+":"+command.StudentID,
+			map[string]any{"occurrenceId": command.OccurrenceID, "studentId": command.StudentID}, command.Now)
 	}
 	return result, nil
 }

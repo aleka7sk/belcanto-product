@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 )
@@ -1533,4 +1534,74 @@ type RevokeAchievementCommand struct {
 	IdempotencyKey     string
 	PayloadFingerprint []byte
 	Now                time.Time
+}
+
+// ---- L.5 notifications and activity (Page 31) ----
+
+// NotificationCategories per ACT-02: important / learning / messages /
+// community. The in-app channel is always on; preferences gate push.
+var NotificationCategories = []string{"important", "learning", "messages", "community"}
+
+type OutboxEvent struct {
+	ID            int64
+	TenantID      string
+	EventType     string
+	AggregateType string
+	AggregateID   string
+	Payload       []byte
+	RecordedAt    time.Time
+	AttemptCount  int
+}
+
+type ActivityInsert struct {
+	EntryID            string
+	RecipientAccountID string
+	Category           string
+	Kind               string
+	TargetType         string
+	TargetID           string
+	Payload            []byte
+}
+
+type DeliverOutboxCommand struct {
+	EventID int64
+	Tenant  string
+	Entries []ActivityInsert
+	Now     time.Time
+}
+
+type FailOutboxCommand struct {
+	EventID       int64
+	ErrorMessage  string
+	NextAttemptAt *time.Time
+	DeadLetter    bool
+	Now           time.Time
+}
+
+type ActivityEntry struct {
+	ID         string          `json:"id"`
+	Category   string          `json:"category"`
+	Kind       string          `json:"kind"`
+	TargetType string          `json:"targetType"`
+	TargetID   string          `json:"targetId"`
+	Payload    json.RawMessage `json:"payload"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	ReadAt     *time.Time      `json:"readAt,omitempty"`
+}
+
+type ActivityFeed struct {
+	UnreadCount int             `json:"unreadCount"`
+	Entries     []ActivityEntry `json:"entries"`
+}
+
+type NotificationPreference struct {
+	Category    string `json:"category"`
+	PushEnabled bool   `json:"pushEnabled"`
+}
+
+type UpdateNotificationPreferenceCommand struct {
+	Principal   Principal
+	Category    string
+	PushEnabled bool
+	Now         time.Time
 }

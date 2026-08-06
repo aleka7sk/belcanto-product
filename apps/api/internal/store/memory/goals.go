@@ -144,7 +144,8 @@ func (s *Store) CompleteGoal(_ context.Context, command core.CompleteGoalCommand
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, "GoalCompleted",
 		"student_goal", stored.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, "GoalCompleted", stored.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, "GoalCompleted", "student_goal", stored.ID,
+		map[string]any{"goalId": stored.ID, "studentId": stored.StudentID}, command.Now)
 	return result, nil
 }
 
@@ -414,7 +415,8 @@ func (s *Store) AwardAchievement(_ context.Context, command core.AwardAchievemen
 	}
 	s.appendSecurityAudit(principal.TenantID, principal.AccountID, "AchievementAwarded",
 		"achievement_award", stored.ID, "allow", "", command.Now, nil)
-	s.appendOutbox(principal.TenantID, "AchievementAwarded", stored.ID, command.Now)
+	s.appendOutboxPayload(principal.TenantID, "AchievementAwarded", "achievement_award", stored.ID,
+		map[string]any{"awardId": stored.ID, "studentId": stored.StudentID}, command.Now)
 	return result, nil
 }
 

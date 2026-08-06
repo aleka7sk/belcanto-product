@@ -16,6 +16,7 @@ import (
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/config"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/httpapi"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/media"
+	"github.com/aleka7sk/belcanto-product/apps/api/internal/notify"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/security"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/store/postgres"
 	"github.com/aleka7sk/belcanto-product/apps/api/migrations"
@@ -64,6 +65,11 @@ func run(logger *slog.Logger) error {
 		RefreshTTL:        configuration.RefreshTTL,
 		InvitationTTL:     configuration.InvitationTTL,
 	})
+	// The outbox worker turns domain events into in-app activity with a
+	// retry policy; it stops with the process context.
+	worker := notify.NewWorker(store, notify.Options{Logger: logger})
+	go worker.Run(ctx)
+
 	server := &http.Server{
 		Addr:              configuration.ListenAddress,
 		Handler:           httpapi.New(service),
