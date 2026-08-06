@@ -118,9 +118,9 @@
     {
       "id": "p2-core-lessons",
       "phase": 2,
-      "status": "in_progress",
+      "status": "completed",
       "summary": "CoreLessonSeries/Occurrence individual=1 group<=3, rooms, assignment, attendance base, migration from generic Lesson",
-      "evidence": "foundation (e019f7a) + series vertical (f705f3b): migration 000006 with DEC-002 triggers and legacy read-only migration; scheduling store swapped onto core tables under the unchanged Lesson contract; rooms CRUD, series create/list/get with format constraints, idempotent weekly occurrence generation in Asia/Almaty civil time (tzdata embedded); OpenAPI 0.5.0 (+6 ops), mobile contracts with structural DEC-002 decoders; Go full suite + race on disposable PG, mobile 25 suites/155 tests. Remaining: attendance ops, series pause/end, format surfaced in Lesson view, scheduling UI screens (Pages 24/26/29)"
+      "evidence": "foundation (e019f7a) + series vertical (f705f3b) + remainder (3e7985a): series lifecycle active<->paused|ended on both stores (Owner/Admin only, optimistic version, idempotent, audited previous/new; gates generation only — scheduled Lessons stay, proven by app test + PG integration test); Lesson view carries core format (DEC-002) and room-name location on real SQL (LEFT JOIN rooms, memory parity incl. generation); OpenAPI 0.16.0 (+changeLessonSeriesStatus, Lesson.format); mobile Lesson decoder enforces format-vs-participants; DateChip pattern (333:231) with shape/border/indicator and full screen-reader dates; STU-SCHEDULE-01 day view merges core Lessons with registered events (DEC-001 distinct types, magenta event entries «СОБЫТИЕ · ВЫ УЧАСТВУЕТЕ») under month eyebrow + Almaty day heading; lesson detail heads with «ИНДИВИДУАЛЬНОЕ/ГРУППОВОЕ ЗАНЯТИЕ»; series+rooms management screen for Owner/Admin (pause/resume/end with the lifecycle explainer, 4-week generation, room create) from staff workspace; Сообщество tab in schedule nav; ser.* ru/kk (kk flagged). Go full suite + race, mobile 39 suites/210 tests, contract lint OK, validator 0/99. DEFERRED (recorded): series CREATION form UI and the full rooms administration surface ship with the Page 29 administrator workspace (phase 6); STU-SCHEDULE-05 lesson-preparation screen and STU-SCHEDULE-11 month picker ride with phase 7 reliability/offline styling («Открыть подготовку» is shipped as «Открыть детали» honestly)."
     },
     {
       "id": "p2-events-rsvp",
@@ -177,6 +177,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "422c77b2f981f5f4064c5a7ad3c9211f8a058895",
-  "nextSafeAction": "continue phase 2 remainder: schedule day-view upgrade (Page 24 day grid), admin rooms/series management UI, lesson format surfaced in Lesson view; then phase 4 remainder (lesson-goal + private-note models, Page 27 roster/review screens); then phase 6 administrator/owner workspaces"
+  "lastGreenCodeSha": "3e7985adc83163a097d76b4d29dad211f91aad28",
+  "nextSafeAction": "continue phase 4 remainder: lesson-goal and private-note models (Page 27 TCH-STUDENTS-*), roster/review screens; then phase 6 administrator/owner workspaces (Pages 29/30) incl. series creation form and rooms admin"
 }
