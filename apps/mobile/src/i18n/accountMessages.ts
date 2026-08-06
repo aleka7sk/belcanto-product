@@ -1519,6 +1519,70 @@ const account = {
     kk: "Тапсырма тіркемелерсіз де жұмыс істейді",
   },
   "prac.create.save": { ru: "Сохранить домашнее", kk: "Үй жұмысын сақтау" },
+
+  // Teacher today cockpit and lesson context (Figma Page 26,
+  // TCH-TODAY-01/02 + TCH-LESSON-01/02). Copy is verbatim where the
+  // design string matches API truth; the lesson-goal and private-note
+  // cards wait for their own models and are not imitated.
+  "tch.today.eyebrow": { ru: "Сегодня", kk: "Бүгін" },
+  "tch.today.title": { ru: "Уроки дня", kk: "Күн сабақтары" },
+  "tch.today.subtitle": {
+    ru: "Занятий сегодня: {count}",
+    kk: "Бүгінгі сабақтар: {count}",
+  },
+  "tch.today.empty.title": { ru: "Сегодня занятий нет", kk: "Бүгін сабақ жоқ" },
+  "tch.today.empty.body": {
+    ru: "Расписание на другие дни — в разделе занятий.",
+    kk: "Басқа күндердің кестесі — сабақтар бөлімінде.",
+  },
+  "tch.today.now": { ru: "Сейчас · {time}", kk: "Қазір · {time}" },
+  "tch.today.openLesson": { ru: "Открыть урок", kk: "Сабақты ашу" },
+  "tch.today.allLessons": { ru: "Все занятия", kk: "Барлық сабақтар" },
+  "tch.today.entry.open": { ru: "Открыть контекст", kk: "Контексті ашу" },
+  "tch.format.individual": { ru: "Индивидуальное · 1", kk: "Жеке · 1" },
+  "tch.format.group": {
+    ru: "Групповое · {count}",
+    kk: "Топтық · {count}",
+  },
+  "tch.unfinished.title": { ru: "Незавершённый итог", kk: "Аяқталмаған қорытынды" },
+  "tch.unfinished.draft": {
+    ru: "Урок {name} от {date} сохранён как черновик.",
+    kk: "{name} сабағы ({date}) жоба ретінде сақталған.",
+  },
+  "tch.unfinished.missing": {
+    ru: "Итог урока {name} от {date} ещё не начат.",
+    kk: "{name} сабағының ({date}) қорытындысы әлі басталмаған.",
+  },
+  "tch.unfinished.action": { ru: "Продолжить", kk: "Жалғастыру" },
+  "tch.lesson.eyebrow.before": { ru: "До урока", kk: "Сабаққа дейін" },
+  "tch.lesson.eyebrow.now": { ru: "Сейчас", kk: "Қазір" },
+  "tch.lesson.eyebrow.after": { ru: "После урока", kk: "Сабақтан кейін" },
+  "tch.lesson.recap.title": { ru: "Последний итог", kk: "Соңғы қорытынды" },
+  "tch.lesson.recap.none": {
+    ru: "Опубликованного итога по этому уроку ещё нет.",
+    kk: "Бұл сабақ бойынша жарияланған қорытынды әлі жоқ.",
+  },
+  "tch.lesson.openJournal": { ru: "Открыть журнал", kk: "Журналды ашу" },
+  "tch.lesson.homework.title": { ru: "Подготовка ученика", kk: "Оқушының дайындығы" },
+  "tch.lesson.homework.none": {
+    ru: "Активного домашнего задания нет.",
+    kk: "Белсенді үй жұмысы жоқ.",
+  },
+  "tch.lesson.homework.latest": {
+    ru: "Последнее домашнее · {status}",
+    kk: "Соңғы үй жұмысы · {status}",
+  },
+  "tch.lesson.evidence.title": { ru: "Последнее подтверждение", kk: "Соңғы растау" },
+  "tch.lesson.roster.title": { ru: "Участники", kk: "Қатысушылар" },
+  "tch.lesson.privacy.title": { ru: "Приватность", kk: "Құпиялылық" },
+  "tch.lesson.privacy.body": {
+    ru: "Прогресс и внутренние заметки редактируются отдельно для каждого ученика.",
+    kk: "Прогресс пен ішкі жазбалар әр оқушы үшін бөлек өңделеді.",
+  },
+  "tch.lesson.privacy.status": {
+    ru: "Никогда не публикуются всей группе",
+    kk: "Ешқашан бүкіл топқа жарияланбайды",
+  },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

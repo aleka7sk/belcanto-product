@@ -148,6 +148,14 @@ export function StaffWorkspaceScreen({
       ) : null}
 
       <View style={styles.quickActions}>
+        {createLessonAllowed || bootstrap.roles.includes("Teacher") ? (
+          <View style={styles.actionGrow}>
+            <PrimaryButton
+              label="Сегодня"
+              onPress={() => router.push("/(protected)/teacher")}
+            />
+          </View>
+        ) : null}
         {createLessonAllowed ? (
           <View style={styles.actionGrow}>
             <PrimaryButton

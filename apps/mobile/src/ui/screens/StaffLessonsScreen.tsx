@@ -160,6 +160,16 @@ export function StaffLessonsScreen() {
               {lesson.teacher.fullName} · {lesson.students.map((student) => student.fullName).join(", ")}
             </Text>
             {lesson.location ? <Text style={styles.lessonMeta}>{lesson.location}</Text> : null}
+            <TextAction
+              align="right"
+              label="Контекст урока"
+              onPress={() =>
+                router.push({
+                  pathname: "/(protected)/teacher/lesson/[lessonId]",
+                  params: { lessonId: lesson.id },
+                })
+              }
+            />
           </PremiumCard>
         ))}
       </View>
