@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T06:50:00Z",
+  "updatedAt": "2026-08-06T07:45:00Z",
   "phase": "phase1",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -118,8 +118,9 @@
     {
       "id": "p2-core-lessons",
       "phase": 2,
-      "status": "not_started",
-      "summary": "CoreLessonSeries/Occurrence individual=1 group<=3, rooms, assignment, attendance base, migration from generic Lesson"
+      "status": "in_progress",
+      "summary": "CoreLessonSeries/Occurrence individual=1 group<=3, rooms, assignment, attendance base, migration from generic Lesson",
+      "evidence": "foundation green (e019f7a): migration 000006 rooms/series/occurrences/enrollments/participants/attendance with DEC-002 triggers, legacy lessons migrated to ad-hoc occurrences (>3 RAISE guard) and made read-only; postgres scheduling store swapped onto core tables under the unchanged Lesson contract — full L.1 regression suite + race green on fresh and upgraded disposable PG; service caps 3 students typed. Remaining: series CRUD + occurrence generation service/HTTP/OpenAPI/mobile, rooms admin, attendance ops, format in Lesson view"
     },
     {
       "id": "p2-events-rsvp",
@@ -171,6 +172,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "cb8eaef",
-  "nextSafeAction": "start phase 2 p2-core-lessons: migration 000006 core lesson series/occurrences (individual=1, group<=3 with >3 RAISE guard on migration from generic Lesson), rooms, occurrence generation, then events/RSVP slice"
+  "lastGreenCodeSha": "e019f7a",
+  "nextSafeAction": "continue p2-core-lessons: series CRUD + weekly occurrence generation (Asia/Almaty anchors) + rooms admin + attendance service/HTTP/OpenAPI/mobile contracts; then p2-events-rsvp migration 000007"
 }
