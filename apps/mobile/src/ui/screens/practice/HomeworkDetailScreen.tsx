@@ -1,17 +1,18 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { ApiTransportError, useApiClient } from "@/api";
 import type { HomeworkAssignment, MediaObject } from "@/api/contracts";
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField, TextAction } from "../../components";
+import { ErrorNotice, InlineNotice, PremiumTextField } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
   ScreenHeading,
+  SettingsRow,
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
@@ -55,14 +56,6 @@ export function HomeworkDetailScreen() {
   const idempotency = useMemo(() => createIntentIdempotency(), []);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [reviewBody, setReviewBody] = useState("");
-  const [reviewNextStep, setReviewNextStep] = useState("");
-  const [reviewDecision, setReviewDecision] = useState<"needs_revision" | "accepted">(
-    "needs_revision",
-  );
-  const [evidenceArea, setEvidenceArea] = useState("");
-  const [evidenceNote, setEvidenceNote] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
@@ -78,11 +71,6 @@ export function HomeworkDetailScreen() {
     try {
       await runAuthenticated(operation);
       idempotency.complete();
-      setNote("");
-      setReviewBody("");
-      setReviewNextStep("");
-      setEvidenceArea("");
-      setEvidenceNote("");
       setCancelling(false);
       setCancelReason("");
       await homework.reload();
@@ -99,12 +87,15 @@ export function HomeworkDetailScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active="practice" />} testID="homework-loading">
         {homework.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(homework.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void homework.reload()}
+            title={message("prac.detail.title")}
           />
-        ) : null}
+        ) : (
+          <Text style={styles.metaLine}>{message("common.loading")}</Text>
+        )}
       </AccountScreenShell>
     );
   }
@@ -132,7 +123,17 @@ export function HomeworkDetailScreen() {
   );
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="practice" />} testID="homework-detail">
+    <AccountScreenShell
+      navigation={<AccountNav active="practice" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void homework.reload()}
+          refreshing={homework.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="homework-detail"
+    >
       <ScreenHeading
         eyebrow={
           isTeacher
@@ -292,140 +293,37 @@ export function HomeworkDetailScreen() {
         />
       ) : null}
       {canSubmit ? (
-        <>
-          {view.status === "reviewed" ? (
-            <ScreenHeading
-              eyebrow={message("prac.resubmit.title")}
-              subtitle={message("prac.resubmit.body")}
-              title={message("prac.feedback.title")}
-            />
-          ) : null}
-          <PremiumTextField
-            autoCapitalize="sentences"
-            label={message("prac.submit.note")}
-            multiline
-            onChangeText={setNote}
-            placeholder={message("prac.submit.noteHint")}
-            testID="homework-note"
-            value={note}
-          />
-          <Text style={styles.metaLine}>{message("prac.submit.recorderNote")}</Text>
-          <BlockAction
-            busy={busy === "submit"}
-            disabled={note.trim() === ""}
-            label={message("prac.submit")}
-            onPress={() =>
-              void run("submit", (accessToken) =>
-                api.submitHomework(
-                  accessToken,
-                  view.id,
-                  { note: note.trim(), expectedVersion: view.version },
-                  idempotency.key(),
-                ),
-              )
-            }
-            testID="homework-submit"
-          />
-        </>
+        <SettingsRow
+          icon="mic"
+          onPress={() =>
+            router.push({
+              pathname: "/(protected)/practice/[homeworkId]/submit",
+              params: { homeworkId: view.id },
+            })
+          }
+          subtitle={
+            view.status === "reviewed"
+              ? message("prac.resubmit.body")
+              : message("prac.submit.noteHint")
+          }
+          testID="homework-open-submit"
+          title={message("prac.submit.open")}
+        />
       ) : null}
 
       {isTeacher && view.status === "submitted" ? (
-        <>
-          <ScreenHeading
-            eyebrow={message("prac.review.title")}
-            subtitle={message("prac.review.bodyHint")}
-            title={message("prac.feedback.title")}
-          />
-          <View style={styles.decisionRow}>
-            <TextAction
-              label={
-                (reviewDecision === "needs_revision" ? "● " : "○ ") +
-                message("prac.review.needsRevision")
-              }
-              onPress={() => setReviewDecision("needs_revision")}
-            />
-            <TextAction
-              label={
-                (reviewDecision === "accepted" ? "● " : "○ ") +
-                message("prac.review.accept")
-              }
-              onPress={() => setReviewDecision("accepted")}
-            />
-          </View>
-          <PremiumTextField
-            autoCapitalize="sentences"
-            label={message("prac.review.body")}
-            multiline
-            onChangeText={setReviewBody}
-            placeholder={message("prac.review.bodyHint")}
-            testID="homework-review-body"
-            value={reviewBody}
-          />
-          <PremiumTextField
-            autoCapitalize="sentences"
-            label={message("prac.review.nextStep")}
-            multiline
-            onChangeText={setReviewNextStep}
-            testID="homework-review-next"
-            value={reviewNextStep}
-          />
-          {reviewDecision === "accepted" ? (
-            <>
-              <PremiumTextField
-                autoCapitalize="sentences"
-                helper={message("prac.review.evidenceHint")}
-                label={message("prac.review.evidenceArea")}
-                onChangeText={setEvidenceArea}
-                testID="homework-review-area"
-                value={evidenceArea}
-              />
-              <PremiumTextField
-                autoCapitalize="sentences"
-                label={message("prac.review.evidenceNote")}
-                multiline
-                onChangeText={setEvidenceNote}
-                testID="homework-review-evidence"
-                value={evidenceNote}
-              />
-            </>
-          ) : null}
-          <BlockAction
-            busy={busy === "review"}
-            disabled={
-              reviewBody.trim() === "" ||
-              (evidenceArea.trim() === "") !== (evidenceNote.trim() === "")
-            }
-            label={
-              reviewDecision === "accepted"
-                ? message("prac.review.accept")
-                : message("prac.review.submit")
-            }
-            onPress={() =>
-              void run("review", (accessToken) =>
-                api.reviewHomework(
-                  accessToken,
-                  view.id,
-                  {
-                    decision: reviewDecision,
-                    body: reviewBody.trim(),
-                    ...(reviewNextStep.trim() !== ""
-                      ? { nextStep: reviewNextStep.trim() }
-                      : {}),
-                    ...(reviewDecision === "accepted" && evidenceArea.trim() !== ""
-                      ? {
-                          evidenceArea: evidenceArea.trim(),
-                          evidenceNote: evidenceNote.trim(),
-                        }
-                      : {}),
-                    expectedVersion: view.version,
-                  },
-                  idempotency.key(),
-                ),
-              )
-            }
-            testID="homework-review-submit"
-          />
-        </>
+        <SettingsRow
+          icon="check"
+          onPress={() =>
+            router.push({
+              pathname: "/(protected)/practice/[homeworkId]/review",
+              params: { homeworkId: view.id },
+            })
+          }
+          subtitle={message("prac.review.bodyHint")}
+          testID="homework-open-review"
+          title={message("prac.review.open")}
+        />
       ) : null}
 
       {isTeacher &&
@@ -493,9 +391,4 @@ const styles = StyleSheet.create({
     ...typeStyles.headingM,
   },
   metaLine: { color: semantic.textMuted, ...typeStyles.caption },
-  decisionRow: {
-    flexDirection: "row",
-    gap: space.s4,
-    justifyContent: "flex-start",
-  },
 });

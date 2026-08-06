@@ -16,7 +16,7 @@ import {
   uiStyles,
 } from "../components";
 import { InitialsAvatar } from "../lessonComponents";
-import { colors, fonts, gradients, metrics, spacing, typeScale } from "../tokens";
+import { gradients, semantic, space } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
 import { RoleNav } from "./account/shared";
 
@@ -70,7 +70,7 @@ export function LessonDetailScreen({
 
   return (
     <PremiumScrollScreen
-      gutter={metrics.homeGutter}
+      gutter={space.s4}
       navigation={<RoleNav active="schedule" />}
       testID="lesson-detail"
     >
@@ -145,20 +145,75 @@ export function LessonDetailScreen({
   );
 }
 
+const EYEBROW = {
+  fontFamily: "Onest_600SemiBold",
+  fontSize: 10,
+  letterSpacing: 1,
+  lineHeight: 13,
+} as const;
+
 const styles = StyleSheet.create({
-  brand: { color: colors.textPrimary, fontFamily: fonts.bold, ...typeScale.homeBrand },
-  stack: { gap: spacing.md },
-  hero: { borderColor: colors.borderGlass, borderRadius: 24, borderWidth: 1, marginTop: spacing.loose, padding: spacing.xxl },
-  eyebrow: { color: colors.textGold, fontFamily: fonts.semibold, ...typeScale.eyebrow },
-  time: { color: colors.textPrimary, fontFamily: fonts.extrabold, fontSize: 42, lineHeight: 50, marginTop: spacing.sm },
-  title: { color: colors.textPrimary, fontFamily: fonts.bold, marginTop: spacing.sm, ...typeScale.cardTitle },
-  meta: { color: colors.textSecondary, fontFamily: fonts.regular, marginTop: spacing.sm, ...typeScale.body },
-  teacherRow: { alignItems: "center", flexDirection: "row", gap: spacing.md },
+  brand: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 11,
+    letterSpacing: 2,
+    lineHeight: 15,
+  },
+  stack: { gap: space.s3 },
+  hero: {
+    borderColor: semantic.borderGlass,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginTop: space.s10,
+    padding: space.s6,
+  },
+  eyebrow: { color: semantic.textGold, ...EYEBROW },
+  time: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 42,
+    lineHeight: 50,
+    marginTop: space.s2,
+  },
+  title: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: space.s2,
+  },
+  meta: {
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: space.s2,
+  },
+  teacherRow: { alignItems: "center", flexDirection: "row", gap: space.s3 },
   teacherCopy: { flex: 1 },
-  label: { color: colors.textMuted, fontFamily: fonts.semibold, ...typeScale.eyebrow },
-  teacherName: { color: colors.textPrimary, fontFamily: fonts.bold, marginTop: spacing.xs, ...typeScale.sectionTitle },
-  goldLabel: { color: colors.textGold, fontFamily: fonts.semibold, ...typeScale.eyebrow },
-  cyanLabel: { color: colors.cyan, fontFamily: fonts.semibold, ...typeScale.eyebrow },
-  preparation: { color: colors.textPrimary, fontFamily: fonts.bold, marginTop: spacing.md, ...typeScale.cardTitle },
-  focus: { color: colors.textPrimary, fontFamily: fonts.medium, marginTop: spacing.md, ...typeScale.bodyLarge },
+  label: { color: semantic.textMuted, ...EYEBROW },
+  teacherName: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 16,
+    lineHeight: 21,
+    marginTop: space.s1,
+  },
+  goldLabel: { color: semantic.textGold, ...EYEBROW },
+  cyanLabel: { color: semantic.accentCyan, ...EYEBROW },
+  preparation: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: space.s3,
+  },
+  focus: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_500Medium",
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: space.s3,
+  },
 });

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { useApiClient, type TwofaEnrollment } from "@/api";
 import { useMessage } from "@/i18n";
@@ -94,7 +94,19 @@ export function TwofaScreen() {
   const enabled = status.value?.enabled === true;
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-twofa">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void status.reload();
+          }}
+          refreshing={status.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-twofa"
+    >
       <ScreenHeading
         eyebrow={message("acc06.eyebrow")}
         subtitle={message("acc06.subtitle")}

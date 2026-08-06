@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient, type ContactKind } from "@/api";
 import { useMessage } from "@/i18n";
@@ -13,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -75,7 +77,19 @@ export function ContactChangeScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-contact-change">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void contacts.reload();
+          }}
+          refreshing={contacts.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-contact-change"
+    >
       <ScreenHeading
         eyebrow={message("acc03.eyebrow")}
         subtitle={message("acc03.subtitle")}

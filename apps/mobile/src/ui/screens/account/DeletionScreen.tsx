@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { ApiError, useApiClient, type DeletionRequest } from "@/api";
 import { useMessage } from "@/i18n";
@@ -13,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -130,7 +132,19 @@ export function DeletionScreen() {
   }
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-deletion">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void open.reload();
+          }}
+          refreshing={open.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-deletion"
+    >
       <ScreenHeading
         eyebrow={message("acc16.eyebrow")}
         subtitle={message("acc16.subtitle")}

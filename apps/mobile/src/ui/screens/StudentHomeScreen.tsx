@@ -22,14 +22,7 @@ import {
 } from "../components";
 import { LessonCard } from "../lessonComponents";
 import { Screen } from "../screen";
-import {
-  colors,
-  fonts,
-  gradients,
-  metrics,
-  spacing,
-  typeScale,
-} from "../tokens";
+import { gradients, metrics, semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
 import { RoleNav } from "./account/shared";
 
@@ -111,7 +104,7 @@ export function StudentHomeScreen({
           <View
             style={[
               styles.header,
-              { paddingTop: insets.top + spacing.sm },
+              { paddingTop: insets.top + space.s2 },
             ]}
           >
             <Text style={styles.brand}>BELCANTO</Text>
@@ -122,12 +115,7 @@ export function StudentHomeScreen({
             <Text style={styles.eyebrow}>ВАШ ПЕРВЫЙ ОРИЕНТИР</Text>
           </View>
 
-          <View
-            style={[
-              styles.content,
-              { paddingBottom: insets.bottom + spacing.xxl },
-            ]}
-          >
+          <View style={styles.content}>
             <View style={styles.sectionHeader}>
               <Text style={uiStyles.sectionTitle}>Ближайший урок</Text>
               <Text style={uiStyles.supporting}>Реальное расписание школы</Text>
@@ -171,12 +159,12 @@ export function StudentHomeScreen({
               </Text>
               <FocusRow
                 body={firstMinute.whatWorked}
-                color={colors.violet}
+                color={semantic.accentViolet}
                 title="Что уже получилось"
               />
               <FocusRow
                 body={firstMinute.currentFocus}
-                color={colors.cyan}
+                color={semantic.accentCyan}
                 title="Фокус сейчас"
               />
             </PremiumCard>
@@ -226,69 +214,76 @@ const styles = StyleSheet.create({
   column: {
     alignSelf: "center",
     flex: 1,
-    maxWidth: metrics.contentMaxWidth,
+    maxWidth: 430 /* B.0 column cap */,
     width: "100%",
   },
   hero: { height: metrics.homeHeroHeight, left: 0, position: "absolute", right: 0, top: 0 },
-  header: { height: metrics.homeHeroHeight, paddingHorizontal: metrics.authGutter },
+  header: { height: metrics.homeHeroHeight, paddingHorizontal: space.s5 },
   brand: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    ...typeScale.homeBrand,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 11,
+    letterSpacing: 2,
+    lineHeight: 15,
   },
   headerSpacer: { flex: 1 },
   name: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    ...typeScale.homeName,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 27,
+    lineHeight: 32,
   },
   eyebrow: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
-    marginBottom: spacing.xl,
-    marginTop: spacing.xs,
-    ...typeScale.eyebrow,
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+    marginBottom: space.s5,
+    marginTop: space.s1,
   },
-  content: { gap: spacing.lg, paddingHorizontal: metrics.homeGutter, paddingTop: spacing.lg },
-  sectionHeader: { gap: spacing.xs, marginBottom: -spacing.sm },
-  cardIntro: { marginBottom: spacing.lg, marginTop: spacing.sm },
-  emptyBody: { marginTop: spacing.sm },
+  content: { gap: space.s4, paddingHorizontal: space.s4, paddingTop: space.s4 },
+  sectionHeader: { gap: space.s1, marginBottom: -space.s2 },
+  cardIntro: { marginBottom: space.s4, marginTop: space.s2 },
+  emptyBody: { marginTop: space.s2 },
   focusRow: {
-    borderTopColor: colors.borderGlass,
+    borderTopColor: semantic.borderGlass,
     borderTopWidth: 1,
     flexDirection: "row",
-    gap: spacing.md,
-    paddingTop: spacing.lg,
-    marginTop: spacing.lg,
+    gap: space.s3,
+    paddingTop: space.s4,
+    marginTop: space.s4,
   },
   focusRail: { borderRadius: 2, minHeight: 56, width: 4 },
   focusCopy: { flex: 1 },
   focusTitle: {
-    color: colors.textAccent,
-    fontFamily: fonts.semibold,
-    ...typeScale.label,
+    color: semantic.textAccent,
+    ...typeStyles.labelM,
   },
   focusBody: {
-    color: colors.textPrimary,
-    fontFamily: fonts.medium,
-    marginTop: spacing.xs,
-    ...typeScale.body,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_500Medium",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: space.s1,
   },
   nextEyebrow: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
-    ...typeScale.eyebrow,
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
   },
   nextStep: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    marginTop: spacing.md,
-    ...typeScale.cardTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: space.s3,
   },
   publishedAt: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: spacing.xxl,
-    ...typeScale.label,
+    color: semantic.textSecondary,
+    marginTop: space.s6,
+    ...typeStyles.caption,
   },
 });

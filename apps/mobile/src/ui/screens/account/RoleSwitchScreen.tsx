@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { ROLE_PRIORITY, resolveActiveRole, useActiveRole } from "@/access/activeRole";
 import { useApiClient, type Role } from "@/api";
@@ -13,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { AccountNav, useAccountResource, useWorkingRole } from "./shared";
 
 /**
@@ -96,7 +98,19 @@ export function RoleSwitchScreen() {
   }
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-role-switch">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void profile.reload();
+          }}
+          refreshing={profile.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-role-switch"
+    >
       <ScreenHeading
         eyebrow={message("acc04.eyebrow")}
         subtitle={message("acc04.subtitle")}

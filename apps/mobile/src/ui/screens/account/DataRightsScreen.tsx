@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient, type DataExportRequest } from "@/api";
 import { useMessage } from "@/i18n";
@@ -14,6 +15,7 @@ import {
   StatusRow,
   type StatusTone,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -65,7 +67,19 @@ export function DataRightsScreen() {
           : "muted";
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-data-rights">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void exports.reload();
+          }}
+          refreshing={exports.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-data-rights"
+    >
       <ScreenHeading
         eyebrow={message("acc14.eyebrow")}
         subtitle={message("acc14.subtitle")}

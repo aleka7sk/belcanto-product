@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import { ROLE_PRIORITY } from "@/access/activeRole";
 import { useApiClient } from "@/api";
@@ -10,6 +11,7 @@ import {
   ScreenHeading,
   StatusCard,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { AccountNav, useAccountResource } from "./shared";
 
 /**
@@ -26,7 +28,19 @@ export function RolesAccessScreen() {
   const tenant = profile.value?.tenantName ?? "";
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-roles">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void profile.reload();
+          }}
+          refreshing={profile.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-roles"
+    >
       <ScreenHeading
         eyebrow={message("acc19.eyebrow")}
         subtitle={message("acc19.subtitle")}

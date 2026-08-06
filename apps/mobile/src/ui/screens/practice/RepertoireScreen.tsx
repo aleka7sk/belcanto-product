@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { ApiTransportError, useApiClient } from "@/api";
 import type { SongStage, StudentSong } from "@/api/contracts";
@@ -8,7 +8,7 @@ import { SONG_STAGES } from "@/api/contracts";
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField } from "../../components";
+import { ErrorNotice, InlineNotice, PremiumTextField } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -68,7 +68,9 @@ export function RepertoireScreen() {
   const studentId = paramStudentId ?? state.bootstrap?.studentId ?? null;
 
   const songs = useAccountResource((accessToken) =>
-    api.listStudentSongs(accessToken, studentId ?? ""),
+    studentId === null
+      ? Promise.resolve<StudentSong[]>([])
+      : api.listStudentSongs(accessToken, studentId),
   );
   const idempotency = useMemo(() => createIntentIdempotency(), []);
   const [filter, setFilter] = useState<RepertoireFilter>("all");
@@ -170,7 +172,17 @@ export function RepertoireScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="practice" />} testID="repertoire">
+    <AccountScreenShell
+      navigation={<AccountNav active="practice" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void songs.reload()}
+          refreshing={songs.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="repertoire"
+    >
       <ScreenHeading
         eyebrow={message("rep.eyebrow")}
         subtitle={
@@ -181,10 +193,11 @@ export function RepertoireScreen() {
         title={empty ? message("rep.empty.title") : message("rep.title")}
       />
       {songs.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(songs.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void songs.reload()}
+          title={message("rep.title")}
         />
       ) : null}
       {!empty ? (

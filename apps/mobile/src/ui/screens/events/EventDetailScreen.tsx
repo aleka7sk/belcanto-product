@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { ApiError, useApiClient, type EventOccurrence } from "@/api";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountBanner,
   AccountScreenShell,
@@ -180,10 +181,11 @@ export function EventDetailScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="event-detail-loading">
         {event.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(event.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void event.reload()}
+            title={message("evt.catalog.eyebrow")}
           />
         ) : null}
       </AccountScreenShell>
@@ -233,7 +235,19 @@ export function EventDetailScreen() {
   }
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="event-detail">
+    <AccountScreenShell
+      navigation={<AccountNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void event.reload();
+          }}
+          refreshing={event.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="event-detail"
+    >
       <ScreenHeading
         eyebrow={view.categoryName}
         subtitle={formatBelcantoDate(view.startsAt)}

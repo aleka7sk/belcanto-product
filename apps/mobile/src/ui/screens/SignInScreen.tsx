@@ -22,7 +22,7 @@ import {
   PrimaryButton,
   TextAction,
 } from "../components";
-import { colors, fonts, metrics, radii, spacing, typeScale } from "../tokens";
+import { metrics, semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage, formIssueMap } from "../viewModels";
 
 type SignInErrors = Partial<Record<keyof SignInDraft, string | undefined>>;
@@ -237,39 +237,39 @@ const styles = StyleSheet.create({
   content: { minHeight: 780 },
   badgeWrap: { alignItems: "center", marginTop: metrics.authBadgeTop },
   title: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    marginTop: spacing.loose,
-    ...typeScale.authTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 30,
+    lineHeight: 36,
+    marginTop: space.s10,
   },
   subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: spacing.xs,
-    ...typeScale.body,
+    color: semantic.textSecondary,
+    marginTop: space.s1,
+    ...typeStyles.bodyS,
   },
-  form: { gap: spacing.field, marginTop: metrics.authFormGap },
-  requestNotice: { marginTop: spacing.field },
-  primaryAction: { marginTop: spacing.section },
+  form: { gap: space.s5, marginTop: metrics.authFormGap },
+  requestNotice: { marginTop: space.s5 },
+  primaryAction: { marginTop: space.s8 },
   forgotAction: { marginTop: metrics.authForgotGap },
   securityCard: {
-    borderRadius: radii.compactCard,
-    marginBottom: spacing.xxl,
-    marginTop: spacing.loose,
+    borderRadius: 18,
+    marginBottom: space.s6,
+    marginTop: space.s10,
     minHeight: 100,
-    padding: spacing.field,
+    padding: space.s5,
   },
   securityTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.semibold,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_600SemiBold",
     fontSize: 13,
     lineHeight: 17,
   },
   securityBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
     fontSize: 11,
     lineHeight: 17,
-    marginTop: spacing.md,
+    marginTop: space.s3,
   },
 });

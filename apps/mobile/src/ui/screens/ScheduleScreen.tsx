@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { canReadLessons } from "@/access";
 import {
@@ -24,7 +24,7 @@ import {
   type AgendaEntryState,
 } from "../patterns/agendaEntry";
 import { DateChip } from "../patterns/dateChip";
-import { colors, fonts, spacing, metrics, typeScale } from "../tokens";
+import { semantic, space } from "../tokens";
 import { RoleNav } from "./account/shared";
 import {
   apiErrorMessage,
@@ -174,8 +174,17 @@ export function ScheduleScreen() {
 
   return (
     <PremiumScrollScreen
-      gutter={metrics.homeGutter}
+      gutter={space.s4}
       navigation={<RoleNav active="schedule" />}
+      scrollProps={{
+        refreshControl: (
+          <RefreshControl
+            onRefresh={() => void load()}
+            refreshing={loading && (lessons.length > 0 || events.length > 0)}
+            tintColor={semantic.accentViolet}
+          />
+        ),
+      }}
       testID="student-schedule"
     >
       <AmbientGlow />
@@ -273,11 +282,40 @@ export function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { color: colors.textGold, fontFamily: fonts.semibold, marginTop: spacing.loose, ...typeScale.eyebrow },
-  title: { color: colors.textPrimary, fontFamily: fonts.extrabold, marginTop: spacing.sm, ...typeScale.screenTitle },
-  subtitle: { color: colors.textSecondary, fontFamily: fonts.regular, marginBottom: spacing.xxl, marginTop: spacing.sm, ...typeScale.body },
+  eyebrow: {
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+    marginTop: space.s10,
+  },
+  title: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 28,
+    lineHeight: 34,
+    marginTop: space.s2,
+  },
+  subtitle: {
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: space.s6,
+    marginTop: space.s2,
+  },
+  /* DateChip is 48pt wide by contract (333:231); seven chips across a
+     390pt frame leave ~3pt gaps — geometry, not a spacing token. */
   chips: { flexDirection: "row", gap: 3, justifyContent: "space-between" },
-  dayHeading: { color: colors.textSecondary, fontFamily: fonts.semibold, marginTop: spacing.lg, ...typeScale.eyebrow },
-  stack: { gap: spacing.md, marginTop: spacing.md },
-  emptyBody: { marginTop: spacing.sm },
+  dayHeading: {
+    color: semantic.textSecondary,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+    marginTop: space.s4,
+  },
+  stack: { gap: space.s3, marginTop: space.s3 },
+  emptyBody: { marginTop: space.s2 },
 });

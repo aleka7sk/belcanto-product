@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient, type PolicyVersion } from "@/api";
 import { useMessage } from "@/i18n";
@@ -11,6 +12,7 @@ import {
   ScreenHeading,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -45,7 +47,19 @@ export function PoliciesScreen() {
   const pendingPolicy = policies.value?.find((policy) => policy.acceptedAt === undefined);
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-policies">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void policies.reload();
+          }}
+          refreshing={policies.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-policies"
+    >
       <ScreenHeading
         eyebrow={message("acc18.eyebrow")}
         subtitle={message("acc18.subtitle")}

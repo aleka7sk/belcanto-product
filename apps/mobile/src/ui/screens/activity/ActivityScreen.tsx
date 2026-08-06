@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { useApiClient } from "@/api";
 import type {
@@ -11,14 +11,14 @@ import type {
 import { NOTIFICATION_CATEGORIES } from "@/api/contracts";
 import { useMessage, type MessageFormatter, type MessageKey } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
-  AccountScreenShell,
   BlockAction,
   ScreenHeading,
   StatusRow,
 } from "../../patterns/accountPatterns";
 import { AreaChip } from "../../patterns/journalPatterns";
+import { ScreenList } from "../../screen";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { almatyDayRange } from "../../teacherToday";
@@ -153,6 +153,27 @@ function splitByToday(entries: readonly ActivityEntry[]): {
   return { today, earlier };
 }
 
+export type ActivityRow =
+  | { rowKind: "section"; id: string; labelKey: "act.today" | "act.earlier" }
+  | { rowKind: "entry"; id: string; entry: ActivityEntry };
+
+/** Flatten the two day sections into one virtualizable row list. */
+export function buildActivityRows(
+  today: readonly ActivityEntry[],
+  earlier: readonly ActivityEntry[],
+): ActivityRow[] {
+  const rows: ActivityRow[] = [];
+  if (today.length > 0) {
+    rows.push({ rowKind: "section", id: "section-today", labelKey: "act.today" });
+    for (const entry of today) rows.push({ rowKind: "entry", id: entry.id, entry });
+  }
+  if (earlier.length > 0) {
+    rows.push({ rowKind: "section", id: "section-earlier", labelKey: "act.earlier" });
+    for (const entry of earlier) rows.push({ rowKind: "entry", id: entry.id, entry });
+  }
+  return rows;
+}
+
 function nowIso(): IsoDateTime {
   return new Date().toISOString() as IsoDateTime;
 }
@@ -187,91 +208,110 @@ export function ActivityScreen() {
     }
   };
 
-  const renderEntry = (entry: ActivityEntry) => (
-    <StatusRow
-      key={entry.id}
-      onPress={() => {
-        openActivityTarget(entry);
-      }}
-      status={
-        entry.readAt === undefined
-          ? message("act.new")
-          : message(`act.category.${entry.category}`)
-      }
-      subtitle={formatBelcantoDate(entry.occurredAt)}
-      testID={`activity-${entry.id}`}
-      title={activityKindTitle(entry.kind, message)}
-      tone={entry.readAt === undefined ? "info" : "muted"}
-    />
-  );
+  const rows = buildActivityRows(today, earlier);
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="activity-feed">
-      <ScreenHeading
-        eyebrow={message("act.eyebrow")}
-        subtitle={
-          view !== null && view.unreadCount > 0
-            ? message("act.unread", { count: view.unreadCount })
-            : message("act.subtitle")
-        }
-        title={message("act.title")}
-      />
-      {feed.error !== null ? (
-        <InlineNotice
-          body={apiErrorMessage(feed.error)}
-          title={message("common.retry")}
-          tone="error"
-        />
-      ) : null}
-      <View style={styles.chips}>
-        <AreaChip
-          accent={semantic.accentViolet}
-          active={filter === null}
-          label={message("act.filter.all")}
-          onPress={() => setFilter(null)}
-          testID="activity-filter-all"
-        />
-        {NOTIFICATION_CATEGORIES.map((category) => (
-          <AreaChip
-            accent={category === "important" ? semantic.feedbackWarning : semantic.accentCyan}
-            active={filter === category}
-            key={category}
-            label={message(`act.category.${category}`)}
-            onPress={() =>
-              setFilter((current) => (current === category ? null : category))
-            }
-            testID={`activity-filter-${category}`}
+    <ScreenList<ActivityRow>
+      data={rows}
+      keyExtractor={(row) => row.id}
+      ListEmptyComponent={
+        view !== null ? (
+          <Text style={styles.empty}>{message("act.empty")}</Text>
+        ) : (
+          <Text style={styles.empty}>{message("common.loading")}</Text>
+        )
+      }
+      ListFooterComponent={
+        view !== null && view.unreadCount > 0 ? (
+          <BlockAction
+            busy={busy}
+            kind="secondary"
+            label={message("act.markRead")}
+            onPress={() => void markRead()}
+            testID="activity-mark-read"
           />
-        ))}
-      </View>
-      {view !== null && entries.length === 0 ? (
-        <Text style={styles.empty}>{message("act.empty")}</Text>
-      ) : null}
-      {actionError !== null ? (
-        <InlineNotice body={actionError} title={message("common.retry")} tone="error" />
-      ) : null}
-      {today.length > 0 ? (
-        <Text style={styles.sectionTitle}>{message("act.today").toUpperCase()}</Text>
-      ) : null}
-      {today.map(renderEntry)}
-      {earlier.length > 0 ? (
-        <Text style={styles.sectionTitle}>{message("act.earlier").toUpperCase()}</Text>
-      ) : null}
-      {earlier.map(renderEntry)}
-      {view !== null && view.unreadCount > 0 ? (
-        <BlockAction
-          busy={busy}
-          kind="secondary"
-          label={message("act.markRead")}
-          onPress={() => void markRead()}
-          testID="activity-mark-read"
+        ) : null
+      }
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <ScreenHeading
+            eyebrow={message("act.eyebrow")}
+            subtitle={
+              view !== null && view.unreadCount > 0
+                ? message("act.unread", { count: view.unreadCount })
+                : message("act.subtitle")
+            }
+            title={message("act.title")}
+          />
+          {feed.error !== null ? (
+            <ErrorNotice
+              actionLabel={message("common.retry")}
+              body={apiErrorMessage(feed.error)}
+              onAction={() => void feed.reload()}
+              title={message("act.title")}
+            />
+          ) : null}
+          <View style={styles.chips}>
+            <AreaChip
+              accent={semantic.accentViolet}
+              active={filter === null}
+              label={message("act.filter.all")}
+              onPress={() => setFilter(null)}
+              testID="activity-filter-all"
+            />
+            {NOTIFICATION_CATEGORIES.map((category) => (
+              <AreaChip
+                accent={category === "important" ? semantic.feedbackWarning : semantic.accentCyan}
+                active={filter === category}
+                key={category}
+                label={message(`act.category.${category}`)}
+                onPress={() =>
+                  setFilter((current) => (current === category ? null : category))
+                }
+                testID={`activity-filter-${category}`}
+              />
+            ))}
+          </View>
+          {actionError !== null ? (
+            <InlineNotice body={actionError} title={message("common.retry")} tone="error" />
+          ) : null}
+        </View>
+      }
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void feed.reload()}
+          refreshing={feed.refreshing}
+          tintColor={semantic.accentViolet}
         />
-      ) : null}
-    </AccountScreenShell>
+      }
+      renderItem={({ item }) =>
+        item.rowKind === "section" ? (
+          <Text style={styles.sectionTitle}>{message(item.labelKey).toUpperCase()}</Text>
+        ) : (
+          <StatusRow
+            onPress={() => {
+              openActivityTarget(item.entry);
+            }}
+            status={
+              item.entry.readAt === undefined
+                ? message("act.new")
+                : message(`act.category.${item.entry.category}`)
+            }
+            subtitle={formatBelcantoDate(item.entry.occurredAt)}
+            testID={`activity-${item.entry.id}`}
+            title={activityKindTitle(item.entry.kind, message)}
+            tone={item.entry.readAt === undefined ? "info" : "muted"}
+          />
+        )
+      }
+      testID="activity-feed"
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  header: { gap: space.s3 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s2 },
   sectionTitle: {
     color: semantic.textGold,

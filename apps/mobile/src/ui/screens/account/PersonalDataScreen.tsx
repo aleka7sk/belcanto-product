@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
@@ -13,6 +14,7 @@ import {
   ScreenHeading,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, initialsOf, useAccountResource, useWorkingRole } from "./shared";
 
@@ -61,7 +63,19 @@ export function PersonalDataScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-personal">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([profile.reload(), contacts.reload()]);
+          }}
+          refreshing={profile.refreshing || contacts.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-personal"
+    >
       <ScreenHeading
         eyebrow={message("acc02.eyebrow")}
         subtitle={message("acc02.subtitle")}

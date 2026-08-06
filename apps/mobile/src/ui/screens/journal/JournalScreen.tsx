@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { ApiError, ApiTransportError, useApiClient } from "@/api";
 import type {
@@ -13,7 +13,7 @@ import type {
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField, TextAction } from "../../components";
+import { ErrorNotice, InlineNotice, PremiumTextField, TextAction } from "../../components";
 import {
   AccountBanner,
   AccountScreenShell,
@@ -168,10 +168,11 @@ export function JournalScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active={navActive} />} testID="journal-loading">
         {journal.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(journal.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void journal.reload()}
+            title={message("jrnl.eyebrow")}
           />
         ) : null}
       </AccountScreenShell>
@@ -426,7 +427,19 @@ export function JournalScreen() {
   }
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="journal-editor">
+    <AccountScreenShell
+      navigation={<AccountNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([journal.reload(), lesson.reload()]);
+          }}
+          refreshing={journal.refreshing || lesson.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="journal-editor"
+    >
       <ScreenHeading
         eyebrow={correcting ? message("jrnl.correct.eyebrow") : message("jrnl.eyebrow")}
         subtitle={

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
+import { RefreshControl } from "react-native";
 
 import {
   useApiClient,
@@ -19,6 +20,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
 
@@ -163,7 +165,19 @@ export function RescheduleRequestScreen() {
   }
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="reschedule-request">
+    <AccountScreenShell
+      navigation={<AccountNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([lesson.reload(), requests.reload()]);
+          }}
+          refreshing={lesson.refreshing || requests.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="reschedule-request"
+    >
       <ScreenHeading
         eyebrow={message("resched.eyebrow")}
         subtitle={message("resched.subtitle")}

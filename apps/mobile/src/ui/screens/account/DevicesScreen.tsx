@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
@@ -13,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -54,7 +56,19 @@ export function DevicesScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-devices">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void sessions.reload();
+          }}
+          refreshing={sessions.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-devices"
+    >
       <ScreenHeading
         eyebrow={message("acc08.eyebrow")}
         subtitle={message("acc08.subtitle")}

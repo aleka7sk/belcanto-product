@@ -1,16 +1,17 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { LessonJournal } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
   ScreenHeading,
+  SettingsRow,
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
@@ -20,7 +21,7 @@ import {
   GrowthSignal,
   groupEvidenceByArea,
 } from "../../patterns/journalPatterns";
-import { AchievementsSection, AssessmentsSection, GoalSection } from "./GrowthSections";
+import { AssessmentsSection } from "./GrowthSections";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -38,9 +39,6 @@ export function StudentProgressScreen() {
   const params = useLocalSearchParams<{ studentId?: string }>();
   const paramStudentId = typeof params.studentId === "string" ? params.studentId : null;
   const studentId = paramStudentId ?? state.bootstrap?.studentId ?? null;
-  const roles = state.bootstrap?.roles ?? [];
-  const canLead = roles.includes("Teacher") || roles.includes("Administrator");
-  const canManageCatalog = roles.includes("Owner") || roles.includes("Administrator");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
   const evidence = useAccountResource((accessToken) =>
@@ -85,8 +83,27 @@ export function StudentProgressScreen() {
   const empty = !loading && entries.length === 0 && journalList.length === 0;
   const loadError = evidence.error ?? journals.error;
 
+  const subroute = (pathname: "/(protected)/progress/goal" | "/(protected)/progress/achievements") =>
+    router.push(
+      paramStudentId === null
+        ? { pathname }
+        : { pathname, params: { studentId: paramStudentId } },
+    );
+
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="student-progress">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([evidence.reload(), journals.reload()]);
+          }}
+          refreshing={evidence.refreshing || journals.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="student-progress"
+    >
       <ScreenHeading
         eyebrow={message("growth.eyebrow")}
         subtitle={
@@ -100,10 +117,13 @@ export function StudentProgressScreen() {
         title={empty ? message("growth.empty.title") : message("growth.title")}
       />
       {loadError !== null && loadError !== undefined ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(loadError)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => {
+            void Promise.all([evidence.reload(), journals.reload()]);
+          }}
+          title={message("growth.title")}
         />
       ) : null}
       {empty ? (
@@ -220,11 +240,19 @@ export function StudentProgressScreen() {
         </>
       )}
       <AssessmentsSection studentId={studentId} />
-      <GoalSection canLead={canLead} studentId={studentId} />
-      <AchievementsSection
-        canLead={canLead}
-        canManageCatalog={canManageCatalog}
-        studentId={studentId}
+      <SettingsRow
+        icon="check"
+        onPress={() => subroute("/(protected)/progress/goal")}
+        subtitle={message("goal.section.hint")}
+        testID="progress-open-goal"
+        title={message("goal.section.eyebrow")}
+      />
+      <SettingsRow
+        icon="trophy"
+        onPress={() => subroute("/(protected)/progress/achievements")}
+        subtitle={message("ach.section.hint")}
+        testID="progress-open-achievements"
+        title={message("ach.section.title")}
       />
     </AccountScreenShell>
   );

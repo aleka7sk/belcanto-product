@@ -1,15 +1,17 @@
 import { router } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice } from "../../components";
 import {
   AccountScreenShell,
   ProfileHero,
   ScreenHeading,
   SettingsRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, initialsOf, useAccountResource, useWorkingRole } from "./shared";
 
@@ -33,17 +35,30 @@ export function AccountHubScreen() {
         : message("acc01.roleRow.many", { count: roleCount - 1 });
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-hub">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([profile.reload(), twofa.reload()]);
+          }}
+          refreshing={profile.refreshing || twofa.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-hub"
+    >
       <ScreenHeading
         eyebrow={message("acc01.eyebrow")}
         subtitle={message("acc01.subtitle")}
         title={message("acc01.title")}
       />
       {profile.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(profile.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void profile.reload()}
+          title={message("acc01.title")}
         />
       ) : null}
       {profile.value ? (

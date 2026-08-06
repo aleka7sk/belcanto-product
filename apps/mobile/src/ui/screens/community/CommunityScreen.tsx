@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { navigationRoleFor } from "@/access/activeRole";
 import { useApiClient } from "@/api";
@@ -16,6 +16,7 @@ import {
 } from "../../patterns/accountPatterns";
 import { CommunityPostCard } from "../../patterns/communityPatterns";
 import { PremiumContextHero } from "../../patterns/premiumContextHero";
+import { ScreenList } from "../../screen";
 import { SegmentedControl } from "../../segmentedControl";
 import { radius, semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
@@ -143,125 +144,155 @@ export function CommunityScreen() {
     await Promise.all([policies.reload(), feed.reload()]);
   };
 
-  return (
-    <AccountScreenShell
-      navigation={<AccountNav active="community" />}
-      testID="community-home"
-    >
-      {policies.error !== null ? (
+  if (pendingGuidelines !== null || policies.error !== null) {
+    return (
+      <AccountScreenShell
+        navigation={<AccountNav active="community" />}
+        testID="community-home"
+      >
+        {policies.error !== null ? (
+          <ErrorNotice
+            actionLabel={message("common.retry")}
+            body={apiErrorMessage(policies.error)}
+            onAction={() => void policies.reload()}
+            title={message("com.gate.eyebrow")}
+          />
+        ) : null}
+        {pendingGuidelines !== null ? (
+          <GuidelinesGate onAccepted={reloadAll} policy={pendingGuidelines} />
+        ) : null}
+      </AccountScreenShell>
+    );
+  }
+
+  const header = (
+    <View style={styles.header}>
+      <PremiumContextHero
+        body={message("com.hero.body")}
+        eyebrow={message("com.hero.eyebrow")}
+        {...(feed.value === null
+          ? {}
+          : { metric: message("com.hero.metric", { count: posts.length }) })}
+        role={workingRole === null ? "Student" : navigationRoleFor(workingRole)}
+        title={message("com.hero.title")}
+      />
+      <SegmentedControl<CommunityTab>
+        accessibilityLabel={message("com.hero.title")}
+        active={tab}
+        activeColor={semantic.bgCommunity}
+        items={[
+          { key: "feed", label: message("com.tab.feed") },
+          { key: "events", label: message("com.tab.events"), role: "link" },
+          { key: "chats", label: message("com.tab.chats") },
+        ]}
+        onSelect={(key) => {
+          if (key === "events") {
+            router.push("/(protected)/events");
+            return;
+          }
+          setTab(key);
+        }}
+        testIDPrefix="community-tab"
+      />
+      {feed.error !== null ? (
         <ErrorNotice
           actionLabel={message("common.retry")}
-          body={apiErrorMessage(policies.error)}
-          onAction={() => void policies.reload()}
-          title={message("com.gate.eyebrow")}
+          body={apiErrorMessage(feed.error)}
+          onAction={() => void feed.reload()}
+          title={message("com.hero.title")}
         />
       ) : null}
-      {pendingGuidelines !== null ? (
-        <GuidelinesGate onAccepted={reloadAll} policy={pendingGuidelines} />
-      ) : (
+      {tab === "chats" ? (
         <>
-          <PremiumContextHero
-            body={message("com.hero.body")}
-            eyebrow={message("com.hero.eyebrow")}
-            {...(feed.value === null
-              ? {}
-              : { metric: message("com.hero.metric", { count: posts.length }) })}
-            role={workingRole === null ? "Student" : navigationRoleFor(workingRole)}
-            title={message("com.hero.title")}
+          <StatusCard
+            body={message("com.chats.rule.body")}
+            status={message("com.chats.rule.footer")}
+            title={message("com.chats.rule.title")}
+            tone="info"
           />
-          <SegmentedControl<CommunityTab>
-            accessibilityLabel={message("com.hero.title")}
-            active={tab}
-            activeColor={semantic.bgCommunity}
-            items={[
-              { key: "feed", label: message("com.tab.feed") },
-              { key: "events", label: message("com.tab.events"), role: "link" },
-              { key: "chats", label: message("com.tab.chats") },
-            ]}
-            onSelect={(key) => {
-              if (key === "events") {
-                router.push("/(protected)/events");
-                return;
-              }
-              setTab(key);
-            }}
-            testIDPrefix="community-tab"
-          />
-          {feed.error !== null ? (
-            <ErrorNotice
-              actionLabel={message("common.retry")}
-              body={apiErrorMessage(feed.error)}
-              onAction={() => void feed.reload()}
-              title={message("com.hero.title")}
-            />
-          ) : null}
-          {tab === "chats" ? (
-            <>
-              <StatusCard
-                body={message("com.chats.rule.body")}
-                status={message("com.chats.rule.footer")}
-                title={message("com.chats.rule.title")}
-                tone="info"
-              />
-              <Text style={styles.deferred}>{message("com.chats.deferred")}</Text>
-            </>
-          ) : (
-            <>
-              <Pressable
-                accessibilityLabel={message("com.space.announcements")}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: announcementsOnly }}
-                onPress={() => setAnnouncementsOnly((current) => !current)}
-                style={[styles.spaceCard, announcementsOnly && styles.spaceCardActive]}
-                testID="community-space-announcements"
-              >
-                <View style={styles.spaceText}>
-                  <Text style={styles.spaceTitle}>{message("com.space.announcements")}</Text>
-                  <Text style={styles.spaceBody}>{message("com.space.announcementsBody")}</Text>
-                  <Text style={styles.spaceCount}>
-                    {message("com.space.count", { count: announcementCount(posts) })}
-                  </Text>
-                </View>
-              </Pressable>
-              {feed.value !== null && visible.length === 0 ? (
-                <Text style={styles.deferred}>{message("com.feed.empty")}</Text>
-              ) : null}
-              {visible.map((post) => (
-                <CommunityPostCard
-                  key={post.id}
-                  message={message}
-                  onOpen={() =>
-                    router.push({
-                      pathname: "/(protected)/community/[postId]",
-                      params: { postId: post.id },
-                    })
-                  }
-                  post={post}
-                  testID={`community-post-${post.id}`}
-                />
-              ))}
-              <BlockAction
-                label={message("com.compose")}
-                onPress={() => router.push("/(protected)/community/create")}
-                testID="community-compose"
-              />
-              {moderator ? (
-                <BlockAction
-                  kind="secondary"
-                  label={message("com.moderation.open")}
-                  onPress={() => router.push("/(protected)/community/moderation")}
-                  testID="community-moderation-link"
-                />
-              ) : null}
-            </>
-          )}
+          <Text style={styles.deferred}>{message("com.chats.deferred")}</Text>
         </>
+      ) : (
+        <Pressable
+          accessibilityLabel={message("com.space.announcements")}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: announcementsOnly }}
+          onPress={() => setAnnouncementsOnly((current) => !current)}
+          style={[styles.spaceCard, announcementsOnly && styles.spaceCardActive]}
+          testID="community-space-announcements"
+        >
+          <View style={styles.spaceText}>
+            <Text style={styles.spaceTitle}>{message("com.space.announcements")}</Text>
+            <Text style={styles.spaceBody}>{message("com.space.announcementsBody")}</Text>
+            <Text style={styles.spaceCount}>
+              {message("com.space.count", { count: announcementCount(posts) })}
+            </Text>
+          </View>
+        </Pressable>
       )}
-    </AccountScreenShell>
+    </View>
+  );
+
+  return (
+    <ScreenList
+      data={tab === "feed" ? visible : []}
+      keyExtractor={(post) => post.id}
+      ListEmptyComponent={
+        tab === "chats" ? null : feed.value !== null ? (
+          <Text style={styles.deferred}>{message("com.feed.empty")}</Text>
+        ) : (
+          <Text style={styles.deferred}>{message("common.loading")}</Text>
+        )
+      }
+      ListFooterComponent={
+        tab === "feed" ? (
+          <View style={styles.footer}>
+            <BlockAction
+              label={message("com.compose")}
+              onPress={() => router.push("/(protected)/community/create")}
+              testID="community-compose"
+            />
+            {moderator ? (
+              <BlockAction
+                kind="secondary"
+                label={message("com.moderation.open")}
+                onPress={() => router.push("/(protected)/community/moderation")}
+                testID="community-moderation-link"
+              />
+            ) : null}
+          </View>
+        ) : null
+      }
+      ListHeaderComponent={header}
+      navigation={<AccountNav active="community" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void reloadAll()}
+          refreshing={feed.refreshing || policies.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      renderItem={({ item }) => (
+        <CommunityPostCard
+          message={message}
+          onOpen={() =>
+            router.push({
+              pathname: "/(protected)/community/[postId]",
+              params: { postId: item.id },
+            })
+          }
+          post={item}
+          testID={`community-post-${item.id}`}
+        />
+      )}
+      testID="community-home"
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  header: { gap: space.s3 },
+  footer: { gap: space.s3 },
   spaceCard: {
     backgroundColor: semantic.bgRaised,
     borderColor: semantic.borderGlass,

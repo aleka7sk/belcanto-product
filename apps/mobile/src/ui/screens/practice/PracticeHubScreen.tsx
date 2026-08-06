@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { HomeworkAssignment, HomeworkStatus } from "@/api/contracts";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -13,6 +14,7 @@ import {
   StatusRow,
 } from "../../patterns/accountPatterns";
 import { HOMEWORK_STATUS_TONE } from "../../patterns/practicePatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
 
@@ -39,7 +41,9 @@ export function PracticeHubScreen() {
   const studentId = paramStudentId ?? state.bootstrap?.studentId ?? null;
 
   const homework = useAccountResource((accessToken) =>
-    api.listStudentHomework(accessToken, studentId ?? ""),
+    studentId === null
+      ? Promise.resolve<HomeworkAssignment[]>([])
+      : api.listStudentHomework(accessToken, studentId),
   );
 
   if (studentId === null) {
@@ -55,9 +59,9 @@ export function PracticeHubScreen() {
   }
 
   const list = homework.value ?? [];
-  const loading = homework.value === null;
+  const loading = homework.value === null && homework.error === null;
   const latest = list[0];
-  const empty = !loading && list.length === 0;
+  const empty = homework.value !== null && list.length === 0;
 
   const openHomework = (assignment: HomeworkAssignment) =>
     router.push({
@@ -66,24 +70,37 @@ export function PracticeHubScreen() {
     });
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="practice" />} testID="practice-hub">
+    <AccountScreenShell
+      navigation={<AccountNav active="practice" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void homework.reload()}
+          refreshing={homework.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="practice-hub"
+    >
       <ScreenHeading
         eyebrow={message("prac.eyebrow")}
         subtitle={
-          empty || latest === undefined
-            ? message("prac.empty.body")
-            : message("prac.hub.subtitle", {
-                count: list.length,
-                date: formatBelcantoDate(latest.updatedAt),
-              })
+          loading
+            ? message("common.loading")
+            : empty || latest === undefined
+              ? message("prac.empty.body")
+              : message("prac.hub.subtitle", {
+                  count: list.length,
+                  date: formatBelcantoDate(latest.updatedAt),
+                })
         }
         title={empty ? message("prac.empty.title") : message("prac.hub.title")}
       />
       {homework.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(homework.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void homework.reload()}
+          title={message("prac.hub.title")}
         />
       ) : null}
       {empty ? (

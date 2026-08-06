@@ -1,10 +1,10 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 
 import { useApiClient, type EventOccurrence, type IsoDateTime } from "@/api";
 import { useMessage } from "@/i18n";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import { AccountScreenShell } from "../../patterns/accountPatterns";
 import {
   categoryAccent,
@@ -56,7 +56,19 @@ export function EventsCatalogScreen() {
       : list.filter((event) => event.categoryId === categoryFilter);
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="events-catalog">
+    <AccountScreenShell
+      navigation={<AccountNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void events.reload();
+          }}
+          refreshing={events.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="events-catalog"
+    >
       <PremiumContextHero
         body={message("evt.catalog.body")}
         eyebrow={message("evt.catalog.eyebrow")}
@@ -97,10 +109,11 @@ export function EventsCatalogScreen() {
         </ScrollView>
       ) : null}
       {events.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(events.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void events.reload()}
+          title={message("evt.catalog.eyebrow")}
         />
       ) : null}
       {events.value !== null && visible.length === 0 ? (

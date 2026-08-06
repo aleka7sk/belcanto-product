@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient, type PrivacySettings } from "@/api";
 import { useMessage } from "@/i18n";
@@ -11,6 +12,7 @@ import {
   ScreenHeading,
   ToggleRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -74,7 +76,19 @@ export function CommunityPrivacyScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-community-privacy">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void settings.reload();
+          }}
+          refreshing={settings.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-community-privacy"
+    >
       <ScreenHeading
         eyebrow={message("acc12.eyebrow")}
         subtitle={message("acc12.subtitle")}

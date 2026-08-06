@@ -30,7 +30,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../patterns/accountPatterns";
-import { colors, fonts, radius, semantic, space, spacing, strokes, typeScale, typeStyles } from "../tokens";
+import { radius, semantic, space, strokes, typeStyles } from "../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../viewModels";
 
 /**
@@ -750,21 +750,22 @@ function ActivationUnavailable({
 const styles = StyleSheet.create({
   centeredContent: { justifyContent: "center", minHeight: 720 },
   wizardContent: { gap: space.s3, minHeight: 780 },
-  centerBadge: { alignItems: "center", marginTop: spacing.xxl },
+  centerBadge: { alignItems: "center", marginTop: space.s6 },
   centerTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    marginTop: spacing.loose,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 28,
+    lineHeight: 34,
+    marginTop: space.s10,
     textAlign: "center",
-    ...typeScale.screenTitle,
   },
-  unavailableActions: { gap: spacing.md, marginTop: spacing.xxl },
+  unavailableActions: { gap: space.s3, marginTop: space.s6 },
   brandRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: space.s3,
     marginBottom: space.s2,
-    marginTop: spacing.md,
+    marginTop: space.s3,
   },
   brandName: {
     color: semantic.textPrimary,

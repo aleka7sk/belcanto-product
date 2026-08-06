@@ -11,7 +11,7 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from "../components";
-import { colors, fonts, spacing, typeScale } from "../tokens";
+import { semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage } from "../viewModels";
 
 export function SessionRecoveryScreen() {
@@ -70,19 +70,19 @@ const styles = StyleSheet.create({
   content: { justifyContent: "center", minHeight: 720 },
   badge: { alignItems: "center" },
   title: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    marginTop: spacing.loose,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 28,
+    lineHeight: 34,
+    marginTop: space.s10,
     textAlign: "center",
-    ...typeScale.screenTitle,
   },
   subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginBottom: spacing.section,
-    marginTop: spacing.sm,
+    color: semantic.textSecondary,
+    marginBottom: space.s8,
+    marginTop: space.s2,
     textAlign: "center",
-    ...typeScale.body,
+    ...typeStyles.bodyS,
   },
-  actions: { gap: spacing.md, marginTop: spacing.section },
+  actions: { gap: space.s3, marginTop: space.s8 },
 });

@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
@@ -9,6 +10,7 @@ import {
   SettingsRow,
   StatusCard,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { AccountNav, useAccountResource } from "./shared";
 
 /** ACC-05 · Безопасность (Figma 365:297). */
@@ -24,7 +26,19 @@ export function SecurityCenterScreen() {
   const sessionCount = sessions.value?.length ?? 0;
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-security">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void Promise.all([twofa.reload(), sessions.reload()]);
+          }}
+          refreshing={twofa.refreshing || sessions.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-security"
+    >
       <ScreenHeading
         eyebrow={message("acc05.eyebrow")}
         subtitle={message("acc05.subtitle")}

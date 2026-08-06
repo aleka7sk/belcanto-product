@@ -12,14 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import stageHero from "../../../assets/images/welcome-stage.png";
 import { AppSurface, PrimaryButton } from "../components";
-import {
-  colors,
-  fonts,
-  gradients,
-  metrics,
-  spacing,
-  typeScale,
-} from "../tokens";
+import { gradients, metrics, semantic, space, typeStyles } from "../tokens";
 
 export function WelcomeScreen() {
   const insets = useSafeAreaInsets();
@@ -52,8 +45,8 @@ export function WelcomeScreen() {
             style={[
               styles.content,
               {
-                paddingTop: insets.top + spacing.lg,
-                paddingBottom: insets.bottom + spacing.xxl,
+                paddingTop: insets.top + space.s4,
+                paddingBottom: insets.bottom + space.s6,
               },
             ]}
           >
@@ -81,7 +74,7 @@ const styles = StyleSheet.create({
   column: {
     alignSelf: "center",
     flex: 1,
-    maxWidth: metrics.contentMaxWidth,
+    maxWidth: 430 /* B.0 column cap */,
     minHeight: metrics.welcomeMinimumHeight,
     overflow: "hidden",
     width: "100%",
@@ -96,32 +89,35 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minHeight: metrics.welcomeMinimumHeight,
-    paddingHorizontal: metrics.authGutter,
+    paddingHorizontal: space.s5,
   },
   brand: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    ...typeScale.brand,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 13,
+    letterSpacing: 2.4,
+    lineHeight: 17,
   },
   heroSpacer: { height: 382 },
   title: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    ...typeScale.welcomeTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 34,
+    lineHeight: 41,
   },
   body: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: spacing.section,
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: space.s8,
     maxWidth: 350,
-    ...typeScale.bodyLarge,
   },
-  flexSpacer: { flex: 1, minHeight: spacing.section },
+  flexSpacer: { flex: 1, minHeight: space.s8 },
   footnote: {
-    color: colors.textMuted,
-    fontFamily: fonts.regular,
-    marginTop: spacing.lg,
+    color: semantic.textMuted,
+    marginTop: space.s4,
     textAlign: "center",
-    ...typeScale.label,
+    ...typeStyles.caption,
   },
 });

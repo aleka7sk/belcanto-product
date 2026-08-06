@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient, type SecurityEvent } from "@/api";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountBanner,
   AccountScreenShell,
@@ -13,6 +14,7 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "./shared";
 
@@ -65,18 +67,34 @@ export function SecurityActivityScreen() {
         : "info";
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="account-activity">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void feed.reload();
+          }}
+          refreshing={feed.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="account-activity"
+    >
       <ScreenHeading
         eyebrow={message("acc09.eyebrow")}
         subtitle={newestSignIn ? message("acc09.subtitle") : message("acc09.listSubtitle")}
         title={newestSignIn ? message("acc09.title") : message("acc09.listTitle")}
       />
-      {error !== null || feed.error !== null ? (
-        <InlineNotice
-          body={error ?? apiErrorMessage(feed.error)}
-          title={message("common.retry")}
-          tone="error"
+      {feed.error !== null ? (
+        <ErrorNotice
+          actionLabel={message("common.retry")}
+          body={apiErrorMessage(feed.error)}
+          onAction={() => void feed.reload()}
+          title={message("acc09.listTitle")}
         />
+      ) : null}
+      {error !== null ? (
+        <InlineNotice body={error} title={message("common.retry")} tone="error" />
       ) : null}
       {newestSignIn !== null ? (
         <>

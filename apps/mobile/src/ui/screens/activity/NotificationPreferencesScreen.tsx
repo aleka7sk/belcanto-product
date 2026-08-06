@@ -1,16 +1,18 @@
 import { useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { NotificationCategory } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice, InlineNotice } from "../../components";
 import {
   AccountBanner,
   AccountScreenShell,
   ScreenHeading,
   ToggleRow,
 } from "../../patterns/accountPatterns";
+import { semantic } from "../../tokens";
 import { apiErrorMessage } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
 
@@ -51,17 +53,30 @@ export function NotificationPreferencesScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav />} testID="notification-preferences">
+    <AccountScreenShell
+      navigation={<AccountNav />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void preferences.reload();
+          }}
+          refreshing={preferences.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="notification-preferences"
+    >
       <ScreenHeading
         eyebrow={message("act.prefs.eyebrow")}
         subtitle={message("act.prefs.subtitle")}
         title={message("act.prefs.title")}
       />
       {preferences.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(preferences.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void preferences.reload()}
+          title={message("act.prefs.title")}
         />
       ) : null}
       {actionError !== null ? (
