@@ -4,8 +4,8 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T08:40:00Z",
-  "phase": "phase1",
+  "updatedAt": "2026-08-06T10:20:00Z",
+  "phase": "phase2",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
     "rootNodeName": "Document",
@@ -125,8 +125,9 @@
     {
       "id": "p2-events-rsvp",
       "phase": 2,
-      "status": "not_started",
-      "summary": "EventSeries/Occurrence, recurrence+exceptions, RSVP/waitlist/spot offers atomic, categories data-driven"
+      "status": "in_progress",
+      "summary": "EventSeries/Occurrence, recurrence+exceptions, RSVP/waitlist/spot offers atomic, categories data-driven",
+      "evidence": "backend vertical green (98a3842): migration 000007 (categories/series/occurrences/rsvps/waitlist/spot offers, capacity triggers, single-pending-offer index, DEFERRABLE waitlist positions); per-occurrence advisory lock + lazy offer expiry + cascade; atomic last seat proven by concurrent PG race test; waitlist explicit (never silent); DEC-101 TTL via Options.SpotOfferTTL default 24h; OpenAPI 0.6.0 (+14 ops), mobile contracts with seat invariant decoders; Go full suite + race, mobile 26 suites/159 tests. Remaining: event UI screens (Page 24 catalog + RsvpControl 333:268), occurrence cancellation/completion admin ops"
     },
     {
       "id": "p2-reschedule",
@@ -172,6 +173,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "f705f3b",
-  "nextSafeAction": "continue phase 2: p2-events-rsvp migration 000007 (event categories/series/occurrences, RSVP unique per occurrence, waitlist positions, spot offers with server expiry, atomic last seat via advisory lock + confirmed_count guard, DEC-101 TTL from server_config), then reschedule requests and scheduling UI screens"
+  "lastGreenCodeSha": "98a3842",
+  "nextSafeAction": "continue phase 2: p2-reschedule migration 000008 (reschedule/cancellation requests with admin decision flow, DEC-102 kept configurable-off), then scheduling/event UI screens (Pages 24/26/29) on the finished seat API"
 }
