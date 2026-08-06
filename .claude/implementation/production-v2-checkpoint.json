@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T12:00:00+05:00",
+  "updatedAt": "2026-08-06T00:00:00+05:00",
   "phase": "ux-overhaul",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -204,6 +204,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "231ee5a",
-  "nextSafeAction": "UX OVERHAUL COMPLETE for the headless scope: ux1 foundation + ux2 student contour + ux3 staff contours are green and pushed (one Screen scaffold with the pinned role navigation, one tab->route map with replace semantics, 48pt targets, one Button/SegmentedControl/Chip, one semantic token system, storyboard IA for community/progress/homework, virtualized activity/community/staff-lessons/roster feeds, retry+pull-to-refresh across resource screens). Device/human steps recorded in ux-overhaul-audit.md register: on-device visual QA against the 242 Figma states, Dynamic Type at large scales, VoiceOver pass, 60fps scroll check on long feeds, kk copy review. Next engineering after that: Page-21/32 re-skin decisions (B.0 hero/auth decoration), 11 account screens without load-error surfaces, chats slice, device modules. Release blockers unchanged: DEC-102/103/104."
+  "lastGreenCodeSha": "5c5207f",
+  "nextSafeAction": "visual warmth level 3 on owner demand: generate warm-language proposals in Figma (new page) for owner approval, then token updates through design/011; dynamic light/dark theme switch (semanticByMode is wired for it; default is light per owner decision 2026-08-06). Release still blocked by DEC-102/103/104."
 }
