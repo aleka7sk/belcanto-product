@@ -160,8 +160,9 @@
     {
       "id": "p6-admin-owner",
       "phase": 6,
-      "status": "not_started",
-      "summary": "admin operations, conflicts, people/rooms, owner analytics aggregate-first, roles/policies/export"
+      "status": "completed",
+      "summary": "admin operations, conflicts, people/rooms, owner analytics aggregate-first, roles/policies/export",
+      "evidence": "admin/owner workspaces green (5acee91): GET /v1/operations/summary — nine counts derived from stored rows (Almaty civil-day lessons, pending reschedules, new reports, draft journals, past-without-attendance, active students/series, week events, pending deletions), Owner/Admin only, both stores, app test (FORBIDDEN for teacher, real counts), OpenAPI 0.18.0; mobile: AOP-01/02 operations home (signal rows with deep links to moderation/lessons/series, management links, honest future-flows card), OWN-01/17/18 owner overview (counted metrics, data-quality card, governance segment with policy versions + history-not-recalculated invariant + roles/audit links, analytics segment states the metric-definition prerequisite honestly per OWN-23), admin/owner tabs live (operations/people/overview/analytics/team/more), adm.*/own.* ru/kk. Gates: Go full+race, mobile 40/214, contract lint, validator 0/99. DEFERRED (recorded as future slices, each needs new backend aggregates or decisions): AOP-03/04 room-day and week-load views, AOP-05 saved filters, AOP-06/07 conflict centre with free-slot suggestions, AOP-13..19 occurrence-scope editing/series split (this-and-following), AOP-20..24 admin event participant management + capacity guard UI, AOP-25 teacher availability/blackouts (no availability model in corpus yet), AOP-28..30 quality reminders + delivery results, AOP-31 audit export, AOP-33 concurrent-edit compare UI (409s exist; compare view later); OWN-03..16 metric/trend/cohort/billing analytics pending approved metric definitions and a billing source (no billing ledger exists — nothing invented), OWN-15/16 owner decision queue + override (no soft-conflict override model in domain), OWN-19 policy version authoring, OWN-22 report export."
     },
     {
       "id": "p7-reliability-a11y-l10n",
@@ -177,6 +178,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "c850f0f4dd51ca639558781229bd38cfc9083f61",
-  "nextSafeAction": "phase 6: administrator and owner workspaces (Pages 29/30) — admin operations home, series creation form + rooms admin surface, owner overview/analytics with explainable metric definitions (no cross-person ratings), then TCH-ANALYTICS metrics reusing those definitions"
+  "lastGreenCodeSha": "5acee917ee754bbb2c9a4c167d24cb91c37c6fe6",
+  "nextSafeAction": "phase 7 verification pass (a11y labels shipped with every screen; device-dependent modules stay recorded: recorder/picker, push+quiet hours, Face ID, offline drafts; legacy RU->i18n sweep inventory), then phase 8 gates matrix and the §16 final report — release remains blocked by open DEC-102/103/104"
 }
