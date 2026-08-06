@@ -35,6 +35,7 @@ import {
   decodeMediaAccess,
   decodeHomeworkAssignment,
   decodeHomeworkAssignments,
+  decodeAttendanceRecords,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -111,6 +112,8 @@ import {
   type MarkHomeworkTaskRequest,
   type SubmitHomeworkRequest,
   type ReviewHomeworkRequest,
+  type AttendanceRecord,
+  type MarkAttendanceRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -913,6 +916,24 @@ export const routes = {
       [401, 403, 422, 500],
       decodeHomeworkAssignments,
     ),
+  markAttendance: (lessonId: string, studentId: string) =>
+    route<AttendanceRecord[]>(
+      "PUT",
+      `/v1/lessons/${pathPart(lessonId, "lessonId")}/attendance/${pathPart(studentId, "studentId")}`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAttendanceRecords,
+    ),
+  listLessonAttendance: (lessonId: string) =>
+    route<AttendanceRecord[]>(
+      "GET",
+      `/v1/lessons/${pathPart(lessonId, "lessonId")}/attendance`,
+      "required",
+      200,
+      [401, 403, 404, 422, 500],
+      decodeAttendanceRecords,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -1054,6 +1075,7 @@ export type RouteRequestBodies = {
   markHomeworkTask: MarkHomeworkTaskRequest;
   submitHomework: SubmitHomeworkRequest;
   reviewHomework: ReviewHomeworkRequest;
+  markAttendance: MarkAttendanceRequest;
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;

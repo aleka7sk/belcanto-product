@@ -119,6 +119,8 @@ func New(service *app.Service) http.Handler {
 	mux.Handle("POST /v1/homework/{homeworkId}/submissions", api.authenticated(http.HandlerFunc(api.submitHomework)))
 	mux.Handle("POST /v1/homework/{homeworkId}/review", api.authenticated(http.HandlerFunc(api.reviewHomework)))
 	mux.Handle("GET /v1/students/{studentId}/homework", api.authenticated(http.HandlerFunc(api.listStudentHomework)))
+	mux.Handle("PUT /v1/lessons/{lessonId}/attendance/{studentId}", api.authenticated(http.HandlerFunc(api.markAttendance)))
+	mux.Handle("GET /v1/lessons/{lessonId}/attendance", api.authenticated(http.HandlerFunc(api.listLessonAttendance)))
 	mux.Handle("POST /v1/lessons/teacher-replacements", api.authenticated(http.HandlerFunc(api.replaceLessonTeachers)))
 	mux.Handle("GET /v1/lessons/{lessonId}", api.authenticated(http.HandlerFunc(api.getLesson)))
 	mux.Handle("POST /v1/access/delegations", api.authenticated(http.HandlerFunc(api.grantDelegation)))

@@ -1317,3 +1317,34 @@ type ReviewHomeworkCommand struct {
 	PayloadFingerprint []byte
 	Now                time.Time
 }
+
+// ---- L.4 per-participant attendance (domain/lesson.md Approved) ----
+
+const (
+	AttendancePresent = "present"
+	AttendanceLate    = "late"
+	AttendanceAbsent  = "absent"
+)
+
+type AttendanceRecord struct {
+	StudentID   string    `json:"studentId"`
+	StudentName string    `json:"studentName"`
+	Status      string    `json:"status"`
+	LateMinutes int       `json:"lateMinutes,omitempty"`
+	Note        string    `json:"note,omitempty"`
+	RecordedAt  time.Time `json:"recordedAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type MarkAttendanceCommand struct {
+	Principal          Principal
+	OccurrenceID       string
+	StudentID          string
+	Status             string
+	LateMinutes        int
+	Note               string
+	ChangeReason       string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}

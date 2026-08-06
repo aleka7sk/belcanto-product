@@ -104,6 +104,9 @@ type Store interface {
 	GetHomework(context.Context, core.Principal, string, time.Time) (core.HomeworkAssignment, error)
 	ListStudentHomework(context.Context, core.Principal, string, time.Time) ([]core.HomeworkAssignment, error)
 
+	MarkAttendance(context.Context, core.MarkAttendanceCommand) ([]core.AttendanceRecord, error)
+	ListLessonAttendance(context.Context, core.Principal, string) ([]core.AttendanceRecord, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

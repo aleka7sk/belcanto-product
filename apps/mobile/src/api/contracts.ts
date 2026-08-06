@@ -3012,3 +3012,66 @@ export const decodeHomeworkAssignments: Decoder<HomeworkAssignment[]> = (value) 
   );
   return items;
 };
+
+// ---- L.4 lesson attendance (domain/lesson.md) ----
+
+export const ATTENDANCE_STATUSES = ["present", "late", "absent"] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+
+export interface AttendanceRecord {
+  studentId: string;
+  studentName: string;
+  status: AttendanceStatus;
+  lateMinutes?: number;
+  note?: string;
+  recordedAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface MarkAttendanceRequest {
+  status: AttendanceStatus;
+  lateMinutes?: number;
+  note?: string;
+  changeReason?: string;
+}
+
+export const decodeAttendanceRecords: Decoder<AttendanceRecord[]> = (value) => {
+  const contract = "AttendanceRecordList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const records = value.map((entry, index) => {
+    const path = `$[${index}]`;
+    const source = record(entry, contract, path);
+    exactKeys(
+      source,
+      ["studentId", "studentName", "status", "lateMinutes", "note", "recordedAt", "updatedAt"],
+      contract,
+      path,
+    );
+    const item: AttendanceRecord = {
+      studentId: identifierField(source, "studentId", contract)!,
+      studentName: stringField(source, "studentName", contract)!,
+      status: oneOf(source.status, ATTENDANCE_STATUSES, contract, `${path}.status`),
+      recordedAt: isoDateField(source, "recordedAt", contract)!,
+      updatedAt: isoDateField(source, "updatedAt", contract)!,
+    };
+    if (source.lateMinutes !== undefined) {
+      item.lateMinutes = numberField(source, "lateMinutes", contract, 1);
+    }
+    const note = stringField(source, "note", contract, true);
+    if (note !== undefined) item.note = note;
+    if ((item.status === "late") !== (item.lateMinutes !== undefined)) {
+      throw new ContractDecodeError(contract, `${path}.lateMinutes`);
+    }
+    // An absence without a note is acceptable on read: the Student's
+    // own view legitimately hides the teacher note.
+    return item;
+  });
+  unique(
+    records.map((entry) => entry.studentId),
+    contract,
+    "$[].studentId",
+  );
+  return records;
+};

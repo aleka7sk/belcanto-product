@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.10.0
+  version: 0.11.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -2769,6 +2769,96 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+
+  /v1/lessons/{lessonId}/attendance:
+    get:
+      summary: List Lesson attendance
+      operationId: listLessonAttendance
+      tags: [Practice]
+      description: >-
+        Marks for this Lesson's participants. Full view for the Lesson's
+        staff and managers; a Student sees their own mark without the
+        teacher note. An empty group seat has no row.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+      responses:
+        "200":
+          description: Attendance records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/lessons/{lessonId}/attendance/{studentId}:
+    put:
+      summary: Mark a participant's attendance
+      operationId: markAttendance
+      tags: [Practice]
+      description: >-
+        The Lesson's Teacher or an Administrator marks present, late
+        (with minutes) or absent (with a mandatory note). Changing a
+        recorded mark requires an explicit reason; the audit keeps the
+        previous and new values (domain/lesson.md).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - $ref: "#/components/parameters/JournalStudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkAttendanceRequest"
+      responses:
+        "200":
+          description: Attendance records after the mark.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/InvalidInput"
         "500":
@@ -5679,3 +5769,48 @@ components:
         expectedVersion:
           type: integer
           minimum: 1
+
+    AttendanceRecord:
+      type: object
+      additionalProperties: false
+      required: [studentId, studentName, status, recordedAt, updatedAt]
+      properties:
+        studentId:
+          type: string
+        studentName:
+          type: string
+        status:
+          type: string
+          enum: [present, late, absent]
+        lateMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+        note:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MarkAttendanceRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [present, late, absent]
+        lateMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+        note:
+          type: string
+          minLength: 1
+          maxLength: 500
+        changeReason:
+          type: string
+          minLength: 1
+          maxLength: 500

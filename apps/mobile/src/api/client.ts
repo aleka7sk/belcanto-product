@@ -66,6 +66,8 @@ import {
   type MarkHomeworkTaskRequest,
   type SubmitHomeworkRequest,
   type ReviewHomeworkRequest,
+  type AttendanceRecord,
+  type MarkAttendanceRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -973,6 +975,33 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<HomeworkAssignment[]> {
     return this.request(routes.listStudentHomework(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  markAttendance(
+    accessToken: string,
+    lessonId: string,
+    studentId: string,
+    body: MarkAttendanceRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<AttendanceRecord[]> {
+    return this.request(routes.markAttendance(lessonId, studentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listLessonAttendance(
+    accessToken: string,
+    lessonId: string,
+    signal?: AbortSignal,
+  ): Promise<AttendanceRecord[]> {
+    return this.request(routes.listLessonAttendance(lessonId), {
       accessToken,
       signal,
     });

@@ -25,6 +25,7 @@ import { semantic, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
 import { homeworkStatusLabel } from "../practice/PracticeHubScreen";
+import { AttendanceBlock } from "./AttendanceBlock";
 
 /**
  * Teacher lesson context (Figma TCH-LESSON-01/02). Before, during and
@@ -257,6 +258,7 @@ export function TeacherLessonScreen() {
           />
         ))
       )}
+      <AttendanceBlock lessonId={lesson.id} students={lesson.students} />
     </AccountScreenShell>
   );
 }
