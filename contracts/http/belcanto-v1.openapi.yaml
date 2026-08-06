@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.12.0
+  version: 0.13.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -2978,6 +2978,354 @@ paths:
           $ref: "#/components/responses/Internal"
 
 
+  /v1/students/{studentId}/goals:
+    post:
+      summary: Create a goal
+      operationId: createGoal
+      tags: [Practice]
+      description: >-
+        The Student's Teacher or an Administrator sets a goal with an
+        explicit criterion. The criterion never rewrites — a material
+        change is a reframe with a replacement goal.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGoalRequest"
+      responses:
+        "201":
+          description: Active goal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentGoal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    get:
+      summary: List a Student's goals
+      operationId: listStudentGoals
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Goals, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentGoal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/goals/{goalId}/complete:
+    post:
+      summary: Complete a goal
+      operationId: completeGoal
+      tags: [Practice]
+      description: Completion carries an explicit decision note.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GoalId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteGoalRequest"
+      responses:
+        "200":
+          description: Completed goal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentGoal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/goals/{goalId}/reframe:
+    post:
+      summary: Reframe a goal
+      operationId: reframeGoal
+      tags: [Practice]
+      description: >-
+        «Уточнить или переосмыслить — не провалить»: cancels with a
+        reason and, when a new criterion is given, creates the linked
+        replacement goal in the same transaction. Returns the cancelled
+        goal first, then the replacement if created.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GoalId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReframeGoalRequest"
+      responses:
+        "200":
+          description: The cancelled goal and, if created, its replacement.
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                maxItems: 2
+                items:
+                  $ref: "#/components/schemas/StudentGoal"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/achievement-definitions:
+    post:
+      summary: Publish an achievement definition
+      operationId: createAchievementDefinition
+      tags: [Practice]
+      description: >-
+        School-managed catalog (Owner/Administrator). A published
+        definition is immutable within its version and contains no
+        ratings, points or punitive behavior.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAchievementDefinitionRequest"
+      responses:
+        "201":
+          description: Published definition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementDefinition"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    get:
+      summary: List achievement definitions
+      operationId: listAchievementDefinitions
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Catalog ordered by category and name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AchievementDefinition"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/achievement-definitions/{definitionId}/retire:
+    post:
+      summary: Retire an achievement definition
+      operationId: retireAchievementDefinition
+      tags: [Practice]
+      description: A retired definition creates no new awards.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: definitionId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Retired definition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementDefinition"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/students/{studentId}/achievements:
+    post:
+      summary: Award an achievement
+      operationId: awardAchievement
+      tags: [Practice]
+      description: >-
+        Evidence-backed award against a published definition, by the
+        Student's Teacher or an Administrator.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AwardAchievementRequest"
+      responses:
+        "201":
+          description: Award.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementAward"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    get:
+      summary: List a Student's achievements
+      operationId: listStudentAwards
+      tags: [Practice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Awards, newest first; revocation preserves the original.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AchievementAward"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/achievements/{awardId}/revoke:
+    post:
+      summary: Revoke an award
+      operationId: revokeAchievement
+      tags: [Practice]
+      description: Revocation carries a reason and preserves the original award.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: awardId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeAchievementRequest"
+      responses:
+        "200":
+          description: Revoked award.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementAward"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+
   /v1/lessons:
     get:
       summary: List role-scoped Lessons
@@ -3313,6 +3661,14 @@ components:
         maxLength: 128
     HomeworkTaskId:
       name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    GoalId:
+      name: goalId
       in: path
       required: true
       schema:
@@ -6008,3 +6364,190 @@ components:
         expectedVersion:
           type: integer
           minimum: 1
+
+    StudentGoal:
+      type: object
+      additionalProperties: false
+      required: [id, studentId, criterion, status, createdBy, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        criterion:
+          type: string
+        description:
+          type: string
+        relatedSongId:
+          type: string
+        relatedSkillArea:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+        completionNote:
+          type: string
+        cancelReason:
+          type: string
+        replacedByGoalId:
+          type: string
+        createdBy:
+          $ref: "#/components/schemas/TeacherSummary"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [criterion]
+      properties:
+        criterion:
+          type: string
+          minLength: 1
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 1000
+        relatedSongId:
+          type: string
+        relatedSkillArea:
+          type: string
+          maxLength: 100
+    CompleteGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [completionNote, expectedVersion]
+      properties:
+        completionNote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        expectedVersion:
+          type: integer
+          minimum: 1
+    ReframeGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [reason, expectedVersion]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        newCriterion:
+          type: string
+          maxLength: 500
+        newDescription:
+          type: string
+          maxLength: 1000
+        expectedVersion:
+          type: integer
+          minimum: 1
+    AchievementDefinition:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, category, status, definitionVersion, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        evidenceRequirement:
+          type: string
+        status:
+          type: string
+          enum: [published, retired]
+        definitionVersion:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        retiredAt:
+          type: string
+          format: date-time
+    CreateAchievementDefinitionRequest:
+      type: object
+      additionalProperties: false
+      required: [name, description, category]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        evidenceRequirement:
+          type: string
+          maxLength: 500
+    AchievementAward:
+      type: object
+      additionalProperties: false
+      required:
+        [id, definitionId, definitionName, category, studentId, evidenceNote,
+         status, awardedBy, awardedAt, definitionVersion]
+      properties:
+        id:
+          type: string
+        definitionId:
+          type: string
+        definitionName:
+          type: string
+        category:
+          type: string
+        studentId:
+          type: string
+        evidenceNote:
+          type: string
+        status:
+          type: string
+          enum: [awarded, revoked]
+        revokeReason:
+          type: string
+        revokedAt:
+          type: string
+          format: date-time
+        awardedBy:
+          $ref: "#/components/schemas/TeacherSummary"
+        awardedAt:
+          type: string
+          format: date-time
+        definitionVersion:
+          type: integer
+          minimum: 1
+    AwardAchievementRequest:
+      type: object
+      additionalProperties: false
+      required: [definitionId, evidenceNote]
+      properties:
+        definitionId:
+          type: string
+        evidenceNote:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    RevokeAchievementRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500

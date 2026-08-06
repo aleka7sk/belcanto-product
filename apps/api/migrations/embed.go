@@ -95,6 +95,12 @@ var repertoireUp string
 //go:embed 000012_repertoire.down.sql
 var repertoireDown string
 
+//go:embed 000013_goals_achievements.up.sql
+var goalsAchievementsUp string
+
+//go:embed 000013_goals_achievements.down.sql
+var goalsAchievementsDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -116,6 +122,7 @@ func registeredMigrations() []migration {
 		{version: 10, description: "Belcanto L.3 homework and practice", up: homeworkPracticeUp, down: homeworkPracticeDown},
 		{version: 11, description: "Belcanto L.4 lesson attendance", up: attendanceUp, down: attendanceDown},
 		{version: 12, description: "Belcanto L.3 student repertoire", up: repertoireUp, down: repertoireDown},
+		{version: 13, description: "Belcanto L.3 goals and achievements", up: goalsAchievementsUp, down: goalsAchievementsDown},
 	}
 }
 

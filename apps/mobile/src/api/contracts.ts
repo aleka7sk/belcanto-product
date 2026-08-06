@@ -3204,3 +3204,276 @@ export const decodeStudentSongs: Decoder<StudentSong[]> = (value) => {
   );
   return songs;
 };
+
+// ---- L.3 goals and achievements ----
+
+export const GOAL_STATUSES = ["active", "completed", "cancelled"] as const;
+export type GoalStatus = (typeof GOAL_STATUSES)[number];
+
+export interface StudentGoal {
+  id: string;
+  studentId: string;
+  criterion: string;
+  description?: string;
+  relatedSongId?: string;
+  relatedSkillArea?: string;
+  status: GoalStatus;
+  completionNote?: string;
+  cancelReason?: string;
+  replacedByGoalId?: string;
+  createdBy: LessonTeacher;
+  version: number;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface CreateGoalRequest {
+  criterion: string;
+  description?: string;
+  relatedSongId?: string;
+  relatedSkillArea?: string;
+}
+
+export interface CompleteGoalRequest {
+  completionNote: string;
+  expectedVersion: number;
+}
+
+export interface ReframeGoalRequest {
+  reason: string;
+  newCriterion?: string;
+  newDescription?: string;
+  expectedVersion: number;
+}
+
+export interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  evidenceRequirement?: string;
+  status: "published" | "retired";
+  definitionVersion: number;
+  createdAt: IsoDateTime;
+  retiredAt?: IsoDateTime;
+}
+
+export interface CreateAchievementDefinitionRequest {
+  name: string;
+  description: string;
+  category: string;
+  evidenceRequirement?: string;
+}
+
+export interface AchievementAward {
+  id: string;
+  definitionId: string;
+  definitionName: string;
+  category: string;
+  studentId: string;
+  evidenceNote: string;
+  status: "awarded" | "revoked";
+  revokeReason?: string;
+  revokedAt?: IsoDateTime;
+  awardedBy: LessonTeacher;
+  awardedAt: IsoDateTime;
+  definitionVersion: number;
+}
+
+export interface AwardAchievementRequest {
+  definitionId: string;
+  evidenceNote: string;
+}
+
+export interface RevokeAchievementRequest {
+  reason: string;
+}
+
+export const decodeStudentGoal: Decoder<StudentGoal> = (value) => {
+  const contract = "StudentGoal";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "studentId",
+      "criterion",
+      "description",
+      "relatedSongId",
+      "relatedSkillArea",
+      "status",
+      "completionNote",
+      "cancelReason",
+      "replacedByGoalId",
+      "createdBy",
+      "version",
+      "createdAt",
+      "updatedAt",
+    ],
+    contract,
+  );
+  const teacherSource = record(source.createdBy, contract, "$.createdBy");
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, "$.createdBy");
+  const goal: StudentGoal = {
+    id: identifierField(source, "id", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    criterion: stringField(source, "criterion", contract)!,
+    status: oneOf(source.status, GOAL_STATUSES, contract, "$.status"),
+    createdBy: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    version: numberField(source, "version", contract, 1),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    updatedAt: isoDateField(source, "updatedAt", contract)!,
+  };
+  const description = stringField(source, "description", contract, true);
+  if (description !== undefined) goal.description = description;
+  const relatedSongId = stringField(source, "relatedSongId", contract, true);
+  if (relatedSongId !== undefined) goal.relatedSongId = relatedSongId;
+  const relatedSkillArea = stringField(source, "relatedSkillArea", contract, true);
+  if (relatedSkillArea !== undefined) goal.relatedSkillArea = relatedSkillArea;
+  const completionNote = stringField(source, "completionNote", contract, true);
+  if (completionNote !== undefined) goal.completionNote = completionNote;
+  const cancelReason = stringField(source, "cancelReason", contract, true);
+  if (cancelReason !== undefined) goal.cancelReason = cancelReason;
+  const replacedByGoalId = stringField(source, "replacedByGoalId", contract, true);
+  if (replacedByGoalId !== undefined) goal.replacedByGoalId = replacedByGoalId;
+  if (goal.status === "completed" && goal.completionNote === undefined) {
+    throw new ContractDecodeError(contract, "$.completionNote");
+  }
+  if (goal.status === "cancelled" && goal.cancelReason === undefined) {
+    throw new ContractDecodeError(contract, "$.cancelReason");
+  }
+  if (goal.replacedByGoalId !== undefined && goal.status !== "cancelled") {
+    throw new ContractDecodeError(contract, "$.replacedByGoalId");
+  }
+  return goal;
+};
+
+export const decodeStudentGoals: Decoder<StudentGoal[]> = (value) => {
+  const contract = "StudentGoalList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const goals = value.map((entry) => decodeStudentGoal(entry));
+  unique(
+    goals.map((goal) => goal.id),
+    contract,
+    "$[].id",
+  );
+  return goals;
+};
+
+export const decodeAchievementDefinition: Decoder<AchievementDefinition> = (value) => {
+  const contract = "AchievementDefinition";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "name",
+      "description",
+      "category",
+      "evidenceRequirement",
+      "status",
+      "definitionVersion",
+      "createdAt",
+      "retiredAt",
+    ],
+    contract,
+  );
+  const definition: AchievementDefinition = {
+    id: identifierField(source, "id", contract)!,
+    name: stringField(source, "name", contract)!,
+    description: stringField(source, "description", contract)!,
+    category: stringField(source, "category", contract)!,
+    status: oneOf(source.status, ["published", "retired"] as const, contract, "$.status"),
+    definitionVersion: numberField(source, "definitionVersion", contract, 1),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+  };
+  const evidenceRequirement = stringField(source, "evidenceRequirement", contract, true);
+  if (evidenceRequirement !== undefined) definition.evidenceRequirement = evidenceRequirement;
+  const retiredAt = isoDateField(source, "retiredAt", contract, true);
+  if (retiredAt !== undefined) definition.retiredAt = retiredAt;
+  if ((definition.status === "retired") !== (definition.retiredAt !== undefined)) {
+    throw new ContractDecodeError(contract, "$.retiredAt");
+  }
+  return definition;
+};
+
+export const decodeAchievementDefinitions: Decoder<AchievementDefinition[]> = (value) => {
+  const contract = "AchievementDefinitionList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const definitions = value.map((entry) => decodeAchievementDefinition(entry));
+  unique(
+    definitions.map((definition) => definition.id),
+    contract,
+    "$[].id",
+  );
+  return definitions;
+};
+
+export const decodeAchievementAward: Decoder<AchievementAward> = (value) => {
+  const contract = "AchievementAward";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "definitionId",
+      "definitionName",
+      "category",
+      "studentId",
+      "evidenceNote",
+      "status",
+      "revokeReason",
+      "revokedAt",
+      "awardedBy",
+      "awardedAt",
+      "definitionVersion",
+    ],
+    contract,
+  );
+  const teacherSource = record(source.awardedBy, contract, "$.awardedBy");
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, "$.awardedBy");
+  const award: AchievementAward = {
+    id: identifierField(source, "id", contract)!,
+    definitionId: identifierField(source, "definitionId", contract)!,
+    definitionName: stringField(source, "definitionName", contract)!,
+    category: stringField(source, "category", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    evidenceNote: stringField(source, "evidenceNote", contract)!,
+    status: oneOf(source.status, ["awarded", "revoked"] as const, contract, "$.status"),
+    awardedBy: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    awardedAt: isoDateField(source, "awardedAt", contract)!,
+    definitionVersion: numberField(source, "definitionVersion", contract, 1),
+  };
+  const revokeReason = stringField(source, "revokeReason", contract, true);
+  if (revokeReason !== undefined) award.revokeReason = revokeReason;
+  const revokedAt = isoDateField(source, "revokedAt", contract, true);
+  if (revokedAt !== undefined) award.revokedAt = revokedAt;
+  if ((award.status === "revoked") !== (award.revokeReason !== undefined && award.revokedAt !== undefined)) {
+    throw new ContractDecodeError(contract, "$.revokeReason");
+  }
+  return award;
+};
+
+export const decodeAchievementAwards: Decoder<AchievementAward[]> = (value) => {
+  const contract = "AchievementAwardList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const awards = value.map((entry) => decodeAchievementAward(entry));
+  unique(
+    awards.map((award) => award.id),
+    contract,
+    "$[].id",
+  );
+  return awards;
+};

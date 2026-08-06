@@ -159,6 +159,17 @@ function ParticipantBlocks({
         }
         testID={`teacher-lesson-repertoire-${participant.studentId}`}
       />
+      <BlockAction
+        kind="secondary"
+        label={message("growth.entry.title")}
+        onPress={() =>
+          router.push({
+            pathname: "/(protected)/progress",
+            params: { studentId: participant.studentId },
+          })
+        }
+        testID={`teacher-lesson-growth-${participant.studentId}`}
+      />
     </Fragment>
   );
 }

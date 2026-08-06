@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -20,6 +20,7 @@ import {
   GrowthSignal,
   groupEvidenceByArea,
 } from "../../patterns/journalPatterns";
+import { AchievementsSection, GoalSection } from "./GrowthSections";
 import { semantic, space, typeStyles } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
@@ -34,7 +35,12 @@ export function StudentProgressScreen() {
   const message = useMessage();
   const api = useApiClient();
   const { state } = useSession();
-  const studentId = state.bootstrap?.studentId ?? null;
+  const params = useLocalSearchParams<{ studentId?: string }>();
+  const paramStudentId = typeof params.studentId === "string" ? params.studentId : null;
+  const studentId = paramStudentId ?? state.bootstrap?.studentId ?? null;
+  const roles = state.bootstrap?.roles ?? [];
+  const canLead = roles.includes("Teacher") || roles.includes("Administrator");
+  const canManageCatalog = roles.includes("Owner") || roles.includes("Administrator");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
   const evidence = useAccountResource((accessToken) =>
@@ -213,6 +219,12 @@ export function StudentProgressScreen() {
           ) : null}
         </>
       )}
+      <GoalSection canLead={canLead} studentId={studentId} />
+      <AchievementsSection
+        canLead={canLead}
+        canManageCatalog={canManageCatalog}
+        studentId={studentId}
+      />
     </AccountScreenShell>
   );
 }

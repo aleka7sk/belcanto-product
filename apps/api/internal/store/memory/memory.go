@@ -147,6 +147,9 @@ type Store struct {
 	mediaObjects       map[string]*mediaObject
 	attendance         map[string]*attendanceRecord
 	songs              map[string]*studentSong
+	goals              map[string]*studentGoal
+	achievementDefs    map[string]*achievementDefinition
+	awards             map[string]*achievementAward
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -197,6 +200,9 @@ func New() *Store {
 		mediaObjects:       make(map[string]*mediaObject),
 		attendance:         make(map[string]*attendanceRecord),
 		songs:              make(map[string]*studentSong),
+		goals:              make(map[string]*studentGoal),
+		achievementDefs:    make(map[string]*achievementDefinition),
+		awards:             make(map[string]*achievementAward),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),

@@ -38,6 +38,12 @@ import {
   decodeAttendanceRecords,
   decodeStudentSong,
   decodeStudentSongs,
+  decodeStudentGoal,
+  decodeStudentGoals,
+  decodeAchievementDefinition,
+  decodeAchievementDefinitions,
+  decodeAchievementAward,
+  decodeAchievementAwards,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -119,6 +125,15 @@ import {
   type StudentSong,
   type AddStudentSongRequest,
   type ChangeSongStageRequest,
+  type StudentGoal,
+  type CreateGoalRequest,
+  type CompleteGoalRequest,
+  type ReframeGoalRequest,
+  type AchievementDefinition,
+  type CreateAchievementDefinitionRequest,
+  type AchievementAward,
+  type AwardAchievementRequest,
+  type RevokeAchievementRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -966,6 +981,94 @@ export const routes = {
       [401, 403, 404, 409, 422, 500],
       decodeStudentSong,
     ),
+  createGoal: (studentId: string) =>
+    route<StudentGoal>(
+      "POST",
+      `/v1/students/${pathPart(studentId, "studentId")}/goals`,
+      "required",
+      201,
+      [401, 403, 404, 422, 500],
+      decodeStudentGoal,
+    ),
+  listStudentGoals: (studentId: string) =>
+    route<StudentGoal[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/goals`,
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeStudentGoals,
+    ),
+  completeGoal: (goalId: string) =>
+    route<StudentGoal>(
+      "POST",
+      `/v1/goals/${pathPart(goalId, "goalId")}/complete`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeStudentGoal,
+    ),
+  reframeGoal: (goalId: string) =>
+    route<StudentGoal[]>(
+      "POST",
+      `/v1/goals/${pathPart(goalId, "goalId")}/reframe`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeStudentGoals,
+    ),
+  createAchievementDefinition: route<AchievementDefinition>(
+    "POST",
+    "/v1/achievement-definitions",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeAchievementDefinition,
+  ),
+  listAchievementDefinitions: route<AchievementDefinition[]>(
+    "GET",
+    "/v1/achievement-definitions",
+    "required",
+    200,
+    [401, 403, 500],
+    decodeAchievementDefinitions,
+  ),
+  retireAchievementDefinition: (definitionId: string) =>
+    route<AchievementDefinition>(
+      "POST",
+      `/v1/achievement-definitions/${pathPart(definitionId, "definitionId")}/retire`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAchievementDefinition,
+    ),
+  awardAchievement: (studentId: string) =>
+    route<AchievementAward>(
+      "POST",
+      `/v1/students/${pathPart(studentId, "studentId")}/achievements`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeAchievementAward,
+    ),
+  listStudentAwards: (studentId: string) =>
+    route<AchievementAward[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/achievements`,
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeAchievementAwards,
+    ),
+  revokeAchievement: (awardId: string) =>
+    route<AchievementAward>(
+      "POST",
+      `/v1/achievements/${pathPart(awardId, "awardId")}/revoke`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeAchievementAward,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -1110,6 +1213,12 @@ export type RouteRequestBodies = {
   markAttendance: MarkAttendanceRequest;
   addStudentSong: AddStudentSongRequest;
   changeSongStage: ChangeSongStageRequest;
+  createGoal: CreateGoalRequest;
+  completeGoal: CompleteGoalRequest;
+  reframeGoal: ReframeGoalRequest;
+  createAchievementDefinition: CreateAchievementDefinitionRequest;
+  awardAchievement: AwardAchievementRequest;
+  revokeAchievement: RevokeAchievementRequest;
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;

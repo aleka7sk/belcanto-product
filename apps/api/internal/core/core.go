@@ -1403,3 +1403,134 @@ type ChangeSongStageCommand struct {
 	PayloadFingerprint []byte
 	Now                time.Time
 }
+
+// ---- L.3 goals and achievements (Goal / AchievementAward aggregates) ----
+
+const (
+	GoalStatusActive    = "active"
+	GoalStatusCompleted = "completed"
+	GoalStatusCancelled = "cancelled"
+)
+
+type StudentGoal struct {
+	ID               string         `json:"id"`
+	StudentID        string         `json:"studentId"`
+	Criterion        string         `json:"criterion"`
+	Description      string         `json:"description,omitempty"`
+	RelatedSongID    string         `json:"relatedSongId,omitempty"`
+	RelatedSkillArea string         `json:"relatedSkillArea,omitempty"`
+	Status           string         `json:"status"`
+	CompletionNote   string         `json:"completionNote,omitempty"`
+	CancelReason     string         `json:"cancelReason,omitempty"`
+	ReplacedByGoalID string         `json:"replacedByGoalId,omitempty"`
+	CreatedBy        TeacherSummary `json:"createdBy"`
+	Version          int            `json:"version"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	UpdatedAt        time.Time      `json:"updatedAt"`
+}
+
+type CreateGoalCommand struct {
+	Principal          Principal
+	GoalID             string
+	StudentID          string
+	Criterion          string
+	Description        string
+	RelatedSongID      string
+	RelatedSkillArea   string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type CompleteGoalCommand struct {
+	Principal          Principal
+	GoalID             string
+	CompletionNote     string
+	ExpectedVersion    int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+// ReframeGoalCommand cancels a goal with a reason and, when a new
+// criterion is given, creates the replacement goal in the same
+// transaction — «уточнить или переосмыслить, не провалить».
+type ReframeGoalCommand struct {
+	Principal          Principal
+	GoalID             string
+	Reason             string
+	NewGoalID          string
+	NewCriterion       string
+	NewDescription     string
+	ExpectedVersion    int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type AchievementDefinition struct {
+	ID                  string     `json:"id"`
+	Name                string     `json:"name"`
+	Description         string     `json:"description"`
+	Category            string     `json:"category"`
+	EvidenceRequirement string     `json:"evidenceRequirement,omitempty"`
+	Status              string     `json:"status"`
+	DefinitionVersion   int        `json:"definitionVersion"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	RetiredAt           *time.Time `json:"retiredAt,omitempty"`
+}
+
+type CreateAchievementDefinitionCommand struct {
+	Principal           Principal
+	DefinitionID        string
+	Name                string
+	Description         string
+	Category            string
+	EvidenceRequirement string
+	IdempotencyKey      string
+	PayloadFingerprint  []byte
+	Now                 time.Time
+}
+
+type RetireAchievementDefinitionCommand struct {
+	Principal          Principal
+	DefinitionID       string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type AchievementAward struct {
+	ID                string         `json:"id"`
+	DefinitionID      string         `json:"definitionId"`
+	DefinitionName    string         `json:"definitionName"`
+	Category          string         `json:"category"`
+	StudentID         string         `json:"studentId"`
+	EvidenceNote      string         `json:"evidenceNote"`
+	Status            string         `json:"status"`
+	RevokeReason      string         `json:"revokeReason,omitempty"`
+	RevokedAt         *time.Time     `json:"revokedAt,omitempty"`
+	AwardedBy         TeacherSummary `json:"awardedBy"`
+	AwardedAt         time.Time      `json:"awardedAt"`
+	DefinitionVersion int            `json:"definitionVersion"`
+}
+
+type AwardAchievementCommand struct {
+	Principal          Principal
+	AwardID            string
+	DefinitionID       string
+	StudentID          string
+	EvidenceNote       string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type RevokeAchievementCommand struct {
+	Principal          Principal
+	AwardID            string
+	Reason             string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}

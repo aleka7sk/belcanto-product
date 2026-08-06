@@ -111,6 +111,17 @@ type Store interface {
 	ChangeSongStage(context.Context, core.ChangeSongStageCommand) (core.StudentSong, error)
 	ListStudentSongs(context.Context, core.Principal, string) ([]core.StudentSong, error)
 
+	CreateGoal(context.Context, core.CreateGoalCommand) (core.StudentGoal, error)
+	CompleteGoal(context.Context, core.CompleteGoalCommand) (core.StudentGoal, error)
+	ReframeGoal(context.Context, core.ReframeGoalCommand) ([]core.StudentGoal, error)
+	ListStudentGoals(context.Context, core.Principal, string) ([]core.StudentGoal, error)
+	CreateAchievementDefinition(context.Context, core.CreateAchievementDefinitionCommand) (core.AchievementDefinition, error)
+	RetireAchievementDefinition(context.Context, core.RetireAchievementDefinitionCommand) (core.AchievementDefinition, error)
+	ListAchievementDefinitions(context.Context, core.Principal) ([]core.AchievementDefinition, error)
+	AwardAchievement(context.Context, core.AwardAchievementCommand) (core.AchievementAward, error)
+	RevokeAchievement(context.Context, core.RevokeAchievementCommand) (core.AchievementAward, error)
+	ListStudentAwards(context.Context, core.Principal, string) ([]core.AchievementAward, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

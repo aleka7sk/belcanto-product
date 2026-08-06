@@ -1655,6 +1655,77 @@ const account = {
   "rep.add.songTitle": { ru: "Название", kk: "Атауы" },
   "rep.add.artist": { ru: "Исполнитель (необязательно)", kk: "Орындаушы (міндетті емес)" },
   "rep.add.save": { ru: "Добавить в репертуар", kk: "Репертуарға қосу" },
+
+  // Goals (Figma STU-GROWTH-04): reframed, never «failed».
+  "goal.signal.kind": { ru: "Цель", kk: "Мақсат" },
+  "goal.signal.state": { ru: "Текущее", kk: "Ағымдағы" },
+  "goal.section.eyebrow": { ru: "Активная цель", kk: "Белсенді мақсат" },
+  "goal.section.hint": {
+    ru: "Цель можно уточнить или переосмыслить — не «провалить».",
+    kk: "Мақсатты нақтылауға немесе қайта қарауға болады — «құлатуға» емес.",
+  },
+  "goal.setLine": {
+    ru: "Поставлено {date} · педагог {name}",
+    kk: "Қойылды {date} · педагог {name}",
+  },
+  "goal.none": {
+    ru: "Активной цели пока нет.",
+    kk: "Әзірге белсенді мақсат жоқ.",
+  },
+  "goal.create.title": { ru: "Новая цель", kk: "Жаңа мақсат" },
+  "goal.create.criterion": { ru: "Критерий", kk: "Өлшем" },
+  "goal.create.criterionHint": {
+    ru: "Свободный длинный припев",
+    kk: "Еркін ұзақ қайырма",
+  },
+  "goal.create.description": { ru: "Как практиковать", kk: "Қалай жаттығу керек" },
+  "goal.create.save": { ru: "Поставить цель", kk: "Мақсат қою" },
+  "goal.complete.action": { ru: "Цель достигнута", kk: "Мақсатқа жетті" },
+  "goal.complete.note": { ru: "Чем подтверждено", kk: "Немен расталды" },
+  "goal.complete.save": { ru: "Записать достижение цели", kk: "Мақсат жетістігін жазу" },
+  "goal.reframe.action": { ru: "Переосмыслить цель", kk: "Мақсатты қайта қарау" },
+  "goal.reframe.reason": { ru: "Почему меняем", kk: "Неге өзгертеміз" },
+  "goal.reframe.newCriterion": {
+    ru: "Новый критерий (необязательно)",
+    kk: "Жаңа өлшем (міндетті емес)",
+  },
+  "goal.reframe.save": { ru: "Сохранить переосмысление", kk: "Қайта қарауды сақтау" },
+  "goal.history.title": { ru: "История целей", kk: "Мақсаттар тарихы" },
+  "goal.status.completed": { ru: "Достигнута · {note}", kk: "Жетті · {note}" },
+  "goal.status.cancelled": {
+    ru: "Переосмыслена · {reason}",
+    kk: "Қайта қаралды · {reason}",
+  },
+
+  // Achievements (Figma STU-GROWTH-08): evidence-backed, no ratings/XP.
+  "ach.section.title": {
+    ru: "Достижения, которые что-то значат",
+    kk: "Мәні бар жетістіктер",
+  },
+  "ach.section.hint": {
+    ru: "Без рейтинга, очков опыта и наказаний за паузу.",
+    kk: "Рейтингсіз, тәжірибе ұпайынсыз және үзіліс үшін жазасыз.",
+  },
+  "ach.none": {
+    ru: "Первое достижение появится после подтверждённого шага.",
+    kk: "Алғашқы жетістік расталған қадамнан кейін пайда болады.",
+  },
+  "ach.award.line": {
+    ru: "{category} · {date} · {name}",
+    kk: "{category} · {date} · {name}",
+  },
+  "ach.award.revoked": { ru: "Отозвано: {reason}", kk: "Кері қайтарылды: {reason}" },
+  "ach.award.title": { ru: "Выдать достижение", kk: "Жетістік беру" },
+  "ach.award.evidence": { ru: "Чем подтверждено", kk: "Немен расталды" },
+  "ach.award.save": { ru: "Подтвердить достижение", kk: "Жетістікті растау" },
+  "ach.award.pick": { ru: "Выберите достижение из каталога", kk: "Каталогтан жетістік таңдаңыз" },
+  "ach.revoke.action": { ru: "Отозвать", kk: "Кері қайтару" },
+  "ach.revoke.reason": { ru: "Причина отзыва", kk: "Қайтару себебі" },
+  "ach.def.title": { ru: "Новое определение", kk: "Жаңа анықтама" },
+  "ach.def.name": { ru: "Название", kk: "Атауы" },
+  "ach.def.description": { ru: "Описание", kk: "Сипаттамасы" },
+  "ach.def.category": { ru: "Категория", kk: "Санат" },
+  "ach.def.save": { ru: "Опубликовать в каталоге", kk: "Каталогта жариялау" },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

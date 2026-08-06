@@ -71,6 +71,15 @@ import {
   type StudentSong,
   type AddStudentSongRequest,
   type ChangeSongStageRequest,
+  type StudentGoal,
+  type CreateGoalRequest,
+  type CompleteGoalRequest,
+  type ReframeGoalRequest,
+  type AchievementDefinition,
+  type CreateAchievementDefinitionRequest,
+  type AchievementAward,
+  type AwardAchievementRequest,
+  type RevokeAchievementRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -1044,6 +1053,137 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<StudentSong> {
     return this.request(routes.changeSongStage(songId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  createGoal(
+    accessToken: string,
+    studentId: string,
+    body: CreateGoalRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<StudentGoal> {
+    return this.request(routes.createGoal(studentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listStudentGoals(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<StudentGoal[]> {
+    return this.request(routes.listStudentGoals(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  completeGoal(
+    accessToken: string,
+    goalId: string,
+    body: CompleteGoalRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<StudentGoal> {
+    return this.request(routes.completeGoal(goalId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  reframeGoal(
+    accessToken: string,
+    goalId: string,
+    body: ReframeGoalRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<StudentGoal[]> {
+    return this.request(routes.reframeGoal(goalId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  createAchievementDefinition(
+    accessToken: string,
+    body: CreateAchievementDefinitionRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementDefinition> {
+    return this.request(routes.createAchievementDefinition, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listAchievementDefinitions(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementDefinition[]> {
+    return this.request(routes.listAchievementDefinitions, { accessToken, signal });
+  }
+
+  retireAchievementDefinition(
+    accessToken: string,
+    definitionId: string,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementDefinition> {
+    return this.request(routes.retireAchievementDefinition(definitionId), {
+      accessToken,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  awardAchievement(
+    accessToken: string,
+    studentId: string,
+    body: AwardAchievementRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementAward> {
+    return this.request(routes.awardAchievement(studentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listStudentAwards(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementAward[]> {
+    return this.request(routes.listStudentAwards(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  revokeAchievement(
+    accessToken: string,
+    awardId: string,
+    body: RevokeAchievementRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<AchievementAward> {
+    return this.request(routes.revokeAchievement(awardId), {
       accessToken,
       body,
       idempotencyKey,
