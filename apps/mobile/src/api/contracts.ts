@@ -3981,6 +3981,43 @@ export const decodeCommunityReports: Decoder<CommunityReport[]> = (value) => {
   return reports;
 };
 
+// ---- L.6 operations summary (Pages 29/30) ----
+
+export interface OperationsSummary {
+  lessonsToday: number;
+  pendingReschedules: number;
+  newCommunityReports: number;
+  draftJournals: number;
+  pastLessonsNoAttendance: number;
+  activeStudents: number;
+  activeSeries: number;
+  upcomingEventsWeek: number;
+  pendingDeletionRequests: number;
+}
+
+const OPERATIONS_SUMMARY_KEYS = [
+  "lessonsToday",
+  "pendingReschedules",
+  "newCommunityReports",
+  "draftJournals",
+  "pastLessonsNoAttendance",
+  "activeStudents",
+  "activeSeries",
+  "upcomingEventsWeek",
+  "pendingDeletionRequests",
+] as const;
+
+export const decodeOperationsSummary: Decoder<OperationsSummary> = (value) => {
+  const contract = "OperationsSummary";
+  const source = record(value, contract);
+  exactKeys(source, [...OPERATIONS_SUMMARY_KEYS], contract);
+  const summary = {} as Record<(typeof OPERATIONS_SUMMARY_KEYS)[number], number>;
+  for (const key of OPERATIONS_SUMMARY_KEYS) {
+    summary[key] = numberField(source, key, contract, 0);
+  }
+  return summary;
+};
+
 // ---- L.4 assessments (domain/assessment.md; Page 27 TCH-REVIEW-*) ----
 
 export const ASSESSMENT_TYPES = [

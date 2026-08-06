@@ -134,6 +134,7 @@ type Store interface {
 	NotificationPreferences(context.Context, core.Principal) ([]core.NotificationPreference, error)
 	UpdateNotificationPreference(context.Context, core.UpdateNotificationPreferenceCommand) ([]core.NotificationPreference, error)
 
+	OperationsSummary(context.Context, core.Principal, time.Time) (core.OperationsSummary, error)
 	CreateAssessment(context.Context, core.CreateAssessmentCommand) (core.Assessment, error)
 	UpdateAssessmentDraft(context.Context, core.UpdateAssessmentDraftCommand) (core.Assessment, error)
 	AddAssessmentEvidence(context.Context, core.AddAssessmentEvidenceCommand) (core.Assessment, error)

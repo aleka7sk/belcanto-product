@@ -96,6 +96,7 @@ import {
   type DecideCommunityReportRequest,
   type BlockCommunityMemberRequest,
   type Assessment,
+  type OperationsSummary,
   type AssessmentContentRequest,
   type UpdateAssessmentRequest,
   type AssessmentEvidenceRequest,
@@ -1359,6 +1360,10 @@ export class ApiClient {
     signal?: AbortSignal,
   ): Promise<BlockedMembers> {
     return this.request(routes.blockedCommunityMembers, { accessToken, signal });
+  }
+
+  operationsSummary(accessToken: string, signal?: AbortSignal): Promise<OperationsSummary> {
+    return this.request(routes.operationsSummary, { accessToken, signal });
   }
 
   createAssessment(

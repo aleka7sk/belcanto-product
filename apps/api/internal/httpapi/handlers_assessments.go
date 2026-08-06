@@ -36,6 +36,20 @@ func (request assessmentContentRequest) toInput() app.AssessmentContentInput {
 	}
 }
 
+func (api *API) operationsSummary(response http.ResponseWriter, request *http.Request) {
+	if len(request.URL.Query()) != 0 {
+		api.writeError(response, core.E(core.CodeInvalidInput, "query parameters are not supported", nil))
+		return
+	}
+	authenticated := authenticatedPrincipal(request)
+	summary, err := api.service.OperationsSummary(request.Context(), authenticated.principal)
+	if err != nil {
+		api.writeError(response, err)
+		return
+	}
+	api.writeJSON(response, http.StatusOK, summary)
+}
+
 func (api *API) createAssessment(response http.ResponseWriter, request *http.Request) {
 	var input assessmentContentRequest
 	if err := api.decodeJSON(response, request, &input); err != nil {

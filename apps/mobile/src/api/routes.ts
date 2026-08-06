@@ -55,6 +55,7 @@ import {
   decodeAssessment,
   decodeAssessments,
   decodeAssessmentChain,
+  decodeOperationsSummary,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -161,6 +162,7 @@ import {
   type DecideCommunityReportRequest,
   type BlockCommunityMemberRequest,
   type Assessment,
+  type OperationsSummary,
   type AssessmentContentRequest,
   type UpdateAssessmentRequest,
   type AssessmentEvidenceRequest,
@@ -1317,6 +1319,14 @@ export const routes = {
     200,
     [401, 422, 500],
     decodeBlockedMembers,
+  ),
+  operationsSummary: route<OperationsSummary>(
+    "GET",
+    "/v1/operations/summary",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeOperationsSummary,
   ),
   createAssessment: (studentId: string) =>
     route<Assessment>(

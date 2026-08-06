@@ -1911,3 +1911,20 @@ func AssessmentVisible(view Assessment, isAuthor, isAssignedTeacher, isManager, 
 	}
 	return false
 }
+
+// ---- L.6 operations summary (Pages 29/30, honest aggregates) ----
+
+// OperationsSummary carries organisational signals for Administrator
+// and Owner, each derived from real stored data — organisational
+// actions, never a rating of people (Page 27/29 privacy invariant).
+type OperationsSummary struct {
+	LessonsToday            int `json:"lessonsToday"`
+	PendingReschedules      int `json:"pendingReschedules"`
+	NewCommunityReports     int `json:"newCommunityReports"`
+	DraftJournals           int `json:"draftJournals"`
+	PastLessonsNoAttendance int `json:"pastLessonsNoAttendance"`
+	ActiveStudents          int `json:"activeStudents"`
+	ActiveSeries            int `json:"activeSeries"`
+	UpcomingEventsWeek      int `json:"upcomingEventsWeek"`
+	PendingDeletionRequests int `json:"pendingDeletionRequests"`
+}

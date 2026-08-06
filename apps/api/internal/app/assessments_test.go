@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/app"
 	"github.com/aleka7sk/belcanto-product/apps/api/internal/core"
@@ -174,5 +175,36 @@ func TestAssessmentLifecycle(t *testing.T) {
 		IdempotencyKey: "asmt-republish-withdrawn",
 	}); !core.IsCode(err, core.CodeInvalidState) {
 		t.Fatalf("republishing withdrawn = %v, want INVALID_STATE", err)
+	}
+}
+
+// TestOperationsSummary pins the derived signals: manager-only, counts
+// come from real stored rows.
+func TestOperationsSummary(t *testing.T) {
+	fixture := newFixture(t)
+	ctx := context.Background()
+
+	created, err := fixture.service.CreateStudent(ctx, fixture.owner,
+		studentInput("ops-student", "+77000001501", "ENR-1501", fixture.teacher.AccountID))
+	if err != nil {
+		t.Fatalf("create student: %v", err)
+	}
+	if _, err := fixture.service.ScheduleLesson(ctx, fixture.owner, app.ScheduleLessonInput{
+		Title: "Вокал", StartsAt: fixture.clock.Now().Add(2 * time.Hour), DurationMinutes: 60,
+		TeacherAccountID: fixture.teacher.AccountID, StudentIDs: []string{created.StudentID},
+		IdempotencyKey: "ops-lesson",
+	}); err != nil {
+		t.Fatalf("create lesson: %v", err)
+	}
+
+	if _, err := fixture.service.OperationsSummary(ctx, fixture.teacher); !core.IsCode(err, core.CodeForbidden) {
+		t.Fatalf("teacher summary = %v, want FORBIDDEN", err)
+	}
+	summary, err := fixture.service.OperationsSummary(ctx, fixture.admin)
+	if err != nil {
+		t.Fatalf("summary: %v", err)
+	}
+	if summary.ActiveStudents < 1 || summary.LessonsToday != 1 {
+		t.Fatalf("summary = %#v", summary)
 	}
 }

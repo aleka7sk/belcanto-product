@@ -23,6 +23,12 @@ const BUILT_TABS: ReadonlySet<TabKey> = new Set([
   "profile",
   "students",
   "review",
+  "operations",
+  "people",
+  "overview",
+  "analytics",
+  "team",
+  "more",
 ]);
 
 export function useWorkingRole(): Role | null {
@@ -54,6 +60,17 @@ export function AccountNav({ active = "profile" }: { active?: TabKey }) {
             params: { segment: "review" },
           });
         }
+        if (tab.key === "operations") router.push("/(protected)/operations");
+        if (tab.key === "people") router.push("/(protected)");
+        if (tab.key === "overview") router.push("/(protected)/overview");
+        if (tab.key === "analytics") {
+          router.push({
+            pathname: "/(protected)/overview",
+            params: { segment: "analytics" },
+          });
+        }
+        if (tab.key === "team") router.push("/(protected)/access");
+        if (tab.key === "more") router.push("/(protected)/account");
       }}
       role={navigationRoleFor(workingRole)}
     />

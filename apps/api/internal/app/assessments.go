@@ -422,3 +422,14 @@ func (s *Service) GetAssessment(ctx context.Context, principal core.Principal, a
 	}
 	return assessment, nil
 }
+
+// OperationsSummary returns the school's organisational signals for
+// Administrator and Owner (Pages 29/30) — counts derived from stored
+// rows, never a rating of people.
+func (s *Service) OperationsSummary(ctx context.Context, principal core.Principal) (core.OperationsSummary, error) {
+	summary, err := s.store.OperationsSummary(ctx, principal, s.clock.Now())
+	if err != nil {
+		return core.OperationsSummary{}, normalizeStoreError("operations summary", err)
+	}
+	return summary, nil
+}

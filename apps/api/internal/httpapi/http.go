@@ -132,6 +132,7 @@ func New(service *app.Service) http.Handler {
 	mux.Handle("POST /v1/achievement-definitions", api.authenticated(http.HandlerFunc(api.createAchievementDefinition)))
 	mux.Handle("GET /v1/achievement-definitions", api.authenticated(http.HandlerFunc(api.listAchievementDefinitions)))
 	mux.Handle("POST /v1/achievement-definitions/{definitionId}/retire", api.authenticated(http.HandlerFunc(api.retireAchievementDefinition)))
+	mux.Handle("GET /v1/operations/summary", api.authenticated(http.HandlerFunc(api.operationsSummary)))
 	mux.Handle("POST /v1/students/{studentId}/assessments", api.authenticated(http.HandlerFunc(api.createAssessment)))
 	mux.Handle("GET /v1/students/{studentId}/assessments", api.authenticated(http.HandlerFunc(api.listStudentAssessments)))
 	mux.Handle("GET /v1/assessments/{assessmentId}", api.authenticated(http.HandlerFunc(api.getAssessment)))
