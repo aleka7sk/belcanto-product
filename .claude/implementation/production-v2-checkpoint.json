@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T23:59:00Z",
+  "updatedAt": "2026-08-07T01:20:00Z",
   "phase": "phase3",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -153,8 +153,9 @@
     {
       "id": "p5-community-notifications",
       "phase": 5,
-      "status": "not_started",
-      "summary": "feed/threads/chat boundaries, report/block/moderation, notifications/activity/deep links, outbox worker"
+      "status": "in_progress",
+      "summary": "feed/threads/chat boundaries, report/block/moderation, notifications/activity/deep links, outbox worker",
+      "evidence": "notifications backbone green (aa26809): migration 000014 (outbox pending->delivered|dead_letter lifecycle with retry columns + partial index; per-recipient activity_entries idempotent on (event, recipient); per-category push preferences, in-app always on per ACT-04); internal/notify worker: interval poller, curated 12-event routing table (student/homework-teacher/administrator resolvers over verified payloads), exponential backoff to dead_letter, wired into cmd/api with the process context; proven on both stores incl. poisoned-event dead-letter on real SQL and idempotent re-drain; activity feed API + ACT-01 screen (filters never delete/mark-read, Almaty civil-day grouping, per-kind deep links, mark-read) + ACT-03 preferences screen; OpenAPI 0.14.0 (+4 ops), act.* ru/kk; Go full suite + race, mobile 37 suites/199 tests. DEFERRED (recorded): push channel + quiet hours (ACT-05) + permission screens (ACT-06/07) + push privacy (ACT-08) ship with the device-permission modules in phase 7; ACT-09 deep-link role recovery partially covered by ActiveRoleProvider. Remaining: community (Page 28) feed/threads with report/block/moderation"
     },
     {
       "id": "p6-admin-owner",
@@ -176,6 +177,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "fbb9a5f",
-  "nextSafeAction": "start phase 5: notifications/activity backbone first — the outbox worker (poller with retry policy + delivery status per production prompt §'Одна запись в outbox без worker/consumer не считается реализованным notification flow'), in-app activity feed API + screen (Page 31), notification preferences; then community (Page 28) with report/block/moderation"
+  "lastGreenCodeSha": "aa26809",
+  "nextSafeAction": "continue phase 5: community vertical (Page 28) — posts/announcements model with role-aware audience (no unrestricted student discovery, no Student-Student DM per prompt), report/block with moderation queue and reasons, community UI; events already give the RSVP surface, so the feed anchors on school announcements + event-linked content"
 }
