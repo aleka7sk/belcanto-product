@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-06T11:40:00Z",
+  "updatedAt": "2026-08-06T13:10:00Z",
   "phase": "phase2",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -125,16 +125,16 @@
     {
       "id": "p2-events-rsvp",
       "phase": 2,
-      "status": "in_progress",
+      "status": "completed",
       "summary": "EventSeries/Occurrence, recurrence+exceptions, RSVP/waitlist/spot offers atomic, categories data-driven",
-      "evidence": "backend vertical green (98a3842): migration 000007 (categories/series/occurrences/rsvps/waitlist/spot offers, capacity triggers, single-pending-offer index, DEFERRABLE waitlist positions); per-occurrence advisory lock + lazy offer expiry + cascade; atomic last seat proven by concurrent PG race test; waitlist explicit (never silent); DEC-101 TTL via Options.SpotOfferTTL default 24h; OpenAPI 0.6.0 (+14 ops), mobile contracts with seat invariant decoders; Go full suite + race, mobile 26 suites/159 tests. Remaining: event UI screens (Page 24 catalog + RsvpControl 333:268), occurrence cancellation/completion admin ops"
+      "evidence": "backend vertical green (98a3842): migration 000007 (categories/series/occurrences/rsvps/waitlist/spot offers, capacity triggers, single-pending-offer index, DEFERRABLE waitlist positions); per-occurrence advisory lock + lazy offer expiry + cascade; atomic last seat proven by concurrent PG race test; waitlist explicit (never silent); DEC-101 TTL via Options.SpotOfferTTL default 24h; OpenAPI 0.6.0 (+14 ops), mobile contracts with seat invariant decoders; Go full suite + race, mobile 26 suites/159 tests. Remaining: event UI screens (Page 24 catalog + RsvpControl 333:268), occurrence cancellation/completion admin ops UI vertical green (2939695): catalog with category chips + accent cards, 12-state RsvpControl from the live view (last-seat CONFLICT is a first-class state), cancel-confirm step, offer confirm/decline, GET /v1/events/{id} (OpenAPI 0.8.0), mobile 28 suites/163 tests"
     },
     {
       "id": "p2-reschedule",
       "phase": 2,
-      "status": "in_progress",
+      "status": "completed",
       "summary": "reschedule/cancellation requests + admin decision + notify",
-      "evidence": "backend vertical green (7cc29e9): migration 000008 (one open request per person+lesson, decision CHECK constraints, rollback refuses over decision history); create/list/decide/withdraw with version CAS; approval applies in-transaction (reschedule moves occurrence in place after conflict check; cancellation sets cancelled_student/school by initiator); DEC-102 configurable-off — no consequence anywhere; Lesson status widened to the six-state lifecycle across core/OpenAPI 0.7.0/mobile; Go full suite + race, mobile 27 suites/162 tests. Remaining: reschedule-request UI (378:803) within the scheduling screens sub-slice"
+      "evidence": "backend vertical green (7cc29e9): migration 000008 (one open request per person+lesson, decision CHECK constraints, rollback refuses over decision history); create/list/decide/withdraw with version CAS; approval applies in-transaction (reschedule moves occurrence in place after conflict check; cancellation sets cancelled_student/school by initiator); DEC-102 configurable-off — no consequence anywhere; Lesson status widened to the six-state lifecycle across core/OpenAPI 0.7.0/mobile; Go full suite + race, mobile 27 suites/162 tests. Remaining: reschedule-request UI (378:803) within the scheduling screens sub-slice UI green (2939695): request flow STU-SCHEDULE-12..15 with kind toggle, reason, derived time preferences, pending state + withdraw"
     },
     {
       "id": "p3-student-loop",
@@ -174,6 +174,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "7cc29e9",
-  "nextSafeAction": "finish phase 2 with the scheduling/event UI sub-slice: Pages 24/26/29 screens (student schedule + event catalog with RsvpControl 333:268 + reschedule request 378:803, teacher today, admin operations) on the finished lesson/series/event/reschedule API; then phase 3 student learning loop"
+  "lastGreenCodeSha": "2939695",
+  "nextSafeAction": "phase 2 remainder: schedule day-view upgrade (STU-SCHEDULE-01/02/09 mixed lesson+event feed, date navigation) and teacher/admin scheduling screens (Pages 26/29) — or proceed to phase 3 student learning loop (migration 000009 journal/progress) and fold remaining Page 24/26/29 screens into their role phases"
 }
