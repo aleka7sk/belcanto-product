@@ -1,7 +1,7 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 import { isPrivateDevelopmentHost } from "./src/runtime/developmentOrigin.ts";
-import { colors } from "./src/ui/tokens.ts";
+import { semantic } from "./src/ui/tokens.ts";
 
 const DEFAULT_DEVELOPMENT_API_ORIGIN = "http://localhost:8080";
 const DEFAULT_DEVELOPMENT_IOS_BUNDLE_ID = "com.belcanto.mobile.dev";
@@ -114,7 +114,7 @@ export function buildExpoConfig(
       [
         "expo-splash-screen",
         {
-          backgroundColor: colors.canvas,
+          backgroundColor: semantic.bgCanvas,
           imageWidth: 120,
           resizeMode: "contain",
         },
@@ -156,11 +156,11 @@ export function buildExpoConfig(
         : [],
     },
     androidStatusBar: {
-      backgroundColor: colors.transparent,
+      backgroundColor: "rgba(0,0,0,0)",
       barStyle: "light-content",
       translucent: true,
     },
-    backgroundColor: colors.canvas,
+    backgroundColor: semantic.bgCanvas,
   };
   if (!production) {
     config.scheme = "belcanto";

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { RefreshControl, StyleSheet, Text } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { CommunityReport } from "@/api/contracts";
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField } from "../../components";
+import { ErrorNotice, InlineNotice, PremiumTextField } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -89,17 +89,28 @@ export function ModerationScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="community" />} testID="moderation-queue">
+    <AccountScreenShell
+      navigation={<AccountNav active="community" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void queue.reload()}
+          refreshing={queue.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="moderation-queue"
+    >
       <ScreenHeading
         eyebrow={message("com.moderation.eyebrow")}
         subtitle={message("com.moderation.subtitle")}
         title={message("com.moderation.title")}
       />
       {queue.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(queue.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void queue.reload()}
+          title={message("com.moderation.title")}
         />
       ) : null}
       {queue.value !== null && reports.length === 0 ? (

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { RefreshControl, StyleSheet, Text } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { CoreLessonSeries } from "@/api/contracts";
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField } from "../components";
+import { ErrorNotice, InlineNotice, PremiumTextField } from "../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -129,17 +129,31 @@ export function SeriesManagementScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="schedule" />} testID="series-management">
+    <AccountScreenShell
+      navigation={<AccountNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => {
+            void series.reload();
+            void rooms.reload();
+          }}
+          refreshing={series.refreshing || rooms.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="series-management"
+    >
       <ScreenHeading
         eyebrow={message("ser.eyebrow")}
         subtitle={message("ser.subtitle")}
         title={message("ser.title")}
       />
       {series.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(series.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void series.reload()}
+          title={message("ser.title")}
         />
       ) : null}
       {actionError !== null ? (

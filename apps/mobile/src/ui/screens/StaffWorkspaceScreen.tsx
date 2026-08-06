@@ -27,14 +27,7 @@ import {
   SecondaryButton,
   uiStyles,
 } from "../components";
-import {
-  colors,
-  fonts,
-  metrics,
-  radii,
-  spacing,
-  typeScale,
-} from "../tokens";
+import { semantic, space, strokes, typeStyles } from "../tokens";
 import {
   apiErrorMessage,
   formatBelcantoDate,
@@ -119,16 +112,16 @@ export function StaffWorkspaceScreen({
 
   return (
     <PremiumScrollScreen
-      gutter={metrics.homeGutter}
+      gutter={space.s4}
       navigation={<RoleNav active="people" />}
       scrollProps={{
         refreshControl: (
           <RefreshControl
-            colors={[colors.violet]}
+            colors={[semantic.accentViolet]}
             onRefresh={() => void load(true)}
-            progressBackgroundColor={colors.raised}
+            progressBackgroundColor={semantic.bgRaised}
             refreshing={refreshing}
-            tintColor={colors.violet}
+            tintColor={semantic.accentViolet}
           />
         ),
       }}
@@ -288,85 +281,91 @@ function OnboardingCard({ item }: { item: StudentOnboardingItem }) {
 
 const styles = StyleSheet.create({
   brand: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    marginTop: spacing.sm,
-    ...typeScale.brand,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 13,
+    letterSpacing: 2.4,
+    lineHeight: 17,
+    marginTop: space.s2,
   },
   role: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
-    marginTop: metrics.workflowEyebrowTop,
-    ...typeScale.eyebrow,
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+    marginTop: space.s10,
   },
   title: {
-    color: colors.textPrimary,
-    fontFamily: fonts.extrabold,
-    marginTop: spacing.sm,
-    ...typeScale.screenTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_800ExtraBold",
+    fontSize: 28,
+    lineHeight: 34,
+    marginTop: space.s2,
   },
   subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginBottom: spacing.xxl,
-    marginTop: spacing.sm,
-    ...typeScale.body,
+    color: semantic.textSecondary,
+    marginBottom: space.s6,
+    marginTop: space.s2,
+    ...typeStyles.bodyS,
   },
-  quickActions: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.section },
-  workspaceSwitch: { marginBottom: spacing.xxl },
+  quickActions: { flexDirection: "row", gap: space.s3, marginBottom: space.s8 },
+  workspaceSwitch: { marginBottom: space.s6 },
   actionGrow: { flex: 1 },
   sectionHeader: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: spacing.md,
+    marginBottom: space.s3,
   },
-  stackGap: { gap: spacing.md },
-  emptyBody: { marginTop: spacing.sm },
-  cards: { gap: spacing.md },
+  stackGap: { gap: space.s3 },
+  emptyBody: { marginTop: space.s2 },
+  cards: { gap: space.s3 },
   onboardingCard: {
-    backgroundColor: colors.raised,
-    borderColor: colors.borderGlass,
-    borderRadius: radii.card,
-    borderWidth: metrics.borderWidth,
+    backgroundColor: semantic.bgRaised,
+    borderColor: semantic.borderGlass,
+    borderRadius: 20,
+    borderWidth: strokes.hairline,
     minHeight: 164,
-    padding: spacing.lg,
+    padding: space.s4,
   },
-  cardPressed: { backgroundColor: colors.surface },
+  cardPressed: { backgroundColor: semantic.bgSurface },
   cardHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   stateEyebrow: {
-    color: colors.textGold,
-    fontFamily: fonts.semibold,
-    ...typeScale.eyebrow,
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
   },
   chevron: {
-    color: colors.textAccent,
-    fontFamily: fonts.bold,
+    color: semantic.textAccent,
+    fontFamily: "Onest_700Bold",
     fontSize: 26,
     lineHeight: 30,
   },
   studentName: {
-    color: colors.textPrimary,
-    fontFamily: fonts.bold,
-    marginTop: spacing.sm,
-    ...typeScale.cardTitle,
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: space.s2,
   },
   stateTitle: {
-    color: colors.textAccent,
-    fontFamily: fonts.semibold,
-    marginTop: spacing.sm,
-    ...typeScale.supporting,
+    color: semantic.textAccent,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: space.s2,
   },
   stateBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: spacing.xs,
-    ...typeScale.supporting,
+    color: semantic.textSecondary,
+    marginTop: space.s1,
+    ...typeStyles.caption,
   },
   expiry: {
-    color: colors.textMuted,
-    fontFamily: fonts.regular,
-    marginTop: spacing.md,
-    ...typeScale.label,
+    color: semantic.textMuted,
+    marginTop: space.s3,
+    ...typeStyles.caption,
   },
 });

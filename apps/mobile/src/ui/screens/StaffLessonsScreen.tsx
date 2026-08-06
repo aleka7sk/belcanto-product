@@ -11,7 +11,7 @@ import {
 import { useApiClient, type IsoDateTime, type Lesson } from "@/api";
 import { useSession } from "@/session";
 import {
-  AmbientGlow,
+  ErrorNotice,
   InlineNotice,
   PremiumCard,
   PremiumScrollScreen,
@@ -20,12 +20,12 @@ import {
   TextAction,
   uiStyles,
 } from "../components";
-import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
+import { ScreenList } from "../screen";
+import { semantic, space } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime, roleLabel } from "../viewModels";
 import { RoleNav } from "./account/shared";
 
-function splitLessons(lessons: Lesson[]): { upcoming: Lesson[]; past: Lesson[] } {
-  const nowMs = Date.now();
+export function splitLessons(lessons: Lesson[], nowMs: number): { upcoming: Lesson[]; past: Lesson[] } {
   return {
     upcoming: lessons.filter(
       (lesson) => new Date(lesson.startsAt).getTime() > nowMs,
@@ -37,6 +37,27 @@ function splitLessons(lessons: Lesson[]): { upcoming: Lesson[]; past: Lesson[] }
           new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime(),
       ),
   };
+}
+
+function splitLessonsNow(lessons: Lesson[]): { upcoming: Lesson[]; past: Lesson[] } {
+  return splitLessons(lessons, Date.now());
+}
+
+export type StaffLessonRow =
+  | { rowKind: "section"; id: string; title: string; count: number }
+  | { rowKind: "upcoming"; id: string; lesson: Lesson }
+  | { rowKind: "past"; id: string; lesson: Lesson };
+
+/** Two windows, one virtualizable list: future lessons, then journals. */
+export function buildStaffLessonRows(upcoming: Lesson[], past: Lesson[]): StaffLessonRow[] {
+  const rows: StaffLessonRow[] = [];
+  rows.push({ rowKind: "section", id: "section-upcoming", title: "Будущие занятия", count: upcoming.length });
+  for (const lesson of upcoming) rows.push({ rowKind: "upcoming", id: lesson.id, lesson });
+  if (past.length > 0) {
+    rows.push({ rowKind: "section", id: "section-past", title: "Журналы уроков", count: past.length });
+    for (const lesson of past) rows.push({ rowKind: "past", id: `past-${lesson.id}`, lesson });
+  }
+  return rows;
 }
 
 export function StaffLessonsScreen() {
@@ -96,27 +117,14 @@ export function StaffLessonsScreen() {
   }
   const mayChangeTeacher =
     canReplaceLessonTeachers(bootstrap) && canReassignPrimaryTeachers(bootstrap);
-  const { upcoming, past } = splitLessons(lessons);
+  const { upcoming, past } = splitLessonsNow(lessons);
+  const rows = buildStaffLessonRows(upcoming, past);
 
-  return (
-    <PremiumScrollScreen
-      gutter={metrics.homeGutter}
-      navigation={<RoleNav active="schedule" />}
-      testID="staff-lessons"
-      scrollProps={{
-        refreshControl: (
-          <RefreshControl
-            onRefresh={() => void load(true)}
-            refreshing={refreshing}
-            tintColor={colors.violet}
-          />
-        ),
-      }}
-    >
-      <AmbientGlow />
-      <Text style={styles.brand}>BELCANTO</Text>
+  const header = (
+    <View style={styles.header}>
+      <Text style={uiStyles.brand}>BELCANTO</Text>
       <Text style={styles.eyebrow}>{roleLabel(bootstrap.roles).toUpperCase()}</Text>
-      <Text accessibilityRole="header" style={styles.title}>Занятия</Text>
+      <Text accessibilityRole="header" style={uiStyles.screenTitle}>Занятия</Text>
       <Text style={styles.subtitle}>
         Расписание создаётся и поддерживается внутри Belcanto.
       </Text>
@@ -132,104 +140,160 @@ export function StaffLessonsScreen() {
           </View>
         ) : null}
       </View>
-      <View style={styles.sectionHeader}>
-        <Text style={uiStyles.sectionTitle}>Будущие занятия</Text>
-        <Text style={uiStyles.supporting}>{upcoming.length}</Text>
-      </View>
       {loading ? <PremiumCard><Text style={uiStyles.body}>Загружаем расписание…</Text></PremiumCard> : null}
       {error ? (
-        <View style={styles.stack}>
-          <InlineNotice title="Расписание не загрузилось" body={error} tone="error" />
-          <SecondaryButton label="Повторить" onPress={() => void load()} />
+        <ErrorNotice
+          actionLabel="Повторить"
+          body={error}
+          onAction={() => void load()}
+          title="Расписание не загрузилось"
+        />
+      ) : null}
+    </View>
+  );
+
+  return (
+    <ScreenList<StaffLessonRow>
+      data={loading || error !== null ? [] : rows}
+      keyExtractor={(row) => row.id}
+      ListEmptyComponent={
+        loading || error !== null ? null : (
+          <PremiumCard>
+            <Text style={uiStyles.sectionTitle}>Будущих занятий пока нет</Text>
+            <Text style={[uiStyles.body, styles.emptyBody]}>Создайте первое занятие для выбранных учеников.</Text>
+          </PremiumCard>
+        )
+      }
+      ListFooterComponent={
+        <View style={styles.footer}>
+          <SecondaryButton label="Рабочее пространство" onPress={() => router.replace({ pathname: "/(protected)", params: { workspace: "staff" } })} />
         </View>
-      ) : null}
-      {!loading && !error && upcoming.length === 0 ? (
-        <PremiumCard>
-          <Text style={uiStyles.sectionTitle}>Будущих занятий пока нет</Text>
-          <Text style={[uiStyles.body, styles.emptyBody]}>Создайте первое занятие для выбранных учеников.</Text>
-        </PremiumCard>
-      ) : null}
-      <View style={styles.stack}>
-        {upcoming.map((lesson) => (
-          <PremiumCard key={lesson.id}>
+      }
+      ListHeaderComponent={header}
+      navigation={<RoleNav active="schedule" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void load(true)}
+          refreshing={refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      renderItem={({ item }) =>
+        item.rowKind === "section" ? (
+          <View style={styles.sectionHeader}>
+            <Text style={uiStyles.sectionTitle}>{item.title}</Text>
+            <Text style={uiStyles.supporting}>{item.count}</Text>
+          </View>
+        ) : item.rowKind === "upcoming" ? (
+          <PremiumCard>
             <View style={styles.lessonHeader}>
               <View style={styles.lessonCopy}>
-                <Text style={styles.lessonTime}>{formatLessonDay(lesson.startsAt)} · {formatLessonTime(lesson.startsAt)}</Text>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                <Text style={styles.lessonTime}>{formatLessonDay(item.lesson.startsAt)} · {formatLessonTime(item.lesson.startsAt)}</Text>
+                <Text style={styles.lessonTitle}>{item.lesson.title}</Text>
               </View>
-              <Text style={styles.version}>v{lesson.version}</Text>
+              <Text style={styles.version}>v{item.lesson.version}</Text>
             </View>
             <Text style={styles.lessonMeta}>
-              {lesson.teacher.fullName} · {lesson.students.map((student) => student.fullName).join(", ")}
+              {item.lesson.teacher.fullName} · {item.lesson.students.map((student) => student.fullName).join(", ")}
             </Text>
-            {lesson.location ? <Text style={styles.lessonMeta}>{lesson.location}</Text> : null}
+            {item.lesson.location ? <Text style={styles.lessonMeta}>{item.lesson.location}</Text> : null}
             <TextAction
               align="right"
               label="Контекст урока"
               onPress={() =>
                 router.push({
                   pathname: "/(protected)/teacher/lesson/[lessonId]",
-                  params: { lessonId: lesson.id },
+                  params: { lessonId: item.lesson.id },
                 })
               }
             />
           </PremiumCard>
-        ))}
-      </View>
-      {past.length > 0 ? (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={uiStyles.sectionTitle}>Журналы уроков</Text>
-            <Text style={uiStyles.supporting}>{past.length}</Text>
-          </View>
-          <View style={styles.stack}>
-            {past.map((lesson) => (
-              <PremiumCard key={lesson.id}>
-                <View style={styles.lessonHeader}>
-                  <View style={styles.lessonCopy}>
-                    <Text style={styles.lessonTime}>{formatLessonDay(lesson.startsAt)} · {formatLessonTime(lesson.startsAt)}</Text>
-                    <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                  </View>
-                  <Text style={styles.version}>v{lesson.version}</Text>
-                </View>
-                <Text style={styles.lessonMeta}>{lesson.teacher.fullName}</Text>
-                {lesson.students.map((student) => (
-                  <TextAction
-                    align="right"
-                    key={student.studentId}
-                    label={`Журнал · ${student.fullName}`}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(protected)/journal/[occurrenceId]/[studentId]",
-                        params: { occurrenceId: lesson.id, studentId: student.studentId },
-                      })
-                    }
-                  />
-                ))}
-              </PremiumCard>
+        ) : (
+          <PremiumCard>
+            <View style={styles.lessonHeader}>
+              <View style={styles.lessonCopy}>
+                <Text style={styles.lessonTime}>{formatLessonDay(item.lesson.startsAt)} · {formatLessonTime(item.lesson.startsAt)}</Text>
+                <Text style={styles.lessonTitle}>{item.lesson.title}</Text>
+              </View>
+              <Text style={styles.version}>v{item.lesson.version}</Text>
+            </View>
+            <Text style={styles.lessonMeta}>{item.lesson.teacher.fullName}</Text>
+            {item.lesson.students.map((student) => (
+              <TextAction
+                align="right"
+                key={student.studentId}
+                label={`Журнал · ${student.fullName}`}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(protected)/journal/[occurrenceId]/[studentId]",
+                    params: { occurrenceId: item.lesson.id, studentId: student.studentId },
+                  })
+                }
+              />
             ))}
-          </View>
-        </>
-      ) : null}
-      <SecondaryButton label="Рабочее пространство" onPress={() => router.replace({ pathname: "/(protected)", params: { workspace: "staff" } })} />
-    </PremiumScrollScreen>
+          </PremiumCard>
+        )
+      }
+      testID="staff-lessons"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  brand: { color: colors.textPrimary, fontFamily: fonts.bold, ...typeScale.brand },
-  eyebrow: { color: colors.textGold, fontFamily: fonts.semibold, marginTop: metrics.workflowEyebrowTop, ...typeScale.eyebrow },
-  title: { color: colors.textPrimary, fontFamily: fonts.extrabold, marginTop: spacing.sm, ...typeScale.screenTitle },
-  subtitle: { color: colors.textSecondary, fontFamily: fonts.regular, marginBottom: spacing.section, marginTop: spacing.sm, ...typeScale.body },
-  actions: { flexDirection: "row", gap: spacing.md },
+  header: { gap: space.s2 },
+  footer: { marginTop: space.s2 },
+  eyebrow: {
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+    marginTop: space.s10,
+  },
+  subtitle: {
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: space.s6,
+  },
+  actions: { flexDirection: "row", gap: space.s3, marginBottom: space.s4 },
   actionGrow: { flex: 1 },
-  sectionHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: spacing.section },
-  stack: { gap: spacing.md },
-  emptyBody: { marginTop: spacing.sm },
+  sectionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: space.s5,
+  },
+  emptyBody: { marginTop: space.s2 },
   lessonHeader: { alignItems: "flex-start", flexDirection: "row" },
   lessonCopy: { flex: 1 },
-  lessonTime: { color: colors.textGold, fontFamily: fonts.semibold, ...typeScale.eyebrow },
-  lessonTitle: { color: colors.textPrimary, fontFamily: fonts.bold, marginTop: spacing.sm, ...typeScale.cardTitle },
-  lessonMeta: { color: colors.textSecondary, fontFamily: fonts.regular, marginTop: spacing.sm, ...typeScale.supporting },
-  version: { color: colors.textMuted, fontFamily: fonts.medium, ...typeScale.micro },
+  lessonTime: {
+    color: semantic.textGold,
+    fontFamily: "Onest_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+  },
+  lessonTitle: {
+    color: semantic.textPrimary,
+    fontFamily: "Onest_700Bold",
+    fontSize: 19,
+    lineHeight: 23,
+    marginTop: space.s2,
+  },
+  lessonMeta: {
+    color: semantic.textSecondary,
+    fontFamily: "Onest_400Regular",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: space.s2,
+  },
+  version: {
+    color: semantic.textMuted,
+    fontFamily: "Onest_500Medium",
+    fontSize: 8,
+    letterSpacing: 0.8,
+    lineHeight: 11,
+  },
 });

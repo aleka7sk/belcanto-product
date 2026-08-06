@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { Assessment, StudentDirectoryItem } from "@/api/contracts";
@@ -12,7 +13,9 @@ import {
   StatusCard,
   StatusRow,
 } from "../../patterns/accountPatterns";
+import { ScreenList } from "../../screen";
 import { SegmentedControl } from "../../segmentedControl";
+import { semantic, space } from "../../tokens";
 import { apiErrorMessage, formatBelcantoDate } from "../../viewModels";
 import { AccountNav, useAccountResource, useWorkingRole } from "../account/shared";
 
@@ -101,11 +104,8 @@ export function TeacherStudentsScreen() {
 
   const list = roster ?? [];
 
-  return (
-    <AccountScreenShell
-      navigation={<AccountNav active={segment === "review" ? "review" : "students"} />}
-      testID="teacher-students"
-    >
+  const header = (
+    <View style={styles.header}>
       <ScreenHeading
         eyebrow={message("asmt.roster.eyebrow")}
         subtitle={message("asmt.roster.subtitle")}
@@ -137,70 +137,92 @@ export function TeacherStudentsScreen() {
           title={message("asmt.analytics.title")}
           tone="muted"
         />
-      ) : segment === "review" ? (
-        <>
-          {reviewError !== null ? (
-            <ErrorNotice
-              actionLabel={message("common.retry")}
-              body={reviewError}
-              onAction={() => void loadReviewSignals()}
-              title={message("asmt.segment.review")}
+      ) : null}
+      {segment === "review" && reviewError !== null ? (
+        <ErrorNotice
+          actionLabel={message("common.retry")}
+          body={reviewError}
+          onAction={() => void loadReviewSignals()}
+          title={message("asmt.segment.review")}
+        />
+      ) : null}
+    </View>
+  );
+
+  return (
+    <ScreenList<StudentDirectoryItem>
+      data={segment === "analytics" ? [] : list}
+      keyExtractor={(item) => item.studentId}
+      ListFooterComponent={
+        segment === "students" ? (
+          <View style={styles.footer}>
+            <StatusCard
+              body={message("asmt.notRating.body")}
+              status={message("asmt.notRating.footer")}
+              title={message("asmt.notRating.title")}
+              tone="muted"
             />
-          ) : null}
-          {list.map((item: StudentDirectoryItem) => {
-            const latest = reviewByStudent[item.studentId];
-            return (
-              <StatusRow
-                key={item.studentId}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(protected)/teacher/assessment/create",
-                    params: { studentId: item.studentId },
-                  })
-                }
-                status={
-                  latest === undefined
-                    ? message("asmt.review.loading")
-                    : latest === null
-                      ? message("asmt.review.none")
-                      : message("asmt.review.latest", {
-                          date: formatBelcantoDate(latest.createdAt),
-                        })
-                }
-                subtitle={message("asmt.review.action")}
-                testID={`review-${item.studentId}`}
-                title={item.fullName}
-                tone={latest === null ? "warning" : "info"}
-              />
-            );
-          })}
-        </>
-      ) : (
-        <>
-          {list.map((item: StudentDirectoryItem) => (
+          </View>
+        ) : null
+      }
+      ListHeaderComponent={header}
+      navigation={<AccountNav active={segment === "review" ? "review" : "students"} />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void students.reload()}
+          refreshing={students.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      renderItem={({ item }) => {
+        if (segment === "review") {
+          const latest = reviewByStudent[item.studentId];
+          return (
             <StatusRow
-              key={item.studentId}
               onPress={() =>
                 router.push({
-                  pathname: "/(protected)/student/[studentId]",
-                  params: { studentId: item.studentId, staff: "1" },
+                  pathname: "/(protected)/teacher/assessment/create",
+                  params: { studentId: item.studentId },
                 })
               }
-              status={message("asmt.roster.open")}
-              subtitle={item.primaryTeacher.fullName}
-              testID={`roster-${item.studentId}`}
+              status={
+                latest === undefined
+                  ? message("asmt.review.loading")
+                  : latest === null
+                    ? message("asmt.review.none")
+                    : message("asmt.review.latest", {
+                        date: formatBelcantoDate(latest.createdAt),
+                      })
+              }
+              subtitle={message("asmt.review.action")}
+              testID={`review-${item.studentId}`}
               title={item.fullName}
-              tone="info"
+              tone={latest === null ? "warning" : "info"}
             />
-          ))}
-          <StatusCard
-            body={message("asmt.notRating.body")}
-            status={message("asmt.notRating.footer")}
-            title={message("asmt.notRating.title")}
-            tone="muted"
+          );
+        }
+        return (
+          <StatusRow
+            onPress={() =>
+              router.push({
+                pathname: "/(protected)/student/[studentId]",
+                params: { studentId: item.studentId, staff: "1" },
+              })
+            }
+            status={message("asmt.roster.open")}
+            subtitle={item.primaryTeacher.fullName}
+            testID={`roster-${item.studentId}`}
+            title={item.fullName}
+            tone="info"
           />
-        </>
-      )}
-    </AccountScreenShell>
+        );
+      }}
+      testID="teacher-students"
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  footer: { marginTop: space.s2 },
+  header: { gap: space.s3 },
+});

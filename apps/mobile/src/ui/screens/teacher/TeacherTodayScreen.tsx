@@ -1,10 +1,11 @@
 import { router } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import { ApiError, useApiClient } from "@/api";
 import type { IsoDateTime, Lesson, LessonJournal } from "@/api/contracts";
 import { useMessage } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice } from "../../components";
+import { ErrorNotice } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -19,6 +20,7 @@ import {
   lessonAgendaType,
   liveLesson,
 } from "../../teacherToday";
+import { semantic } from "../../tokens";
 import { apiErrorMessage, formatLessonTime } from "../../viewModels";
 import { AccountNav, useAccountResource } from "../account/shared";
 
@@ -123,10 +125,11 @@ export function TeacherTodayScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-today-loading">
         {today.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(today.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void today.reload()}
+            title={message("tch.today.title")}
           />
         ) : null}
       </AccountScreenShell>
@@ -153,7 +156,17 @@ export function TeacherTodayScreen() {
     });
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-today">
+    <AccountScreenShell
+      navigation={<AccountNav active="today" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void today.reload()}
+          refreshing={today.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="teacher-today"
+    >
       <ScreenHeading
         eyebrow={message("tch.today.eyebrow")}
         subtitle={

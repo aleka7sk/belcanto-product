@@ -1,9 +1,9 @@
 import { router } from "expo-router";
-import { StyleSheet, Text } from "react-native";
+import { RefreshControl, StyleSheet, Text } from "react-native";
 
 import { useApiClient } from "@/api";
 import { useMessage } from "@/i18n";
-import { InlineNotice } from "../components";
+import { ErrorNotice, InlineNotice } from "../components";
 import {
   AccountScreenShell,
   ScreenHeading,
@@ -52,6 +52,13 @@ export function OperationsScreen() {
   return (
     <AccountScreenShell
       navigation={<AccountNav active="operations" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void summary.reload()}
+          refreshing={summary.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
       testID="operations-home"
     >
       <ScreenHeading
@@ -66,10 +73,11 @@ export function OperationsScreen() {
         title={message("adm.title")}
       />
       {summary.error !== null ? (
-        <InlineNotice
+        <ErrorNotice
+          actionLabel={message("common.retry")}
           body={apiErrorMessage(summary.error)}
-          title={message("common.retry")}
-          tone="error"
+          onAction={() => void summary.reload()}
+          title={message("adm.title")}
         />
       ) : null}
       {view !== null ? (

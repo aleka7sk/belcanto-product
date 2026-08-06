@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Fragment, type ReactNode } from "react";
-import { StyleSheet, Text } from "react-native";
+import { RefreshControl, StyleSheet, Text } from "react-native";
 
 import { ApiError, useApiClient } from "@/api";
 import type {
@@ -10,7 +10,7 @@ import type {
   ProgressEvidence,
 } from "@/api/contracts";
 import { useMessage, type MessageFormatter } from "@/i18n";
-import { InlineNotice } from "../../components";
+import { ErrorNotice } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -211,10 +211,11 @@ export function TeacherLessonScreen() {
     return (
       <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-lesson-loading">
         {context.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(context.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void context.reload()}
+            title={message("tch.today.title")}
           />
         ) : null}
       </AccountScreenShell>
@@ -225,7 +226,17 @@ export function TeacherLessonScreen() {
   const group = participants.length > 1;
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="today" />} testID="teacher-lesson">
+    <AccountScreenShell
+      navigation={<AccountNav active="today" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void context.reload()}
+          refreshing={context.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="teacher-lesson"
+    >
       <ScreenHeading
         eyebrow={message(lessonPhaseKey(lesson))}
         subtitle={formatLine(lesson, message)}

@@ -42,7 +42,7 @@ import {
   sourceTeachers,
   startTeacherLessonLoad,
 } from "../teacherChangeState";
-import { colors, fonts, metrics, spacing, typeScale } from "../tokens";
+import { semantic, space, typeStyles } from "../tokens";
 import { apiErrorMessage, formatLessonDay, formatLessonTime } from "../viewModels";
 import { RoleNav } from "./account/shared";
 
@@ -603,16 +603,16 @@ export function TeacherChangeScreen() {
 
 const styles = StyleSheet.create({
   content: { minHeight: 1180 },
-  brand: { color: colors.textPrimary, fontFamily: fonts.bold, ...typeScale.brand },
-  eyebrow: { color: colors.textGold, fontFamily: fonts.semibold, marginTop: metrics.workflowEyebrowTop, ...typeScale.eyebrow },
-  title: { color: colors.textPrimary, fontFamily: fonts.extrabold, marginTop: spacing.sm, ...typeScale.screenTitle },
-  subtitle: { color: colors.textSecondary, fontFamily: fonts.regular, marginBottom: spacing.section, marginTop: spacing.sm, ...typeScale.body },
-  stack: { gap: spacing.md },
-  sectionHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: spacing.section },
-  error: { color: colors.danger, fontFamily: fonts.regular, ...typeScale.label },
-  dateFields: { flexDirection: "row", gap: spacing.md },
+  brand: { color: semantic.textPrimary, fontFamily: "Onest_700Bold", fontSize: 13, letterSpacing: 2.4, lineHeight: 17 },
+  eyebrow: { color: semantic.textGold, fontFamily: "Onest_600SemiBold", fontSize: 10, letterSpacing: 1, lineHeight: 13, marginTop: space.s10 },
+  title: { color: semantic.textPrimary, fontFamily: "Onest_800ExtraBold", fontSize: 28, lineHeight: 34, marginTop: space.s2 },
+  subtitle: { color: semantic.textSecondary, marginBottom: space.s8, marginTop: space.s2, ...typeStyles.bodyS },
+  stack: { gap: space.s3 },
+  sectionHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: space.s8 },
+  error: { color: semantic.feedbackDanger, ...typeStyles.caption },
+  dateFields: { flexDirection: "row", gap: space.s3 },
   fieldGrow: { flex: 1 },
-  summaryTeacher: { color: colors.textPrimary, fontFamily: fonts.bold, ...typeScale.cardTitle },
-  summaryLine: { color: colors.textSecondary, fontFamily: fonts.regular, marginTop: spacing.md, ...typeScale.body },
-  warning: { color: colors.textGold, fontFamily: fonts.semibold, marginTop: spacing.lg, ...typeScale.body },
+  summaryTeacher: { color: semantic.textPrimary, fontFamily: "Onest_700Bold", fontSize: 19, lineHeight: 23 },
+  summaryLine: { color: semantic.textSecondary, marginTop: space.s3, ...typeStyles.bodyS },
+  warning: { color: semantic.textGold, marginTop: space.s4, ...typeStyles.labelL },
 });

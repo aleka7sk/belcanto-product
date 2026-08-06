@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { RefreshControl, StyleSheet, Text } from "react-native";
 
 import { useApiClient } from "@/api";
 import type { Assessment } from "@/api/contracts";
 import { createIntentIdempotency } from "@/controllers";
 import { useMessage, type MessageFormatter } from "@/i18n";
 import { useSession } from "@/session";
-import { InlineNotice, PremiumTextField } from "../../components";
+import { ErrorNotice, InlineNotice, PremiumTextField } from "../../components";
 import {
   AccountScreenShell,
   BlockAction,
@@ -126,13 +126,24 @@ export function AssessmentDetailScreen() {
   };
 
   return (
-    <AccountScreenShell navigation={<AccountNav active="review" />} testID="assessment-detail">
+    <AccountScreenShell
+      navigation={<AccountNav active="review" />}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void assessment.reload()}
+          refreshing={assessment.refreshing}
+          tintColor={semantic.accentViolet}
+        />
+      }
+      testID="assessment-detail"
+    >
       {view === null ? (
         assessment.error !== null ? (
-          <InlineNotice
+          <ErrorNotice
+            actionLabel={message("common.retry")}
             body={apiErrorMessage(assessment.error)}
-            title={message("common.retry")}
-            tone="error"
+            onAction={() => void assessment.reload()}
+            title={message("asmt.compose.eyebrow")}
           />
         ) : (
           <Text style={styles.muted}>{message("common.loading")}</Text>

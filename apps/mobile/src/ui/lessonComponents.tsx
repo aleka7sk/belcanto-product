@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { Lesson } from "@/api";
 
+import { ChevronIcon } from "./icons";
 import { gradients, radius, semantic, sizes, space, strokes, typeStyles } from "./tokens";
 import { formatLessonDay, formatLessonTime, initials } from "./viewModels";
 
@@ -59,9 +60,7 @@ export function LessonCard({
             {supporting}
           </Text>
         </View>
-        <Text accessibilityElementsHidden style={styles.chevron}>
-          ›
-        </Text>
+        <ChevronIcon color={semantic.textAccent} size={sizes.iconLg} />
       </LinearGradient>
     </Pressable>
   );
@@ -156,7 +155,6 @@ const styles = StyleSheet.create({
     marginTop: space.s2,
     ...typeStyles.caption,
   },
-  chevron: { color: semantic.textAccent, fontFamily: "Onest_700Bold", fontSize: 26 },
   selectionRow: {
     alignItems: "center",
     backgroundColor: semantic.bgRaised,
