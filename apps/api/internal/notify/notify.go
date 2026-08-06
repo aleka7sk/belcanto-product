@@ -85,6 +85,7 @@ var routes = map[string]route{
 	"AchievementAwarded":        {category: "learning", recipient: studentRecipient},
 	"SongStageChanged":          {category: "learning", recipient: studentRecipient},
 	"AttendanceAbsenceRecorded": {category: "important", recipient: administratorRecipients},
+	"CommunityReportFiled":      {category: "important", recipient: administratorRecipients},
 }
 
 // RouteEvent resolves the activity entries an event produces.

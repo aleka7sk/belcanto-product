@@ -85,6 +85,15 @@ import {
   type MarkActivityReadResult,
   type NotificationPreference,
   type UpdateNotificationPreferenceRequest,
+  type CommunityPost,
+  type CommunityReport,
+  type BlockedMembers,
+  type CreateCommunityPostRequest,
+  type AddCommunityCommentRequest,
+  type RemoveCommunityContentRequest,
+  type ReportCommunityContentRequest,
+  type DecideCommunityReportRequest,
+  type BlockCommunityMemberRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -1225,6 +1234,109 @@ export class ApiClient {
       body,
       signal,
     });
+  }
+
+  createCommunityPost(
+    accessToken: string,
+    body: CreateCommunityPostRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityPost> {
+    return this.request(routes.createCommunityPost, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  communityFeed(accessToken: string, signal?: AbortSignal): Promise<CommunityPost[]> {
+    return this.request(routes.communityFeed, { accessToken, signal });
+  }
+
+  getCommunityPost(
+    accessToken: string,
+    postId: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityPost> {
+    return this.request(routes.getCommunityPost(postId), { accessToken, signal });
+  }
+
+  addCommunityComment(
+    accessToken: string,
+    postId: string,
+    body: AddCommunityCommentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityPost> {
+    return this.request(routes.addCommunityComment(postId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  removeCommunityContent(
+    accessToken: string,
+    body: RemoveCommunityContentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityPost> {
+    return this.request(routes.removeCommunityContent, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  reportCommunityContent(
+    accessToken: string,
+    body: ReportCommunityContentRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityReport> {
+    return this.request(routes.reportCommunityContent, {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  moderationQueue(accessToken: string, signal?: AbortSignal): Promise<CommunityReport[]> {
+    return this.request(routes.moderationQueue, { accessToken, signal });
+  }
+
+  decideCommunityReport(
+    accessToken: string,
+    reportId: string,
+    body: DecideCommunityReportRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<CommunityReport> {
+    return this.request(routes.decideCommunityReport(reportId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  blockCommunityMember(
+    accessToken: string,
+    body: BlockCommunityMemberRequest,
+    signal?: AbortSignal,
+  ): Promise<BlockedMembers> {
+    return this.request(routes.blockCommunityMember, { accessToken, body, signal });
+  }
+
+  blockedCommunityMembers(
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<BlockedMembers> {
+    return this.request(routes.blockedCommunityMembers, { accessToken, signal });
   }
 
   createLesson(

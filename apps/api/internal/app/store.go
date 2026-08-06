@@ -133,6 +133,17 @@ type Store interface {
 	NotificationPreferences(context.Context, core.Principal) ([]core.NotificationPreference, error)
 	UpdateNotificationPreference(context.Context, core.UpdateNotificationPreferenceCommand) ([]core.NotificationPreference, error)
 
+	CreatePost(context.Context, core.CreatePostCommand) (core.CommunityPost, error)
+	ListFeed(context.Context, core.Principal, int) ([]core.CommunityPost, error)
+	GetPost(context.Context, core.Principal, string) (core.CommunityPost, error)
+	AddComment(context.Context, core.AddCommentCommand) (core.CommunityPost, error)
+	RemoveContent(context.Context, core.RemoveContentCommand) (core.CommunityPost, error)
+	ReportContent(context.Context, core.ReportContentCommand) (core.CommunityReport, error)
+	ListModerationQueue(context.Context, core.Principal) ([]core.CommunityReport, error)
+	DecideReport(context.Context, core.DecideReportCommand) (core.CommunityReport, error)
+	BlockMember(context.Context, core.BlockMemberCommand) ([]string, error)
+	ListBlockedMembers(context.Context, core.Principal) ([]string, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

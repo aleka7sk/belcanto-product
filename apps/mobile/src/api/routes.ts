@@ -47,6 +47,11 @@ import {
   decodeActivityFeed,
   decodeMarkActivityReadResult,
   decodeNotificationPreferences,
+  decodeCommunityPost,
+  decodeCommunityFeed,
+  decodeCommunityReport,
+  decodeCommunityReports,
+  decodeBlockedMembers,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -142,6 +147,15 @@ import {
   type MarkActivityReadResult,
   type NotificationPreference,
   type UpdateNotificationPreferenceRequest,
+  type CommunityPost,
+  type CommunityReport,
+  type BlockedMembers,
+  type CreateCommunityPostRequest,
+  type AddCommunityCommentRequest,
+  type RemoveCommunityContentRequest,
+  type ReportCommunityContentRequest,
+  type DecideCommunityReportRequest,
+  type BlockCommunityMemberRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -1202,6 +1216,89 @@ export const routes = {
       [401, 403, 404, 409, 422, 500],
       decodeVoid,
     ),
+  createCommunityPost: route<CommunityPost>(
+    "POST",
+    "/v1/community/posts",
+    "required",
+    201,
+    [401, 403, 409, 422, 500],
+    decodeCommunityPost,
+  ),
+  communityFeed: route<CommunityPost[]>(
+    "GET",
+    "/v1/community/posts",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeCommunityFeed,
+  ),
+  getCommunityPost: (postId: string) =>
+    route<CommunityPost>(
+      "GET",
+      `/v1/community/posts/${pathPart(postId, "postId")}`,
+      "required",
+      200,
+      [401, 403, 404, 422, 500],
+      decodeCommunityPost,
+    ),
+  addCommunityComment: (postId: string) =>
+    route<CommunityPost>(
+      "POST",
+      `/v1/community/posts/${pathPart(postId, "postId")}/comments`,
+      "required",
+      201,
+      [401, 403, 404, 409, 422, 500],
+      decodeCommunityPost,
+    ),
+  removeCommunityContent: route<CommunityPost>(
+    "POST",
+    "/v1/community/remove",
+    "required",
+    200,
+    [401, 403, 404, 409, 422, 500],
+    decodeCommunityPost,
+  ),
+  reportCommunityContent: route<CommunityReport>(
+    "POST",
+    "/v1/community/reports",
+    "required",
+    201,
+    [401, 403, 404, 409, 422, 500],
+    decodeCommunityReport,
+  ),
+  moderationQueue: route<CommunityReport[]>(
+    "GET",
+    "/v1/community/moderation/reports",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeCommunityReports,
+  ),
+  decideCommunityReport: (reportId: string) =>
+    route<CommunityReport>(
+      "POST",
+      `/v1/community/moderation/reports/${pathPart(reportId, "reportId")}/decide`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeCommunityReport,
+    ),
+  blockCommunityMember: route<BlockedMembers>(
+    "PUT",
+    "/v1/community/blocks",
+    "required",
+    200,
+    [401, 403, 422, 500],
+    decodeBlockedMembers,
+  ),
+  blockedCommunityMembers: route<BlockedMembers>(
+    "GET",
+    "/v1/community/blocks",
+    "required",
+    200,
+    [401, 422, 500],
+    decodeBlockedMembers,
+  ),
 } as const;
 
 export type RouteRequestBodies = {
@@ -1266,4 +1363,10 @@ export type RouteRequestBodies = {
   generateSeriesOccurrences: GenerateOccurrencesRequest;
   reassignPrimaryTeachers: ReassignPrimaryTeachersRequest;
   replaceLessonTeachers: ReplaceLessonTeachersRequest;
+  createCommunityPost: CreateCommunityPostRequest;
+  addCommunityComment: AddCommunityCommentRequest;
+  removeCommunityContent: RemoveCommunityContentRequest;
+  reportCommunityContent: ReportCommunityContentRequest;
+  decideCommunityReport: DecideCommunityReportRequest;
+  blockCommunityMember: BlockCommunityMemberRequest;
 };

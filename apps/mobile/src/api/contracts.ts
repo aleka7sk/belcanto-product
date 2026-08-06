@@ -3596,3 +3596,383 @@ export const decodeNotificationPreferences: Decoder<NotificationPreference[]> = 
   );
   return preferences;
 };
+
+// ---- L.5 community and safety (Page 28; COM-SAFE-02/03/05) ----
+
+export const COMMUNITY_POST_KINDS = ["post", "announcement"] as const;
+export type CommunityPostKind = (typeof COMMUNITY_POST_KINDS)[number];
+
+export const COMMUNITY_AUDIENCES = ["school", "staff"] as const;
+export type CommunityAudience = (typeof COMMUNITY_AUDIENCES)[number];
+
+export const COMMUNITY_CONTENT_STATUSES = ["published", "hidden", "removed"] as const;
+export type CommunityContentStatus = (typeof COMMUNITY_CONTENT_STATUSES)[number];
+
+export const COMMUNITY_REPORT_REASONS = ["abuse", "personal_data", "spam", "other"] as const;
+export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
+
+export const COMMUNITY_AUTHOR_ROLES = ["Owner", "Administrator", "Teacher", "Student"] as const;
+export type CommunityAuthorRole = (typeof COMMUNITY_AUTHOR_ROLES)[number];
+
+/** Empty fields mean a tombstone: the words and the author leave. */
+export interface CommunityAuthor {
+  accountId: string;
+  fullName: string;
+  role: CommunityAuthorRole | "";
+}
+
+export interface CommunityComment {
+  id: string;
+  author: CommunityAuthor;
+  body?: string | undefined;
+  status: CommunityContentStatus;
+  createdAt: IsoDateTime;
+}
+
+export interface CommunityPost {
+  id: string;
+  kind: CommunityPostKind;
+  title?: string | undefined;
+  body?: string | undefined;
+  audience: CommunityAudience;
+  commentsEnabled: boolean;
+  pinned: boolean;
+  status: CommunityContentStatus;
+  author: CommunityAuthor;
+  commentCount: number;
+  comments?: CommunityComment[] | undefined;
+  createdAt: IsoDateTime;
+}
+
+export interface CreateCommunityPostRequest {
+  kind?: CommunityPostKind;
+  title?: string;
+  body: string;
+  audience?: CommunityAudience;
+  commentsEnabled: boolean;
+  pinned?: boolean;
+}
+
+export interface AddCommunityCommentRequest {
+  body: string;
+}
+
+export type CommunityTargetType = "post" | "comment";
+
+export interface RemoveCommunityContentRequest {
+  targetType: CommunityTargetType;
+  targetId: string;
+}
+
+export interface ReportCommunityContentRequest {
+  targetType: CommunityTargetType;
+  targetId: string;
+  reason: CommunityReportReason;
+  note?: string;
+}
+
+export interface CommunityReport {
+  id: string;
+  targetType: CommunityTargetType;
+  targetId: string;
+  reason: CommunityReportReason;
+  note?: string | undefined;
+  status: "new" | "reviewed";
+  decision?: "hidden" | "kept" | undefined;
+  decisionReason?: string | undefined;
+  decidedAt?: IsoDateTime | undefined;
+  createdAt: IsoDateTime;
+  targetExcerpt?: string | undefined;
+}
+
+export interface DecideCommunityReportRequest {
+  decision: "hidden" | "kept";
+  decisionReason: string;
+}
+
+export interface BlockCommunityMemberRequest {
+  accountId: string;
+  blocked: boolean;
+}
+
+export interface BlockedMembers {
+  blocked: string[];
+}
+
+function decodeCommunityAuthor(
+  value: unknown,
+  contract: string,
+  path: string,
+): CommunityAuthor {
+  const source = record(value, contract, path);
+  exactKeys(source, ["accountId", "fullName", "role"], contract, path);
+  const { accountId, fullName, role } = source;
+  if (
+    typeof accountId !== "string" ||
+    typeof fullName !== "string" ||
+    typeof role !== "string"
+  ) {
+    throw new ContractDecodeError(contract, path);
+  }
+  if (accountId === "") {
+    // A tombstone author is empty entirely, never partially.
+    if (fullName !== "" || role !== "") {
+      throw new ContractDecodeError(contract, path);
+    }
+    return { accountId: "", fullName: "", role: "" };
+  }
+  if (fullName === "") {
+    throw new ContractDecodeError(contract, `${path}.fullName`);
+  }
+  const authorRole = oneOf(role, COMMUNITY_AUTHOR_ROLES, contract, `${path}.role`);
+  return { accountId, fullName, role: authorRole };
+}
+
+function decodeCommunityComment(
+  value: unknown,
+  contract: string,
+  path: string,
+): CommunityComment {
+  const source = record(value, contract, path);
+  exactKeys(source, ["id", "author", "body", "status", "createdAt"], contract, path);
+  const status = oneOf(source.status, COMMUNITY_CONTENT_STATUSES, contract, `${path}.status`);
+  const comment: CommunityComment = {
+    id: identifierField(source, "id", contract)!,
+    author: decodeCommunityAuthor(source.author, contract, `${path}.author`),
+    status,
+    createdAt: isoDateField(source, "createdAt", contract)!,
+  };
+  const body = stringField(source, "body", contract, true);
+  if (body !== undefined) comment.body = body;
+  // A published reply always shows its words and author; a tombstone
+  // for members hides both together (moderators keep the words).
+  if (status === "published" && (comment.body === undefined || comment.author.accountId === "")) {
+    throw new ContractDecodeError(contract, path);
+  }
+  if (status !== "published" && comment.body !== undefined && comment.author.accountId === "") {
+    throw new ContractDecodeError(contract, path);
+  }
+  return comment;
+}
+
+function decodeCommunityPostShape(
+  value: unknown,
+  contract: string,
+  path: string,
+): CommunityPost {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "kind",
+      "title",
+      "body",
+      "audience",
+      "commentsEnabled",
+      "pinned",
+      "status",
+      "author",
+      "commentCount",
+      "comments",
+      "createdAt",
+    ],
+    contract,
+    path,
+  );
+  const status = oneOf(source.status, COMMUNITY_CONTENT_STATUSES, contract, `${path}.status`);
+  const kind = oneOf(source.kind, COMMUNITY_POST_KINDS, contract, `${path}.kind`);
+  const post: CommunityPost = {
+    id: identifierField(source, "id", contract)!,
+    kind,
+    audience: oneOf(source.audience, COMMUNITY_AUDIENCES, contract, `${path}.audience`),
+    commentsEnabled: booleanField(source, "commentsEnabled", contract),
+    pinned: booleanField(source, "pinned", contract),
+    status,
+    author: decodeCommunityAuthor(source.author, contract, `${path}.author`),
+    commentCount: numberField(source, "commentCount", contract, 0),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+  };
+  const title = stringField(source, "title", contract, true);
+  if (title !== undefined) post.title = title;
+  const body = stringField(source, "body", contract, true);
+  if (body !== undefined) post.body = body;
+  if (post.pinned && kind !== "announcement") {
+    throw new ContractDecodeError(contract, `${path}.pinned`);
+  }
+  if (status === "published") {
+    if (post.body === undefined || post.author.accountId === "") {
+      throw new ContractDecodeError(contract, path);
+    }
+    if (kind === "announcement" && post.title === undefined) {
+      throw new ContractDecodeError(contract, `${path}.title`);
+    }
+  }
+  if (source.comments !== undefined) {
+    if (!Array.isArray(source.comments)) {
+      throw new ContractDecodeError(contract, `${path}.comments`);
+    }
+    const comments = source.comments.map((entry, index) =>
+      decodeCommunityComment(entry, contract, `${path}.comments[${index}]`),
+    );
+    unique(
+      comments.map((comment) => comment.id),
+      contract,
+      `${path}.comments[].id`,
+    );
+    for (let index = 1; index < comments.length; index += 1) {
+      if (comments[index]!.createdAt < comments[index - 1]!.createdAt) {
+        throw new ContractDecodeError(contract, `${path}.comments[${index}].createdAt`);
+      }
+    }
+    // The count is the published replies the viewer can see.
+    const published = comments.filter((comment) => comment.status === "published").length;
+    if (post.commentCount !== published) {
+      throw new ContractDecodeError(contract, `${path}.commentCount`);
+    }
+    post.comments = comments;
+  }
+  return post;
+}
+
+export const decodeCommunityPost: Decoder<CommunityPost> = (value) =>
+  decodeCommunityPostShape(value, "CommunityPost", "$");
+
+export const decodeCommunityFeed: Decoder<CommunityPost[]> = (value) => {
+  const contract = "CommunityFeed";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const posts = value.map((entry, index) =>
+    decodeCommunityPostShape(entry, contract, `$[${index}]`),
+  );
+  unique(
+    posts.map((post) => post.id),
+    contract,
+    "$[].id",
+  );
+  let unpinnedSeen = false;
+  posts.forEach((post, index) => {
+    if (post.status !== "published") {
+      throw new ContractDecodeError(contract, `$[${index}].status`);
+    }
+    if (post.pinned && unpinnedSeen) {
+      throw new ContractDecodeError(contract, `$[${index}].pinned`);
+    }
+    if (!post.pinned) unpinnedSeen = true;
+  });
+  return posts;
+};
+
+function decodeCommunityReportShape(
+  value: unknown,
+  contract: string,
+  path: string,
+): CommunityReport {
+  const source = record(value, contract, path);
+  exactKeys(
+    source,
+    [
+      "id",
+      "targetType",
+      "targetId",
+      "reason",
+      "note",
+      "status",
+      "decision",
+      "decisionReason",
+      "decidedAt",
+      "createdAt",
+      "targetExcerpt",
+    ],
+    contract,
+    path,
+  );
+  const status = oneOf(source.status, ["new", "reviewed"] as const, contract, `${path}.status`);
+  const reason = oneOf(source.reason, COMMUNITY_REPORT_REASONS, contract, `${path}.reason`);
+  const report: CommunityReport = {
+    id: identifierField(source, "id", contract)!,
+    targetType: oneOf(source.targetType, ["post", "comment"] as const, contract, `${path}.targetType`),
+    targetId: identifierField(source, "targetId", contract)!,
+    reason,
+    status,
+    createdAt: isoDateField(source, "createdAt", contract)!,
+  };
+  const note = stringField(source, "note", contract, true);
+  if (note !== undefined) report.note = note;
+  const decisionReason = stringField(source, "decisionReason", contract, true);
+  if (decisionReason !== undefined) report.decisionReason = decisionReason;
+  const decidedAt = isoDateField(source, "decidedAt", contract, true);
+  if (decidedAt !== undefined) report.decidedAt = decidedAt;
+  const targetExcerpt = stringField(source, "targetExcerpt", contract, true);
+  if (targetExcerpt !== undefined) report.targetExcerpt = targetExcerpt;
+  if (source.decision !== undefined) {
+    report.decision = oneOf(
+      source.decision,
+      ["hidden", "kept"] as const,
+      contract,
+      `${path}.decision`,
+    );
+  }
+  if (reason === "other" && report.note === undefined) {
+    throw new ContractDecodeError(contract, `${path}.note`);
+  }
+  // A report is either new or fully decided — never in between.
+  const decided =
+    report.decision !== undefined &&
+    report.decisionReason !== undefined &&
+    report.decidedAt !== undefined;
+  const undecided =
+    report.decision === undefined &&
+    report.decisionReason === undefined &&
+    report.decidedAt === undefined;
+  if (status === "reviewed" ? !decided : !undecided) {
+    throw new ContractDecodeError(contract, `${path}.status`);
+  }
+  return report;
+}
+
+export const decodeCommunityReport: Decoder<CommunityReport> = (value) =>
+  decodeCommunityReportShape(value, "CommunityReport", "$");
+
+export const decodeCommunityReports: Decoder<CommunityReport[]> = (value) => {
+  const contract = "CommunityReportList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const reports = value.map((entry, index) =>
+    decodeCommunityReportShape(entry, contract, `$[${index}]`),
+  );
+  unique(
+    reports.map((report) => report.id),
+    contract,
+    "$[].id",
+  );
+  let reviewedSeen = false;
+  reports.forEach((report, index) => {
+    if (report.status === "reviewed") {
+      reviewedSeen = true;
+    } else if (reviewedSeen) {
+      // The queue lists what awaits a decision first.
+      throw new ContractDecodeError(contract, `$[${index}].status`);
+    }
+  });
+  return reports;
+};
+
+export const decodeBlockedMembers: Decoder<BlockedMembers> = (value) => {
+  const contract = "BlockedMembers";
+  const source = record(value, contract);
+  exactKeys(source, ["blocked"], contract);
+  if (!Array.isArray(source.blocked)) {
+    throw new ContractDecodeError(contract, "$.blocked");
+  }
+  const blocked = source.blocked.map((entry, index) => {
+    if (typeof entry !== "string" || entry.length === 0 || entry.length > 128) {
+      throw new ContractDecodeError(contract, `$.blocked[${index}]`);
+    }
+    return entry;
+  });
+  unique(blocked, contract, "$.blocked[]");
+  return { blocked };
+};

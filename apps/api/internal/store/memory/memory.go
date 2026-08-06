@@ -159,6 +159,10 @@ type Store struct {
 	awards             map[string]*achievementAward
 	activity           []*activityEntry
 	notificationPrefs  map[string]bool
+	communityPosts     map[string]*communityPost
+	communityComments  map[string]*communityComment
+	communityReports   map[string]*communityReport
+	blocks             map[blockKey]time.Time
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -213,6 +217,10 @@ func New() *Store {
 		achievementDefs:    make(map[string]*achievementDefinition),
 		awards:             make(map[string]*achievementAward),
 		notificationPrefs:  make(map[string]bool),
+		communityPosts:     make(map[string]*communityPost),
+		communityComments:  make(map[string]*communityComment),
+		communityReports:   make(map[string]*communityReport),
+		blocks:             make(map[blockKey]time.Time),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),

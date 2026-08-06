@@ -19,6 +19,7 @@ const BUILT_TABS: ReadonlySet<TabKey> = new Set([
   "today",
   "schedule",
   "practice",
+  "community",
   "profile",
 ]);
 
@@ -42,6 +43,7 @@ export function AccountNav({ active = "profile" }: { active?: TabKey }) {
         if (tab.key === "today") router.push("/(protected)");
         if (tab.key === "schedule") router.push("/(protected)/schedule");
         if (tab.key === "practice") router.push("/(protected)/practice");
+        if (tab.key === "community") router.push("/(protected)/community");
         if (tab.key === "profile") router.push("/(protected)/account");
       }}
       role={navigationRoleFor(workingRole)}

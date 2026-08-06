@@ -1605,3 +1605,124 @@ type UpdateNotificationPreferenceCommand struct {
 	PushEnabled bool
 	Now         time.Time
 }
+
+// ---- L.5 community and safety (Page 28) ----
+
+const (
+	PostKindPost         = "post"
+	PostKindAnnouncement = "announcement"
+	AudienceSchool       = "school"
+	AudienceStaff        = "staff"
+	ContentPublished     = "published"
+	ContentHidden        = "hidden"
+	ContentRemoved       = "removed"
+)
+
+// ReportReasons per COM-SAFE-02: оскорбления/травля, личные данные,
+// спам, другое (со свободным описанием).
+var ReportReasons = []string{"abuse", "personal_data", "spam", "other"}
+
+type CommunityAuthor struct {
+	AccountID string `json:"accountId"`
+	FullName  string `json:"fullName"`
+	Role      string `json:"role"`
+}
+
+type CommunityComment struct {
+	ID        string          `json:"id"`
+	Author    CommunityAuthor `json:"author"`
+	Body      string          `json:"body,omitempty"`
+	Status    string          `json:"status"`
+	CreatedAt time.Time       `json:"createdAt"`
+}
+
+type CommunityPost struct {
+	ID              string             `json:"id"`
+	Kind            string             `json:"kind"`
+	Title           string             `json:"title,omitempty"`
+	Body            string             `json:"body,omitempty"`
+	Audience        string             `json:"audience"`
+	CommentsEnabled bool               `json:"commentsEnabled"`
+	Pinned          bool               `json:"pinned"`
+	Status          string             `json:"status"`
+	Author          CommunityAuthor    `json:"author"`
+	CommentCount    int                `json:"commentCount"`
+	Comments        []CommunityComment `json:"comments,omitempty"`
+	CreatedAt       time.Time          `json:"createdAt"`
+}
+
+type CreatePostCommand struct {
+	Principal          Principal
+	PostID             string
+	Kind               string
+	Title              string
+	Body               string
+	Audience           string
+	CommentsEnabled    bool
+	Pinned             bool
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type AddCommentCommand struct {
+	Principal          Principal
+	CommentID          string
+	PostID             string
+	Body               string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type RemoveContentCommand struct {
+	Principal          Principal
+	TargetType         string
+	TargetID           string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type ReportContentCommand struct {
+	Principal          Principal
+	ReportID           string
+	TargetType         string
+	TargetID           string
+	Reason             string
+	Note               string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type CommunityReport struct {
+	ID             string     `json:"id"`
+	TargetType     string     `json:"targetType"`
+	TargetID       string     `json:"targetId"`
+	Reason         string     `json:"reason"`
+	Note           string     `json:"note,omitempty"`
+	Status         string     `json:"status"`
+	Decision       string     `json:"decision,omitempty"`
+	DecisionReason string     `json:"decisionReason,omitempty"`
+	DecidedAt      *time.Time `json:"decidedAt,omitempty"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	TargetExcerpt  string     `json:"targetExcerpt,omitempty"`
+}
+
+type DecideReportCommand struct {
+	Principal          Principal
+	ReportID           string
+	Decision           string
+	DecisionReason     string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type BlockMemberCommand struct {
+	Principal        Principal
+	BlockedAccountID string
+	Blocked          bool
+	Now              time.Time
+}
