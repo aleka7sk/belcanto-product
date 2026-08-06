@@ -401,6 +401,17 @@ export function JournalScreen() {
         />
         <BlockAction
           kind="secondary"
+          label={message("prac.create.title")}
+          onPress={() =>
+            router.push({
+              pathname: "/(protected)/practice/create",
+              params: { occurrenceId, studentId },
+            })
+          }
+          testID="journal-create-homework"
+        />
+        <BlockAction
+          kind="secondary"
           label={message("prac.detail.eyebrow.teacher")}
           onPress={() =>
             router.push({
