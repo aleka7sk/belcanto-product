@@ -63,6 +63,10 @@ export function ScheduleScreen() {
     return (
       <PremiumScrollScreen>
         <InlineNotice title="Раздел недоступен" body="Расписание доступно ученику и сотрудникам с правом просмотра уроков." tone="error" />
+        <SecondaryButton
+          label="Каталог событий"
+          onPress={() => router.push("/(protected)/events")}
+        />
         <SecondaryButton label="Вернуться" onPress={() => router.replace("/(protected)")} />
       </PremiumScrollScreen>
     );

@@ -644,3 +644,13 @@ func (s *Store) GetEventSeries(_ context.Context, principal core.Principal, seri
 	}
 	return s.eventSeriesView(stored), nil
 }
+
+func (s *Store) GetEventOccurrence(_ context.Context, principal core.Principal, occurrenceID string) (core.EventOccurrence, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	stored := s.eventOccurrences[occurrenceID]
+	if stored == nil || stored.TenantID != principal.TenantID {
+		return core.EventOccurrence{}, core.E(core.CodeNotFound, "event not found", nil)
+	}
+	return s.eventOccurrenceView(stored, principal), nil
+}

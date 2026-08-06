@@ -88,6 +88,7 @@ func New(service *app.Service) http.Handler {
 	mux.Handle("POST /v1/event-series/{seriesId}/occurrences", api.authenticated(http.HandlerFunc(api.generateEventSeriesOccurrences)))
 	mux.Handle("GET /v1/events", api.authenticated(http.HandlerFunc(api.listEvents)))
 	mux.Handle("POST /v1/events", api.authenticated(http.HandlerFunc(api.createEvent)))
+	mux.Handle("GET /v1/events/{occurrenceId}", api.authenticated(http.HandlerFunc(api.getEvent)))
 	mux.Handle("POST /v1/events/{occurrenceId}/rsvp", api.authenticated(http.HandlerFunc(api.rsvpToEvent)))
 	mux.Handle("POST /v1/events/{occurrenceId}/rsvp/cancel", api.authenticated(http.HandlerFunc(api.cancelEventRsvp)))
 	mux.Handle("POST /v1/events/{occurrenceId}/waitlist", api.authenticated(http.HandlerFunc(api.joinEventWaitlist)))

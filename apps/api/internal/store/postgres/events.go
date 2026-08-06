@@ -986,3 +986,7 @@ func (s *Store) DeclineSpotOffer(ctx context.Context, command core.SpotOfferDeci
 func (s *Store) GetEventSeries(ctx context.Context, principal core.Principal, seriesID string) (core.EventSeries, error) {
 	return readEventSeries(ctx, s.pool, principal.TenantID, seriesID)
 }
+
+func (s *Store) GetEventOccurrence(ctx context.Context, principal core.Principal, occurrenceID string) (core.EventOccurrence, error) {
+	return readEventOccurrence(ctx, s.pool, principal.TenantID, occurrenceID, principal)
+}

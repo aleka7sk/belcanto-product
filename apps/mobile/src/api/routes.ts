@@ -638,6 +638,15 @@ export const routes = {
     [401, 403, 409, 422, 500],
     decodeEventOccurrence,
   ),
+  getEvent: (occurrenceId: string) =>
+    route<EventOccurrence>(
+      "GET",
+      `/v1/events/${pathPart(occurrenceId, "occurrenceId")}`,
+      "required",
+      200,
+      [401, 404, 422, 500],
+      decodeEventOccurrence,
+    ),
   rsvpToEvent: (occurrenceId: string) =>
     route<EventOccurrence>(
       "POST",

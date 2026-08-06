@@ -95,6 +95,7 @@ type Store interface {
 	GenerateEventOccurrences(context.Context, core.GenerateEventOccurrencesCommand) (core.SeriesOccurrenceGenerationResult, error)
 	CreateEventOccurrence(context.Context, core.CreateEventOccurrenceCommand) (core.EventOccurrence, error)
 	ListEventOccurrences(context.Context, core.Principal, core.EventListQuery) ([]core.EventOccurrence, error)
+	GetEventOccurrence(context.Context, core.Principal, string) (core.EventOccurrence, error)
 	RsvpToEvent(context.Context, core.EventSeatCommand) (core.EventOccurrence, error)
 	CancelEventRsvp(context.Context, core.EventSeatCommand) (core.EventOccurrence, error)
 	JoinEventWaitlist(context.Context, core.EventSeatCommand) (core.EventOccurrence, error)

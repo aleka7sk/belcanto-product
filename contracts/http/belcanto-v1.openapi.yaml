@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.7.0
+  version: 0.8.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -1785,6 +1785,34 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/events/{occurrenceId}:
+    get:
+      summary: Read an event occurrence
+      operationId: getEvent
+      tags: [Events]
+      description: >-
+        One catalog entry with the caller's own RSVP, waitlist position
+        and pending spot offer projected.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventOccurrenceId"
+      responses:
+        "200":
+          description: The occurrence.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventOccurrence"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/InvalidInput"
         "500":

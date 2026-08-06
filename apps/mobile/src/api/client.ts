@@ -634,6 +634,14 @@ export class ApiClient {
     });
   }
 
+  getEvent(
+    accessToken: string,
+    occurrenceId: string,
+    signal?: AbortSignal,
+  ): Promise<EventOccurrence> {
+    return this.request(routes.getEvent(occurrenceId), { accessToken, signal });
+  }
+
   rsvpToEvent(
     accessToken: string,
     occurrenceId: string,

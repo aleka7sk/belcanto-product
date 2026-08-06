@@ -385,3 +385,15 @@ func (s *Service) DeclineSpotOffer(ctx context.Context, principal core.Principal
 	}
 	return view, nil
 }
+
+func (s *Service) GetEvent(ctx context.Context, principal core.Principal, occurrenceID string) (core.EventOccurrence, error) {
+	normalizedID, err := security.ValidateIdentifier("occurrenceId", occurrenceID, 128)
+	if err != nil {
+		return core.EventOccurrence{}, core.E(core.CodeInvalidInput, err.Error(), nil)
+	}
+	view, err := s.store.GetEventOccurrence(ctx, principal, normalizedID)
+	if err != nil {
+		return core.EventOccurrence{}, normalizeStoreError("read event", err)
+	}
+	return view, nil
+}

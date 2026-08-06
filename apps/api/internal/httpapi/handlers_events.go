@@ -218,3 +218,13 @@ func (api *API) declineSpotOffer(response http.ResponseWriter, request *http.Req
 	}
 	api.writeJSON(response, http.StatusOK, view)
 }
+
+func (api *API) getEvent(response http.ResponseWriter, request *http.Request) {
+	authenticated := authenticatedPrincipal(request)
+	view, err := api.service.GetEvent(request.Context(), authenticated.principal, request.PathValue("occurrenceId"))
+	if err != nil {
+		api.writeError(response, err)
+		return
+	}
+	api.writeJSON(response, http.StatusOK, view)
+}
