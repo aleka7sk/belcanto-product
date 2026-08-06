@@ -4,7 +4,7 @@
   "baselineSha": "d447c2c3cc45e507cf2c80eba054c32053a9904d",
   "baselineRef": "origin/agent/l1-internal-scheduling",
   "branch": "agent/production-v2",
-  "updatedAt": "2026-08-07T01:20:00Z",
+  "updatedAt": "2026-08-06T00:00:00+05:00",
   "phase": "phase3",
   "figma": {
     "fileKey": "yXE7a9vAyWdbU9iLnjFmXf",
@@ -153,9 +153,9 @@
     {
       "id": "p5-community-notifications",
       "phase": 5,
-      "status": "in_progress",
+      "status": "completed",
       "summary": "feed/threads/chat boundaries, report/block/moderation, notifications/activity/deep links, outbox worker",
-      "evidence": "notifications backbone green (aa26809): migration 000014 (outbox pending->delivered|dead_letter lifecycle with retry columns + partial index; per-recipient activity_entries idempotent on (event, recipient); per-category push preferences, in-app always on per ACT-04); internal/notify worker: interval poller, curated 12-event routing table (student/homework-teacher/administrator resolvers over verified payloads), exponential backoff to dead_letter, wired into cmd/api with the process context; proven on both stores incl. poisoned-event dead-letter on real SQL and idempotent re-drain; activity feed API + ACT-01 screen (filters never delete/mark-read, Almaty civil-day grouping, per-kind deep links, mark-read) + ACT-03 preferences screen; OpenAPI 0.14.0 (+4 ops), act.* ru/kk; Go full suite + race, mobile 37 suites/199 tests. DEFERRED (recorded): push channel + quiet hours (ACT-05) + permission screens (ACT-06/07) + push privacy (ACT-08) ship with the device-permission modules in phase 7; ACT-09 deep-link role recovery partially covered by ActiveRoleProvider. Remaining: community (Page 28) feed/threads with report/block/moderation"
+      "evidence": "notifications backbone green (aa26809) + community vertical green (422c77b): migration 000015 (posts post/announcement with school/staff audience, pinned, comments toggle; comments; reports with reviewed<->decision CHECK and note-required-for-other; reversible blocks; reject_community_delete triggers — removal/hide are status tombstones with reasons per COM-SAFE-05); both stores: data-driven guidelines gate over newest effective policy kind=community (no policy -> no gate; COM-SAFE-04), staff-only announcements/staff audience/pinning, author-only removal, Owner/Admin moderation (decided-once reports, hide with reason cascades to target), block-filtered comment views (COM-SAFE-03 scope honest), moderators keep sight of hidden content; CommunityReportFiled -> administrators via outbox worker (proven end-to-end on memory in app test); PG integration test pins gate/staff-filter/tombstones/no-delete triggers on real SQL; HTTP 11 ops /v1/community/*; OpenAPI 0.15.0 (Community tag + previously implicit tags declared); mobile: community contracts (tombstone pairing, published-count, queue new-first, block-list uniqueness; 7 tests), client methods, COM-HOME-01 feed (tabs Лента/События-link/Чаты-rule, announcements space filter, pinned-first), COM-SAFE-04 gate via AcceptPolicy, COM-POST-01 thread with reply composer + per-comment report, COM-ANN-01 comments-closed card, COM-SAFE-02 four verbatim reasons with note-for-other and pick-first disabled state, COM-SAFE-03 block/unblock with verbatim scope copy, COM-SAFE-05 tombstone screen, COM-POST-02 text-only composer (DEC-103 stated honestly; announcement title/pin/comments controls for staff), COM-MOD-01/02 queue + review (hide-with-reason/keep); Сообщество tab live in role navs (Owner nav has no community slot per design — moderation via activity deep link), activity deep links for CommunityPostPublished/AnnouncementPublished/ReportFiled; com.* ru verbatim/kk flagged for human review; Go full suite + race, mobile 38 suites/206 tests, contract lint OK, validator 0/99 baseline. DEFERRED (recorded): chats COM-CHAT-01..05 are their own future slice — the Чаты tab states the no-Student-DM rule honestly instead of pretending; reaction pill «Поддержать» (75:1308) has no approved reaction model — honest comment count shown pending a product decision; COM-POST-03 offline draft persistence -> phase 7 reliability; push channel/quiet hours/permissions (ACT-05..08) -> phase 7 device modules; Moderator as delegated capability -> future extension (Owner/Admin only); community media blocked by open DEC-103 (text-only enforced end-to-end)."
     },
     {
       "id": "p6-admin-owner",
@@ -177,6 +177,6 @@
     }
   ],
   "blockers": [],
-  "lastGreenCodeSha": "aa26809",
-  "nextSafeAction": "continue phase 5: community vertical (Page 28) — posts/announcements model with role-aware audience (no unrestricted student discovery, no Student-Student DM per prompt), report/block with moderation queue and reasons, community UI; events already give the RSVP surface, so the feed anchors on school announcements + event-linked content"
+  "lastGreenCodeSha": "422c77b2f981f5f4064c5a7ad3c9211f8a058895",
+  "nextSafeAction": "continue phase 2 remainder: schedule day-view upgrade (Page 24 day grid), admin rooms/series management UI, lesson format surfaced in Lesson view; then phase 4 remainder (lesson-goal + private-note models, Page 27 roster/review screens); then phase 6 administrator/owner workspaces"
 }
