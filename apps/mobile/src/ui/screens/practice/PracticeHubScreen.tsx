@@ -102,7 +102,21 @@ export function PracticeHubScreen() {
             />
           ) : null}
         </>
-      ) : (
+      ) : null}
+      <BlockAction
+        kind="secondary"
+        label={message("rep.open")}
+        onPress={() =>
+          router.push({
+            pathname: "/(protected)/repertoire",
+            ...(paramStudentId !== null
+              ? { params: { studentId: paramStudentId } }
+              : {}),
+          })
+        }
+        testID="practice-open-repertoire"
+      />
+      {empty ? null : (
         list.map((assignment) => (
           <StatusRow
             key={assignment.id}

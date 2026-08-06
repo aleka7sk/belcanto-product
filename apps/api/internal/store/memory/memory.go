@@ -146,6 +146,7 @@ type Store struct {
 	homework           map[string]*homeworkRecord
 	mediaObjects       map[string]*mediaObject
 	attendance         map[string]*attendanceRecord
+	songs              map[string]*studentSong
 	spotOffers         map[string]*spotOffer
 	enrollments        map[string]string
 	firstMinutes       map[string][]core.FirstMinute
@@ -195,6 +196,7 @@ func New() *Store {
 		homework:           make(map[string]*homeworkRecord),
 		mediaObjects:       make(map[string]*mediaObject),
 		attendance:         make(map[string]*attendanceRecord),
+		songs:              make(map[string]*studentSong),
 		spotOffers:         make(map[string]*spotOffer),
 		enrollments:        make(map[string]string),
 		firstMinutes:       make(map[string][]core.FirstMinute),

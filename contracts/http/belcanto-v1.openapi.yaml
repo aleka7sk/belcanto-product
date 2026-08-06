@@ -3,7 +3,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 
 info:
   title: Belcanto API
-  version: 0.11.0
+  version: 0.12.0
   description: >-
     HTTP contract for closed B.0 onboarding, L.1 internal Lesson scheduling
     and P.1 session security (device inventory, targeted revocation, the
@@ -2851,6 +2851,119 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendanceRecord"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+
+  /v1/students/{studentId}/songs:
+    post:
+      summary: Add a repertoire song
+      operationId: addStudentSong
+      tags: [Practice]
+      description: >-
+        The Student's active Teacher or an Administrator adds a piece.
+        The journey stage is a named step («Знакомство → … → готово к
+        сцене») and never a score (DEC-006); a new song starts at the
+        first step unless stated otherwise.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddStudentSongRequest"
+      responses:
+        "201":
+          description: Created song with its history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentSong"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+    get:
+      summary: List a Student's repertoire
+      operationId: listStudentSongs
+      tags: [Practice]
+      description: >-
+        Newest first, each song with its append-only stage history.
+        Visible to the Student, their teachers and managers.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JournalStudentId"
+      responses:
+        "200":
+          description: Repertoire.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentSong"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InvalidInput"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+  /v1/songs/{songId}/stage:
+    post:
+      summary: Move a song along its journey
+      operationId: changeSongStage
+      tags: [Practice]
+      description: >-
+        Appends the next history entry under a version CAS; regressions
+        are legitimate journey steps and history never rewrites.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeSongStageRequest"
+      responses:
+        "200":
+          description: Song after the change.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentSong"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -5814,3 +5927,84 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+
+    SongStage:
+      type: string
+      enum: [acquaintance, learning, technically_stable, interpretation, stage_ready]
+    SongStageChange:
+      type: object
+      additionalProperties: false
+      required: [toStage, changedAt]
+      properties:
+        fromStage:
+          $ref: "#/components/schemas/SongStage"
+        toStage:
+          $ref: "#/components/schemas/SongStage"
+        note:
+          type: string
+        changedAt:
+          type: string
+          format: date-time
+    StudentSong:
+      type: object
+      additionalProperties: false
+      required: [id, studentId, title, stage, assignedBy, history, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        title:
+          type: string
+        artist:
+          type: string
+        stage:
+          $ref: "#/components/schemas/SongStage"
+        stageNote:
+          type: string
+        assignedBy:
+          $ref: "#/components/schemas/TeacherSummary"
+        history:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SongStageChange"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AddStudentSongRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        artist:
+          type: string
+          maxLength: 200
+        stage:
+          $ref: "#/components/schemas/SongStage"
+        stageNote:
+          type: string
+          maxLength: 500
+    ChangeSongStageRequest:
+      type: object
+      additionalProperties: false
+      required: [stage, expectedVersion]
+      properties:
+        stage:
+          $ref: "#/components/schemas/SongStage"
+        stageNote:
+          type: string
+          maxLength: 500
+        expectedVersion:
+          type: integer
+          minimum: 1

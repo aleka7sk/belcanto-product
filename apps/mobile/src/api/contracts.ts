@@ -3075,3 +3075,132 @@ export const decodeAttendanceRecords: Decoder<AttendanceRecord[]> = (value) => {
   );
   return records;
 };
+
+// ---- L.3 student repertoire (aggregate StudentSong) ----
+
+export const SONG_STAGES = [
+  "acquaintance",
+  "learning",
+  "technically_stable",
+  "interpretation",
+  "stage_ready",
+] as const;
+export type SongStage = (typeof SONG_STAGES)[number];
+
+export interface SongStageChange {
+  fromStage?: SongStage;
+  toStage: SongStage;
+  note?: string;
+  changedAt: IsoDateTime;
+}
+
+export interface StudentSong {
+  id: string;
+  studentId: string;
+  title: string;
+  artist?: string;
+  stage: SongStage;
+  stageNote?: string;
+  assignedBy: LessonTeacher;
+  history: SongStageChange[];
+  version: number;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface AddStudentSongRequest {
+  title: string;
+  artist?: string;
+  stage?: SongStage;
+  stageNote?: string;
+}
+
+export interface ChangeSongStageRequest {
+  stage: SongStage;
+  stageNote?: string;
+  expectedVersion: number;
+}
+
+export const decodeStudentSong: Decoder<StudentSong> = (value) => {
+  const contract = "StudentSong";
+  const source = record(value, contract);
+  exactKeys(
+    source,
+    [
+      "id",
+      "studentId",
+      "title",
+      "artist",
+      "stage",
+      "stageNote",
+      "assignedBy",
+      "history",
+      "version",
+      "createdAt",
+      "updatedAt",
+    ],
+    contract,
+  );
+  const teacherSource = record(source.assignedBy, contract, "$.assignedBy");
+  exactKeys(teacherSource, ["accountId", "fullName"], contract, "$.assignedBy");
+  if (!Array.isArray(source.history) || source.history.length === 0) {
+    throw new ContractDecodeError(contract, "$.history");
+  }
+  const history = source.history.map((entry, index) => {
+    const path = `$.history[${index}]`;
+    const changeSource = record(entry, contract, path);
+    exactKeys(changeSource, ["fromStage", "toStage", "note", "changedAt"], contract, path);
+    const change: SongStageChange = {
+      toStage: oneOf(changeSource.toStage, SONG_STAGES, contract, `${path}.toStage`),
+      changedAt: isoDateField(changeSource, "changedAt", contract)!,
+    };
+    if (changeSource.fromStage !== undefined) {
+      change.fromStage = oneOf(changeSource.fromStage, SONG_STAGES, contract, `${path}.fromStage`);
+    }
+    const note = stringField(changeSource, "note", contract, true);
+    if (note !== undefined) change.note = note;
+    return change;
+  });
+  // The oldest entry is the assignment itself and has no fromStage;
+  // every later entry records where the song came from.
+  const oldest = history[history.length - 1]!;
+  if (oldest.fromStage !== undefined) {
+    throw new ContractDecodeError(contract, "$.history");
+  }
+  const song: StudentSong = {
+    id: identifierField(source, "id", contract)!,
+    studentId: identifierField(source, "studentId", contract)!,
+    title: stringField(source, "title", contract)!,
+    stage: oneOf(source.stage, SONG_STAGES, contract, "$.stage"),
+    assignedBy: {
+      accountId: identifierField(teacherSource, "accountId", contract)!,
+      fullName: stringField(teacherSource, "fullName", contract)!,
+    },
+    history,
+    version: numberField(source, "version", contract, 1),
+    createdAt: isoDateField(source, "createdAt", contract)!,
+    updatedAt: isoDateField(source, "updatedAt", contract)!,
+  };
+  const artist = stringField(source, "artist", contract, true);
+  if (artist !== undefined) song.artist = artist;
+  const stageNote = stringField(source, "stageNote", contract, true);
+  if (stageNote !== undefined) song.stageNote = stageNote;
+  if (history[0]!.toStage !== song.stage) {
+    throw new ContractDecodeError(contract, "$.stage");
+  }
+  return song;
+};
+
+export const decodeStudentSongs: Decoder<StudentSong[]> = (value) => {
+  const contract = "StudentSongList";
+  if (!Array.isArray(value)) {
+    throw new ContractDecodeError(contract, "$");
+  }
+  const songs = value.map((entry) => decodeStudentSong(entry));
+  unique(
+    songs.map((song) => song.id),
+    contract,
+    "$[].id",
+  );
+  return songs;
+};

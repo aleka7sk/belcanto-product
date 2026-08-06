@@ -1614,6 +1614,47 @@ const account = {
     ru: "Свободное место группы — это не отсутствие: посещаемость по нему не отмечается.",
     kk: "Топтың бос орны — келмеу емес: ол бойынша қатысу белгіленбейді.",
   },
+
+  // Repertoire (Figma STU-GROWTH-07, STU-PRACTICE-10/11). Stage labels
+  // carry the design's explicit journey enumeration verbatim.
+  "rep.eyebrow": { ru: "Репертуар", kk: "Репертуар" },
+  "rep.title": { ru: "Произведения", kk: "Шығармалар" },
+  "rep.subtitle": { ru: "В репертуаре: {count}", kk: "Репертуарда: {count}" },
+  "rep.filter.all": { ru: "Все", kk: "Барлығы" },
+  "rep.filter.inWork": { ru: "В работе", kk: "Жұмыста" },
+  "rep.filter.ready": { ru: "Готово", kk: "Дайын" },
+  "rep.stage.acquaintance": { ru: "Знакомство", kk: "Танысу" },
+  "rep.stage.learning": { ru: "Разучиваю", kk: "Жаттап жүрмін" },
+  "rep.stage.technically_stable": {
+    ru: "Технически устойчиво",
+    kk: "Техникалық тұрақты",
+  },
+  "rep.stage.interpretation": { ru: "Интерпретация", kk: "Интерпретация" },
+  "rep.stage.stage_ready": { ru: "Готово к сцене", kk: "Сахнаға дайын" },
+  "rep.journey.title": { ru: "Путь произведения", kk: "Шығарма жолы" },
+  "rep.assignedBy": {
+    ru: "Назначено {date} · педагог {name}",
+    kk: "Тағайындалды {date} · педагог {name}",
+  },
+  "rep.edit.title": { ru: "Текущий этап", kk: "Ағымдағы кезең" },
+  "rep.edit.note": { ru: "Заметка к этапу", kk: "Кезең жазбасы" },
+  "rep.edit.save": { ru: "Сохранить этап", kk: "Кезеңді сақтау" },
+  "rep.empty.title": { ru: "Репертуар пока пуст", kk: "Репертуар әзірге бос" },
+  "rep.empty.body": {
+    ru: "Педагог добавит первое произведение после урока.",
+    kk: "Педагог алғашқы шығарманы сабақтан кейін қосады.",
+  },
+  "rep.empty.card.title": { ru: "Что появится здесь", kk: "Мұнда не пайда болады" },
+  "rep.empty.card.body": {
+    ru: "Песня — инструмент навыков и личной истории.",
+    kk: "Ән — дағдылар мен жеке тарих құралы.",
+  },
+  "rep.empty.card.status": { ru: "Путь этапов сохраняется", kk: "Кезең жолы сақталады" },
+  "rep.open": { ru: "Открыть репертуар", kk: "Репертуарды ашу" },
+  "rep.add.title": { ru: "Новое произведение", kk: "Жаңа шығарма" },
+  "rep.add.songTitle": { ru: "Название", kk: "Атауы" },
+  "rep.add.artist": { ru: "Исполнитель (необязательно)", kk: "Орындаушы (міндетті емес)" },
+  "rep.add.save": { ru: "Добавить в репертуар", kk: "Репертуарға қосу" },
 } as const;
 
 export type AccountMessageKey = keyof typeof account;

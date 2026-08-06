@@ -107,6 +107,10 @@ type Store interface {
 	MarkAttendance(context.Context, core.MarkAttendanceCommand) ([]core.AttendanceRecord, error)
 	ListLessonAttendance(context.Context, core.Principal, string) ([]core.AttendanceRecord, error)
 
+	AddStudentSong(context.Context, core.AddStudentSongCommand) (core.StudentSong, error)
+	ChangeSongStage(context.Context, core.ChangeSongStageCommand) (core.StudentSong, error)
+	ListStudentSongs(context.Context, core.Principal, string) ([]core.StudentSong, error)
+
 	CreateRescheduleRequest(context.Context, core.CreateRescheduleRequestCommand) (core.RescheduleRequest, error)
 	ListRescheduleRequests(context.Context, core.Principal) ([]core.RescheduleRequest, error)
 	DecideRescheduleRequest(context.Context, core.DecideRescheduleRequestCommand) (core.RescheduleRequest, error)

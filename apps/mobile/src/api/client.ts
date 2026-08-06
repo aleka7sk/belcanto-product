@@ -68,6 +68,9 @@ import {
   type ReviewHomeworkRequest,
   type AttendanceRecord,
   type MarkAttendanceRequest,
+  type StudentSong,
+  type AddStudentSongRequest,
+  type ChangeSongStageRequest,
   type DisableTwofaRequest,
   type SignInOutcome,
   type StartContactChangeRequest,
@@ -1003,6 +1006,47 @@ export class ApiClient {
   ): Promise<AttendanceRecord[]> {
     return this.request(routes.listLessonAttendance(lessonId), {
       accessToken,
+      signal,
+    });
+  }
+
+  addStudentSong(
+    accessToken: string,
+    studentId: string,
+    body: AddStudentSongRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<StudentSong> {
+    return this.request(routes.addStudentSong(studentId), {
+      accessToken,
+      body,
+      idempotencyKey,
+      signal,
+    });
+  }
+
+  listStudentSongs(
+    accessToken: string,
+    studentId: string,
+    signal?: AbortSignal,
+  ): Promise<StudentSong[]> {
+    return this.request(routes.listStudentSongs(studentId), {
+      accessToken,
+      signal,
+    });
+  }
+
+  changeSongStage(
+    accessToken: string,
+    songId: string,
+    body: ChangeSongStageRequest,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<StudentSong> {
+    return this.request(routes.changeSongStage(songId), {
+      accessToken,
+      body,
+      idempotencyKey,
       signal,
     });
   }

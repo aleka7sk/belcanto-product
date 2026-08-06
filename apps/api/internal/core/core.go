@@ -1348,3 +1348,58 @@ type MarkAttendanceCommand struct {
 	PayloadFingerprint []byte
 	Now                time.Time
 }
+
+// ---- L.3 student repertoire (aggregate StudentSong) ----
+
+// SongStages is the design's explicit journey (STU-GROWTH-07) in order:
+// «Знакомство → разучиваю → технически устойчиво → интерпретация →
+// готово к сцене». A stage is a named journey step set by the Teacher —
+// never a computed readiness and never a score (DEC-006).
+var SongStages = []string{
+	"acquaintance", "learning", "technically_stable", "interpretation", "stage_ready",
+}
+
+type SongStageChange struct {
+	FromStage string    `json:"fromStage,omitempty"`
+	ToStage   string    `json:"toStage"`
+	Note      string    `json:"note,omitempty"`
+	ChangedAt time.Time `json:"changedAt"`
+}
+
+type StudentSong struct {
+	ID         string            `json:"id"`
+	StudentID  string            `json:"studentId"`
+	Title      string            `json:"title"`
+	Artist     string            `json:"artist,omitempty"`
+	Stage      string            `json:"stage"`
+	StageNote  string            `json:"stageNote,omitempty"`
+	AssignedBy TeacherSummary    `json:"assignedBy"`
+	History    []SongStageChange `json:"history"`
+	Version    int               `json:"version"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
+}
+
+type AddStudentSongCommand struct {
+	Principal          Principal
+	SongID             string
+	StudentID          string
+	Title              string
+	Artist             string
+	Stage              string
+	StageNote          string
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}
+
+type ChangeSongStageCommand struct {
+	Principal          Principal
+	SongID             string
+	Stage              string
+	StageNote          string
+	ExpectedVersion    int
+	IdempotencyKey     string
+	PayloadFingerprint []byte
+	Now                time.Time
+}

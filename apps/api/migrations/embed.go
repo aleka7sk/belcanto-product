@@ -89,6 +89,12 @@ var attendanceUp string
 //go:embed 000011_attendance.down.sql
 var attendanceDown string
 
+//go:embed 000012_repertoire.up.sql
+var repertoireUp string
+
+//go:embed 000012_repertoire.down.sql
+var repertoireDown string
+
 type migration struct {
 	version     int64
 	description string
@@ -109,6 +115,7 @@ func registeredMigrations() []migration {
 		{version: 9, description: "Belcanto L.3 journals and progress", up: journalProgressUp, down: journalProgressDown},
 		{version: 10, description: "Belcanto L.3 homework and practice", up: homeworkPracticeUp, down: homeworkPracticeDown},
 		{version: 11, description: "Belcanto L.4 lesson attendance", up: attendanceUp, down: attendanceDown},
+		{version: 12, description: "Belcanto L.3 student repertoire", up: repertoireUp, down: repertoireDown},
 	}
 }
 

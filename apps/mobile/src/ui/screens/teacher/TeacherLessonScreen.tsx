@@ -148,6 +148,17 @@ function ParticipantBlocks({
         }
         testID={`teacher-lesson-journal-${participant.studentId}`}
       />
+      <BlockAction
+        kind="secondary"
+        label={message("rep.open")}
+        onPress={() =>
+          router.push({
+            pathname: "/(protected)/repertoire",
+            params: { studentId: participant.studentId },
+          })
+        }
+        testID={`teacher-lesson-repertoire-${participant.studentId}`}
+      />
     </Fragment>
   );
 }

@@ -36,6 +36,8 @@ import {
   decodeHomeworkAssignment,
   decodeHomeworkAssignments,
   decodeAttendanceRecords,
+  decodeStudentSong,
+  decodeStudentSongs,
   decodeBootstrapView,
   decodeDelegationResult,
   decodeFirstMinute,
@@ -114,6 +116,9 @@ import {
   type ReviewHomeworkRequest,
   type AttendanceRecord,
   type MarkAttendanceRequest,
+  type StudentSong,
+  type AddStudentSongRequest,
+  type ChangeSongStageRequest,
   type DisableTwofaRequest,
   type RequestPasswordResetRequest,
   type SignInOutcome,
@@ -934,6 +939,33 @@ export const routes = {
       [401, 403, 404, 422, 500],
       decodeAttendanceRecords,
     ),
+  addStudentSong: (studentId: string) =>
+    route<StudentSong>(
+      "POST",
+      `/v1/students/${pathPart(studentId, "studentId")}/songs`,
+      "required",
+      201,
+      [401, 403, 404, 422, 500],
+      decodeStudentSong,
+    ),
+  listStudentSongs: (studentId: string) =>
+    route<StudentSong[]>(
+      "GET",
+      `/v1/students/${pathPart(studentId, "studentId")}/songs`,
+      "required",
+      200,
+      [401, 403, 422, 500],
+      decodeStudentSongs,
+    ),
+  changeSongStage: (songId: string) =>
+    route<StudentSong>(
+      "POST",
+      `/v1/songs/${pathPart(songId, "songId")}/stage`,
+      "required",
+      200,
+      [401, 403, 404, 409, 422, 500],
+      decodeStudentSong,
+    ),
   createLesson: route<Lesson>(
     "POST",
     "/v1/lessons",
@@ -1076,6 +1108,8 @@ export type RouteRequestBodies = {
   submitHomework: SubmitHomeworkRequest;
   reviewHomework: ReviewHomeworkRequest;
   markAttendance: MarkAttendanceRequest;
+  addStudentSong: AddStudentSongRequest;
+  changeSongStage: ChangeSongStageRequest;
   decideRescheduleRequest: DecideRescheduleRequestRequest;
   createLessonSeries: CreateLessonSeriesRequest;
   generateSeriesOccurrences: GenerateOccurrencesRequest;
